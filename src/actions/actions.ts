@@ -126,10 +126,14 @@ export const getChatHistory = async ({
       .select('id')
       .eq('user_id', userID)
       .eq('chat_id', chatID)
-      .single();
+      .maybeSingle();
     
     if (conversationError) {
       throw new Error(`Failed to fetch conversation: ${conversationError.message}`);
+    }
+    
+    if (!conversation) {
+      return { success: false, error: `No conversation found for chat ID: ${chatID}` };
     }
     
     // Then get all messages for this conversation
@@ -297,32 +301,3 @@ export const updateResponse = async ({
     };
   }
 };
-
-// export const generateResponse = async (prompt: string) => {
-//   try {
-//     await connectDB();
-//     if (!prompt) {
-//       throw new Error("Prompt is empty");
-//     }
-//     const res = await axios.post(
-//       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.NEXT_PUBLIC_API_KEY}`,
-//       {
-//         contents: [{ parts: [{ text: prompt }] }],
-//       }
-//     );
-//     const generatedResponse = res.data.candidates[0].content.parts[0].text;
-//     if (!res || !generatedResponse) {
-//       throw new Error("Failed to generate response");
-//     }
-
-//     return {
-//       success: true,
-//       message: generatedResponse,
-//     };
-//   } catch (error) {
-//     return {
-//       success: false,
-//       message: error,
-//     };
-//   }
-// };

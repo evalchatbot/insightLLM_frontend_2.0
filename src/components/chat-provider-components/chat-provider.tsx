@@ -13,7 +13,6 @@ import { lowlight } from "lowlight";
 import { Markdown as TipTapMkd } from "tiptap-markdown";
 import { FormatOutput } from "@/utils/shadow";
 import root from "react-shadow/styled-components";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import insightZustand from "@/utils/insight-zustand";
 import { FaWandMagicSparkles } from "react-icons/fa6";
 import { createPortal } from "react-dom";
@@ -72,8 +71,7 @@ const ChatProvider: React.FC<{
   const [promptModify, setPromptModify] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const genAI = new GoogleGenerativeAI(geminiApiKey as string);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // Use server-side proxy /api/llm to call Gemini; do not import SDK in client
 
   const editor = useEditor({
     extensions,
@@ -118,14 +116,18 @@ const ChatProvider: React.FC<{
 
     try {
       setUpdateLoader(true);
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      if (!text) throw new Error("Error while generating prompt");
-      const updatedContent = await updateResponse({
-        messageId: chatUniqueId,
-        updatedResponse: text,
-      });
+        const res = await fetch("/api/llm", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ prompt }),
+        });
+        const json = await res.json();
+        const text = json.text;
+        if (!text) throw new Error("Error while generating prompt");
+        const updatedContent = await updateResponse({
+          messageId: chatUniqueId,
+          updatedResponse: text,
+        });
       setInitialResponse(updatedContent.message.llm_response as string);
       editor?.commands.setContent(
         updatedContent.message.llm_response as string

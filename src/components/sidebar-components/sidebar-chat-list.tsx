@@ -1,16 +1,18 @@
 "use client";
 import React, { useState, useCallback } from "react";
-import DevButton from "../dev-components/dev-button";
+import dynamic from "next/dynamic";
+// dynamically load dev widgets to avoid bundling them into initial client JS
+const DevButton = dynamic(() => import("../dev-components/dev-button"), { ssr: false, loading: () => <button className="opacity-0" /> });
 import clsx from "clsx";
 import Link from "next/link";
 import { MdDeleteOutline, MdOutlineChatBubbleOutline } from "react-icons/md";
 import { HiOutlineDotsVertical, HiOutlinePencil } from "react-icons/hi";
-import DevPopover from "../dev-components/dev-popover";
+const DevPopover = dynamic(() => import("../dev-components/dev-popover"), { ssr: false, loading: () => <div /> });
 import { BsPin } from "react-icons/bs";
 import { useParams } from "next/navigation";
-import DevModal from "../dev-components/dev-modal";
+const DevModal = dynamic(() => import("../dev-components/dev-modal"), { ssr: false, loading: () => <div /> });
 import { deleteChat, pinChat, renameChat } from "@/actions/actions";
-import DevEmojiPicker from "../dev-components/dev-emoji-picker";
+const DevEmojiPicker = dynamic(() => import("../dev-components/dev-emoji-picker"), { ssr: false, loading: () => <div /> });
 import { TbMessageChatbot, TbPinned } from "react-icons/tb";
 import insightZustand from "@/utils/insight-zustand";
 import { createPortal } from "react-dom";

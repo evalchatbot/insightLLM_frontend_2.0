@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { createChat } from "@/actions/actions";
 import { nanoid } from "nanoid";
 import { useMeasure } from "react-use";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useUser } from "@clerk/nextjs";
 import InputActions from "./input-actions";
 import Link from "next/link";
@@ -22,8 +21,7 @@ const InputPrompt = () => {
   const router = useRouter();
   const [inputRref, { height }] = useMeasure<HTMLTextAreaElement>();
   const chatID = (chat as string) || nanoid();
-  const genAI = new GoogleGenerativeAI(geminiApiKey as string);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // Gemini proxy will be called via server route /api/llm
   const cancelRef = useRef(false);
 
   const generateMsg = useCallback(async () => {
@@ -61,37 +59,24 @@ const InputPrompt = () => {
 
     try {
       setMsgLoader(true);
-      let text = '';
-      if (!inputImg) {
-        const result = await model.generateContentStream(detailedPrompt);
-        for await (const chunk of result.stream) {
-          const chunkText = chunk.text();
-          text += chunkText;
-          setCurrChat("llmResponse", text);
-          if (cancelRef.current) {
-            text = "User has aborted the request";
-          }
-        }
-
-      }
-      else {
-        if (!inputImg) {
-          setToast('Please upload an image before analyzing.');
-          return;
-        }
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        try {
+      let text = "";
+      try {
+        const body: any = { prompt: detailedPrompt };
+        if (inputImg) {
           const imagePart = await fileToGenerativePart(inputImg);
-          const result = await model.generateContent([detailedPrompt, imagePart as string]);
-          text = result.response.text();
-          setCurrChat("llmResponse", text);
-          if (cancelRef.current) {
-            text = "User has aborted the request";
-          }
-        } catch (error: any) {
-          console.log(error.message)
-          setToast(`Error: ${error.message}`);
+          body.image = { data: (imagePart as any).inlineData.data, mimeType: inputImg.type };
         }
+        const res = await fetch("/api/llm", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const json = await res.json();
+        text = json.text;
+        setCurrChat("llmResponse", text);
+      } catch (err: any) {
+        console.error("LLM proxy error:", err);
+        setToast(`Error: ${err?.message || "LLM error"}`);
       }
       if (!text) return;
       setOptimisticPrompt(rawPrompt);

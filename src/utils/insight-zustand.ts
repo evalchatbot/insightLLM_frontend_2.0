@@ -43,7 +43,9 @@ const insightZustand = create<GeminiState>()((set) => ({
   setMsgLoader: (msgLoader) => set({ msgLoader }),
   setOptimisticResponse:(optimisticResponse:string | null)=>set({optimisticResponse}),
   setPrevChat: (newChat: Message) => set({ prevChat: newChat }),
-  geminiApiKey:process.env.NEXT_PUBLIC_API_KEY as string,
+  // Initialize to null on the client. API keys should be provided by the user via localStorage
+  // or used server-side. Avoid reading NEXT_PUBLIC_API_KEY here to prevent accidental bundling.
+  geminiApiKey: null,
   setGeminiApiKey:(geminiApiKey:string | null)=>set({geminiApiKey}),
   setCurrChat: (name: string | null, value: string | null) =>
     set((state) => ({

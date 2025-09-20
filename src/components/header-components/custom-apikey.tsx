@@ -21,7 +21,8 @@ const CustomApiKey = () => {
       setGeminiApiKey(storedKey);
       setHasKey(true);
     } else {
-      setGeminiApiKey(process.env.NEXT_PUBLIC_API_KEY as string);
+      // Do not auto-populate from environment on the client. Keep key null until user provides one.
+      setGeminiApiKey(null);
     }
   }, []);
 
@@ -35,7 +36,7 @@ const CustomApiKey = () => {
   };
 
   const handleRemoveApiKey = () => {
-    setGeminiApiKey(process.env.NEXT_PUBLIC_API_KEY as string);
+    setGeminiApiKey(null);
     localStorage.removeItem("geminiApiKey");
     setToast("API Key removed successfully");
     setApiKey("");

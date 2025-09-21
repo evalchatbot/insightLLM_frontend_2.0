@@ -1,48 +1,90 @@
-
+'use client'
 import { FaCaretDown, FaRegCheckCircle } from "react-icons/fa";
-import { FaBrain } from "react-icons/fa";
+import { FaBook, FaBrain } from "react-icons/fa";
 import DevButton from "../dev-components/dev-button";
 import DevPopover from "../dev-components/dev-popover";
+import { useEffect } from "react";
+import insightZustand from "@/utils/insight-zustand";
+import { fetchGenres } from "@/utils/supabase-genres";
 
 const InsightLogo = () => {
-    return (
-      <DevPopover
-        popButton={
-          <DevButton size="sm" rounded="sm" className="text-lg gap-2">
-            Insight LLM
-            <FaCaretDown />
-          </DevButton>
+  const { selectedGenre, setSelectedGenre, availableGenres, setAvailableGenres } = insightZustand();
+
+  // Load genres on component mount
+  useEffect(() => {
+    const loadGenres = async () => {
+      try {
+        const genres = await fetchGenres();
+        setAvailableGenres(genres);
+        
+        // Set default genre if not already set
+        if (!selectedGenre || selectedGenre === 'General') {
+          setSelectedGenre(genres[0] || 'General');
         }
-      >
-        <div className=" py-2">
-          <DevButton
-            variant="v3"
-            className="w-full !justify-between gap-3 group"
-            rounded="none"
-          >
-            <span className="flex items-center gap-2">
-              <FaBrain className="text-lg text-[#4E82EE]" />
-              Insight LLM
-            </span>
-            <FaRegCheckCircle className="text-xl" />
-          </DevButton>
-          <DevButton
-            ripple={false}
-            className="cursor-auto w-full !justify-start gap-3 group"
-            rounded="none"
-          >
-            <span className="flex items-center gap-2 opacity-50">
-              <FaBrain className="text-lg text-[#D96570]" />
-              Insight LLM Pro
-            </span>
-  
-            <DevButton variant="v1" rounded="sm">
-              Upgrade
-            </DevButton>
-          </DevButton>
+      } catch (error) {
+        console.error('Failed to load genres:', error);
+        
+        // Show helpful error message
+        console.log('🔧 To fix the genre loading issue:');
+        console.log('1. Go to Supabase Dashboard → SQL Editor');
+        console.log('2. Run the SQL from SUPABASE_ENUM_FUNCTION.sql file');
+        console.log('3. Refresh the app');
+        
+        // For now, show a message in the UI
+        setAvailableGenres(['Setup Required']);
+        setSelectedGenre('Setup Required');
+      }
+    };
+
+    // Only load if we haven't loaded genres yet
+    if (availableGenres.length === 0) {
+      loadGenres();
+    }
+  }, [setAvailableGenres, setSelectedGenre, selectedGenre, availableGenres.length]);
+
+  const handleGenreSelect = (genre: string) => {
+    setSelectedGenre(genre);
+  };
+
+  return (
+    <DevPopover
+      popButton={
+        <DevButton size="sm" rounded="sm" className="text-lg gap-2">
+          {selectedGenre || 'Select Genre'}
+          <FaCaretDown />
+        </DevButton>
+      }
+    >
+      <div className="py-2 max-h-64 overflow-y-auto">
+        <div className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600">
+          Select Book Genre
         </div>
-      </DevPopover>
-    );
+        {availableGenres.length > 0 ? (
+          availableGenres.map((genre, index) => (
+            <DevButton
+              key={genre}
+              variant="v3"
+              onClick={() => handleGenreSelect(genre)}
+              className="w-full !justify-between gap-3 group hover:bg-gray-100 dark:hover:bg-gray-700"
+              rounded="none"
+            >
+              <span className="flex items-center gap-2">
+                <FaBook className="text-lg text-[#4E82EE]" />
+                {genre}
+              </span>
+              {selectedGenre === genre && (
+                <FaRegCheckCircle className="text-xl text-green-500" />
+              )}
+            </DevButton>
+          ))
+        ) : (
+          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+            Loading genres...
+          </div>
+        )}
+      </div>
+    </DevPopover>
+  );
   };
 
   export default InsightLogo

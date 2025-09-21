@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { createChat } from "@/actions/actions";
 import { nanoid } from "nanoid";
 import { useMeasure } from "react-use";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useUser } from "@clerk/nextjs";
 import InputActions from "./input-actions";
 import Link from "next/link";
@@ -14,7 +13,7 @@ import { IoMdClose } from "react-icons/io";
 
 const InputPrompt = () => {
   const { user, isLoaded } = useUser();
-  const { currChat, setCurrChat, setToast, customPrompt, setInputImgName, inputImgName, setMsgLoader, prevChat, msgLoader, optimisticResponse, setOptimisticResponse, setOptimisticPrompt, geminiApiKey } =
+  const { currChat, setCurrChat, setToast, customPrompt, setInputImgName, inputImgName, setMsgLoader, prevChat, msgLoader, optimisticResponse, setOptimisticResponse, setOptimisticPrompt, selectedGenre } =
     insightZustand();
   const [inputImg, setInputImg] = useState<File | null>(null)
 
@@ -22,101 +21,180 @@ const InputPrompt = () => {
   const router = useRouter();
   const [inputRref, { height }] = useMeasure<HTMLTextAreaElement>();
   const chatID = (chat as string) || nanoid();
-  const genAI = new GoogleGenerativeAI(geminiApiKey as string);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   const cancelRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const generateMsg = useCallback(async () => {
     if (!currChat.userPrompt?.trim() || !user) return;
-    router.push(`/app/${chatID}#new-chat`);
-    const date = new Date().toISOString().split("T")[0];
-    // const userName = user?.name?.split(" ")[0] || "User";
-    let rawPrompt = currChat.userPrompt;
-    let rawImage = inputImgName;
-    const detailedPrompt = `
-      Date: ${date}
-
-      ${customPrompt.prompt ? customPrompt : `User, is seeking a wise and impressive response. Consider including necessary details, context, and thoughtful insights. Aim to provide a comprehensive, well-structured, and articulate answer. Respond in a friendly and natural manner, using terms like "buddy" or other friendly expressions. Provide a complete and final response without asking any further questions.`}
-
-      Previous chats:
-      User: ${prevChat.userPrompt}
-      LLM Response: ${prevChat.llmResponse}
-
-      Current User Query:
-      ${rawPrompt}
+    
+    // Navigate to chat only if not already in a chat route
+    if (!chat) {
+      router.replace(`/app/${chatID}#new-chat`);
+    }
+    
+    const rawPrompt = currChat.userPrompt;
+    const rawImage = inputImgName;
+    
+    // Build the question with context
+    const contextualQuestion = `
+      ${customPrompt.prompt ? customPrompt.prompt : 'Please provide a comprehensive and helpful response.'}
+      
+      Previous context:
+      User: ${prevChat.userPrompt || 'No previous context'}
+      Assistant: ${prevChat.llmResponse || 'No previous response'}
+      
+      Current question: ${rawPrompt}
     `;
-
-    const fileToGenerativePart = (file: File) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve({
-          inlineData: {
-            data: typeof reader?.result === 'string' ? reader?.result.split(',')[1] : undefined,
-            mimeType: file.type
-          },
-        });
-        reader.readAsDataURL(file);
-      });
-    };
 
     try {
       setMsgLoader(true);
-      let text = '';
-      if (!inputImg) {
-        const result = await model.generateContentStream(detailedPrompt);
-        for await (const chunk of result.stream) {
-          const chunkText = chunk.text();
-          text += chunkText;
-          setCurrChat("llmResponse", text);
+      
+      // Create abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
+      // Debug user object
+      console.log('User object:', user);
+      console.log('User ID:', user?.id);
+      
+      // No authentication needed - backend has auth removed
+      const sessionId = `sess_${Date.now()}_${user?.id || 'anonymous'}`;
+      
+      // Prepare request body for ask-stream endpoint
+      const requestBody = {
+        user_id: user?.id || 'anonymous',
+        session_id: sessionId,
+        question: contextualQuestion,
+        genre: selectedGenre || "General", // Use selected genre from store
+        conversation_id: chatID,
+        mode: "adaptive" // Options: "fast", "multi_step", "adaptive"
+      };
+      
+      console.log('Request body:', requestBody);
+      
+      // Call the streaming endpoint
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/chatbot/ask-stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: abortControllerRef.current.signal
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+      
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+      
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              
+              if (data.trim() === '') continue;
+              
+              try {
+                const parsedData = JSON.parse(data);
+                
+                if (parsedData.type === 'chunk') {
+                  // Update the response with streaming content
+                  fullResponse = parsedData.full_content || fullResponse + parsedData.content;
+                  setCurrChat("llmResponse", fullResponse);
+                } else if (parsedData.type === 'complete') {
+                  // Final response received
+                  fullResponse = parsedData.answer;
+                  setCurrChat("llmResponse", fullResponse);
+                  break;
+                } else if (parsedData.type === 'metadata') {
+                  // Handle metadata if needed
+                  console.log('Stream metadata:', parsedData);
+                }
+              } catch (parseError) {
+                console.warn('Failed to parse SSE data:', data);
+              }
+            }
+          }
+          
+          // Check if request was cancelled
           if (cancelRef.current) {
-            text = "User has aborted the request";
+            fullResponse = "User has aborted the request";
+            setCurrChat("llmResponse", fullResponse);
+            break;
           }
         }
-
       }
-      else {
-        if (!inputImg) {
-          setToast('Please upload an image before analyzing.');
-          return;
-        }
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        try {
-          const imagePart = await fileToGenerativePart(inputImg);
-          const result = await model.generateContent([detailedPrompt, imagePart as string]);
-          text = result.response.text();
-          setCurrChat("llmResponse", text);
-          if (cancelRef.current) {
-            text = "User has aborted the request";
-          }
-        } catch (error: any) {
-          console.log(error.message)
-          setToast(`Error: ${error.message}`);
-        }
+      
+      if (!fullResponse) {
+        setToast('No response received from the API.');
+        return;
       }
-      if (!text) return;
+      
+      // Set optimistic states
       setOptimisticPrompt(rawPrompt);
-      setOptimisticResponse(text);
+      setOptimisticResponse(fullResponse);
       setMsgLoader(false);
-      setCurrChat("userPrompt", null);
-
-      await createChat({
+      
+      // Create chat in database
+      const chatResult = await createChat({
         chatID,
-        userID: user?.id as string,
+        userID: user?.id || 'anonymous',
         imgName: rawImage ?? undefined,
         userPrompt: rawPrompt,
-        llmResponse: text,
+        llmResponse: fullResponse,
       });
-    } catch (error) {
+      
+      // Only clear state after successful chat creation
+      if (chatResult.success) {
+        setTimeout(() => {
+          setCurrChat("userPrompt", null);
+          setCurrChat("llmResponse", null);
+          setOptimisticResponse(null);
+          setOptimisticPrompt(null);
+        }, 100);
+      } else {
+        console.error('Failed to create chat:', chatResult.error);
+        setToast('Failed to save chat. Please try again.');
+      }
+      
+    } catch (error: any) {
       console.error("Error generating message:", error);
-    } finally {
+      
+      if (error.name === 'AbortError') {
+        setToast('Request was cancelled.');
+      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        setToast(`Failed to connect to API at ${process.env.NEXT_PUBLIC_API_BASE_URL}. Please check if the backend is running.`);
+      } else if (error.message?.includes('HTTP error')) {
+        setToast(`Backend API error: ${error.message}`);
+      } else {
+        setToast(`Error: ${error.message || 'Failed to get response'}`);
+      }
+      
+      // Reset state on error
       setMsgLoader(false);
-      setInputImg(null)
-      setInputImgName(null)
-      setCurrChat("userPrompt", null);
-      setCurrChat("llmResponse", null);
       setOptimisticResponse(null);
       setOptimisticPrompt(null);
-
+    } finally {
+      // Clean up temporary states
+      setInputImg(null);
+      setInputImgName(null);
+      abortControllerRef.current = null;
     }
   }, [
     currChat.userPrompt,
@@ -126,6 +204,14 @@ const InputPrompt = () => {
     setCurrChat,
     setMsgLoader,
     router,
+    chatID,
+    customPrompt,
+    inputImgName,
+    setOptimisticPrompt,
+    setOptimisticResponse,
+    setInputImgName,
+    setToast,
+    selectedGenre
   ]);
 
   const handleTextareaChange = useCallback(
@@ -136,19 +222,30 @@ const InputPrompt = () => {
   );
   const handleCancel = useCallback(() => {
     cancelRef.current = true;
+    
+    // Abort the fetch request if it's in progress
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
     setOptimisticResponse("User has aborted the request");
     setMsgLoader(false);
   }, [setOptimisticResponse, setMsgLoader]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!user) { setToast('Please sign in to use Insight LLM!') }
+      if (!user) { 
+        setToast('Please sign in to use Insight LLM!');
+        return;
+      }
+      
       if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
         cancelRef.current = false;
         generateMsg();
       }
     },
-    [generateMsg]
+    [generateMsg, user, setToast]
   );
 
   // Note: User data is now accessed directly via useUser() hook instead of storing in Zustand

@@ -23,6 +23,11 @@ interface GeminiState {
   setCustomPrompt:(value:{prompt:string|null, placeholder:string|null})=>void
   geminiApiKey:string | null,
   setGeminiApiKey:(geminiApiKey:string | null)=>void
+  // Genre management
+  selectedGenre: string,
+  setSelectedGenre: (genre: string) => void,
+  availableGenres: string[],
+  setAvailableGenres: (genres: string[]) => void
 }
 
 const insightZustand = create<GeminiState>()((set) => ({
@@ -43,8 +48,15 @@ const insightZustand = create<GeminiState>()((set) => ({
   setMsgLoader: (msgLoader) => set({ msgLoader }),
   setOptimisticResponse:(optimisticResponse:string | null)=>set({optimisticResponse}),
   setPrevChat: (newChat: Message) => set({ prevChat: newChat }),
-  geminiApiKey:process.env.NEXT_PUBLIC_API_KEY as string,
+  // Initialize to null on the client. API keys should be provided by the user via localStorage
+  // or used server-side. Avoid reading NEXT_PUBLIC_API_KEY here to prevent accidental bundling.
+  geminiApiKey: null,
   setGeminiApiKey:(geminiApiKey:string | null)=>set({geminiApiKey}),
+  // Genre management
+  selectedGenre: "General",
+  setSelectedGenre: (genre: string) => set({ selectedGenre: genre }),
+  availableGenres: [],
+  setAvailableGenres: (genres: string[]) => set({ availableGenres: genres }),
   setCurrChat: (name: string | null, value: string | null) =>
     set((state) => ({
       currChat: { ...state.currChat, [name as string]: value },

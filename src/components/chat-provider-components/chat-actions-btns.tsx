@@ -10,7 +10,6 @@ import DevPopover from "../dev-components/dev-popover";
 import { MdContentCopy, MdOutlineFlag } from "react-icons/md";
 import insightZustand from "@/utils/insight-zustand";
 import { MdSearch } from "react-icons/md";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import Link from "next/link";
 import { IoMdSearch } from "react-icons/io";
 
@@ -26,9 +25,8 @@ const ChatActionsBtns = ({
   userPrompt: string;
   shareMsg: string;
 }) => {
-  const { devToast, setToast, geminiApiKey } = insightZustand();
-  const genAI = new GoogleGenerativeAI(geminiApiKey as string);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const { devToast, setToast } = insightZustand();
+  // Use server proxy at /api/llm instead of SDK in browser
   const [searchRes, setSearchRes] = useState<string[] | null>(null)
   const [loader, setLoader] = useState(false)
 
@@ -48,18 +46,20 @@ const ChatActionsBtns = ({
       Current User Query:
       ${userPrompt}`
     try {
-      setLoader(true)
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      setLoader(true);
+      const res = await fetch("/api/llm", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const json = await res.json();
+      const text = json.text;
       const searchResArray = JSON.parse(text.replace(/^```json\s*|\s*```$/gm, "").trim());
-      setSearchRes(searchResArray)
-
+      setSearchRes(searchResArray);
     } catch (error) {
-      console.log(error)
-    }
-    finally {
-      setLoader(false)
+      console.log(error);
+    } finally {
+      setLoader(false);
     }
   }
   return (

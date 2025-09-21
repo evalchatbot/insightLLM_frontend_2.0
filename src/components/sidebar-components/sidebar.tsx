@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import DevButton from "../dev-components/dev-button";
+import dynamic from "next/dynamic";
 import { FiMenu } from "react-icons/fi";
 import { IoMdAdd, IoMdHelpCircleOutline } from "react-icons/io";
 import { MdOutlineDarkMode } from "react-icons/md";
@@ -10,15 +10,33 @@ import {
   IoLinkSharp,
   IoSettingsOutline,
 } from "react-icons/io5";
-import ReactTooltip from "../dev-components/react-tooltip";
 import { GoDotFill } from "react-icons/go";
-import DevPopover from "../dev-components/dev-popover";
 import ThemeSwitch from "./theme-switch";
 import { useParams, useRouter } from "next/navigation";
-import SidebarChatList from "./sidebar-chat-list";
 import { createPortal } from "react-dom";
-import InsightLogo from "../header-components/insight-logo";
 import { FaBrain } from "react-icons/fa";
+
+// Dynamically load heavier client-only widgets so they don't ship on first paint
+const DevButton = dynamic(() => import("../dev-components/dev-button"), {
+  ssr: false,
+  loading: () => <button className="opacity-0" />,
+});
+const ReactTooltip = dynamic(() => import("../dev-components/react-tooltip"), {
+  ssr: false,
+  loading: () => <span />,
+});
+const DevPopover = dynamic(() => import("../dev-components/dev-popover"), {
+  ssr: false,
+  loading: () => <div />,
+});
+const SidebarChatList = dynamic(() => import("./sidebar-chat-list"), {
+  ssr: false,
+  loading: () => <div className="p-3 text-xs opacity-70">Loading chats…</div>,
+});
+const InsightLogo = dynamic(() => import("../header-components/insight-logo"), {
+  ssr: false,
+  loading: () => <div />,
+});
 
 const SideBar = ({ sidebarList }: { sidebarList: any }) => {
   const [open, setOpen] = useState(false);
@@ -69,7 +87,7 @@ const SideBar = ({ sidebarList }: { sidebarList: any }) => {
         {open && <h2 className="pl-3 mt-10">{sidebarList.success && sidebarList.message.length > 0 && "Recent"}</h2>}
       </div>
       <div className={`${open ? "block" : "hidden"} flex-grow overflow-y-auto`}>
-        <SidebarChatList sidebarList={sidebarList} />
+        {open ? <SidebarChatList sidebarList={sidebarList} /> : null}
       </div>
       <div>
         <ul className="mt-5 space-y-1">
@@ -148,10 +166,6 @@ const SideBar = ({ sidebarList }: { sidebarList: any }) => {
           </li>
           
         </ul>
-        <DevButton variant="v1" className="gap-2 mt-2 text-sm md:!hidden !flex">
-          <FaBrain className="text-lg text-[#4E82EE]" />
-          Try Insight LLM Pro
-        </DevButton>
         <div
           className={`transform overflow-hidden ${open ? "block" : "hidden"}`}
         >

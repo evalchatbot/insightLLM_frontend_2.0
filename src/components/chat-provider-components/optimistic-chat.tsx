@@ -2,7 +2,17 @@
 
 import { MessageProps } from "@/types/types";
 import React, { useEffect, useOptimistic } from "react";
-import ChatProvider from "./chat-provider";
+import dynamic from "next/dynamic";
+
+const ChatProvider = dynamic(
+  () => import("./chat-provider"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-4 text-sm opacity-70">Loading editor…</div>
+    ),
+  }
+);
 import ChatActionsBtns from "./chat-actions-btns";
 import insightZustand from "@/utils/insight-zustand";
 

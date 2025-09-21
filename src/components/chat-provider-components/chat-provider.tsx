@@ -1,19 +1,14 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import CodeBlock from "@/components/chat-provider-components/code-block";
-import {
-  BubbleMenu,
-  EditorContent,
-  ReactNodeViewRenderer,
-  useEditor,
-} from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
-import { lowlight } from "lowlight";
-import { Markdown as TipTapMkd } from "tiptap-markdown";
+import dynamic from "next/dynamic";
+
+// Dynamically import the heavy editor to avoid bundling on /app route
+const EditorShell = dynamic(() => import("./EditorShell"), {
+  ssr: false,
+  loading: () => <div className="w-full h-32 bg-gray-100 animate-pulse rounded" />,
+});
 import { FormatOutput } from "@/utils/shadow";
 import root from "react-shadow/styled-components";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import insightZustand from "@/utils/insight-zustand";
 import { FaWandMagicSparkles } from "react-icons/fa6";
 import { createPortal } from "react-dom";
@@ -28,13 +23,7 @@ import TextToSpeech from "./text-to-speech";
 import ChatActionsBtns from "./chat-actions-btns";
 import { BsImage } from "react-icons/bs";
 
-const extensions = [
-  StarterKit,
-  TipTapMkd,
-  CodeBlockLowlight.extend({
-    addNodeView: () => ReactNodeViewRenderer(CodeBlock),
-  }).configure({ lowlight }),
-];
+// Extensions and editor setup moved to EditorShell component
 
 const PROMPT_TYPES = {
   Longer: "Lengthen",
@@ -60,7 +49,7 @@ const ChatProvider: React.FC<{
   imgName?: string;
   imgInfo: { imgSrc: string; imgAlt: string };
 }> = ({ llmResponse, chatUniqueId, userPrompt, imgInfo, imgName }) => {
-  const { topLoader, setCurrChat, setTopLoader, currChat, geminiApiKey } = insightZustand();
+  const { topLoader, setCurrChat, setTopLoader, currChat } = insightZustand();
   const [dropdown, setDropdown] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const [initialResponse, setInitialResponse] = useState(llmResponse);
@@ -70,21 +59,16 @@ const ChatProvider: React.FC<{
   const inputRef = useRef<HTMLInputElement>(null);
   const [initialPrompt, setInitialPrompt] = useState(userPrompt);
   const [promptModify, setPromptModify] = useState(false);
+  const [editor, setEditor] = useState<any>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const genAI = new GoogleGenerativeAI(geminiApiKey as string);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // Use server-side proxy /api/llm to call Gemini; do not import SDK in client
 
-  const editor = useEditor({
-    extensions,
-    content: initialResponse,
-    onUpdate: ({ editor }) => {
-      editor.commands.setContent(initialResponse);
-    },
-  });
+  // Editor moved to EditorShell component
 
   const handleSelectNode = () => {
-    const { state } = editor!;
+    if (!editor) return;
+    const { state } = editor;
     const { from, to } = state.selection;
     const selectedNode = state.doc.textBetween(from, to, " ");
     setSelectedNode(selectedNode);
@@ -118,14 +102,18 @@ const ChatProvider: React.FC<{
 
     try {
       setUpdateLoader(true);
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      if (!text) throw new Error("Error while generating prompt");
-      const updatedContent = await updateResponse({
-        messageId: chatUniqueId,
-        updatedResponse: text,
-      });
+        const res = await fetch("/api/llm", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ prompt }),
+        });
+        const json = await res.json();
+        const text = json.text;
+        if (!text) throw new Error("Error while generating prompt");
+        const updatedContent = await updateResponse({
+          messageId: chatUniqueId,
+          updatedResponse: text,
+        });
       setInitialResponse(updatedContent.message.llm_response as string);
       editor?.commands.setContent(
         updatedContent.message.llm_response as string
@@ -208,8 +196,8 @@ const ChatProvider: React.FC<{
     }
   };
   const handleTxtToSpeech = () => {
-    return editor?.getText() as string
-  }
+    return editor?.getText() || initialResponse;
+  };
   return (
     <>
       <div className="w-full h-fit flex items-start gap-3 group relative">
@@ -281,32 +269,14 @@ const ChatProvider: React.FC<{
      
       <div className="flex md:flex-row flex-col w-full items-start gap-4">
         <FaBrain className="text-4xl text-[#4E82EE] transition-all duration-500" />
-        <root.div className="w-full shadowDiv -translate-y-4">
-          <FormatOutput>
-            <BubbleMenu editor={editor}>
-              {!dropdown && (
-                <button
-                  ref={buttonRef}
-                  onClick={handleButtonClick}
-                  style={{
-                    fontSize: "1rem",
-                    color: "white",
-                    padding: "10px",
-                    borderRadius: "50%",
-                    border: "none",
-                    aspectRatio: "1/1",
-                    cursor: "pointer",
-                    height: "2.5rem",
-                    backgroundColor: "#334155"
-                  }}
-                >
-                  <FaWandMagicSparkles />
-                </button>
-              )}
-            </BubbleMenu>
-            <EditorContent spellCheck={false} editor={editor} />
-          </FormatOutput>
-        </root.div>
+        <EditorShell
+          initialResponse={initialResponse}
+          selectedNode={selectedNode}
+          dropdown={dropdown}
+          onSelectNode={handleSelectNode}
+          onButtonClick={handleButtonClick}
+          onEditorReady={setEditor}
+        />
       </div>
 
       <ChatActionsBtns

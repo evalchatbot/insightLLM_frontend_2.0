@@ -1,91 +1,107 @@
 'use client'
 import insightZustand from '@/utils/insight-zustand'
 import React, { useMemo } from 'react'
-import { AiOutlineBulb, AiOutlineExperiment } from "react-icons/ai";
-import { IoCompassOutline, IoFitnessOutline } from "react-icons/io5";
-import { MdOutlineDraw, MdOutlineNoFood, MdOutlineArchitecture } from "react-icons/md";
-import { RiImageAddFill, RiMusic2Line } from "react-icons/ri";
-import { FaChessKnight, FaTheaterMasks } from "react-icons/fa";
-import { GiCook, GiMaterialsScience } from "react-icons/gi";
-import { BsBookHalf, BsCodeSlash, BsCameraReels, BsGlobe } from "react-icons/bs";
-import { TbMathFunction } from "react-icons/tb";
+import { FaBalanceScale, FaUniversity, FaGavel, FaFlag } from "react-icons/fa";
+import { IoIosBook, IoMdPaper } from "react-icons/io";
+import { MdOutlineGavel, MdOutlinePolicy, MdOutlineHowToVote, MdOutlineAccountBalance } from "react-icons/md";
+import { RiGovernmentLine, RiBookReadLine } from "react-icons/ri";
+import { GiCapitol, GiScales, GiVote, GiTakeMyMoney } from "react-icons/gi";
+import { BsShieldCheck, BsGlobe, BsFileEarmarkText, BsBuildingDown } from "react-icons/bs";
+import { HiOutlineDocumentText, HiOutlineScale } from "react-icons/hi";
+import { TbGavel } from "react-icons/tb";
 
 const promptArray = [
   {
-    icon: RiImageAddFill,
-    prompt: "Give me ideas for what to do with what's in this image?",
+    icon: FaBalanceScale,
+    prompt: "Explain the key differences between the US Constitution and Pakistan's Constitution of 1973",
   },
   {
-    icon: AiOutlineBulb,
-    prompt: "As a social trend expert, explain a term",
+    icon: FaUniversity,
+    prompt: "What are the fundamental principles of constitutional democracy and how do they protect minority rights?",
   },
   {
-    icon: IoCompassOutline,
-    prompt: "Recommend new types of water sports, including pros & cons",
+    icon: RiGovernmentLine,
+    prompt: "Compare the federal systems of the United States, Germany, and India - what are their unique features?",
   },
   {
-    icon: MdOutlineDraw,
-    prompt: "Create vibrant & playful image with lots of details",
+    icon: MdOutlineGavel,
+    prompt: "How does judicial review work in different constitutional systems around the world?",
   },
   {
-    icon: BsCodeSlash,
-    prompt: "Explain a complex programming concept in simple terms",
+    icon: GiCapitol,
+    prompt: "Analyze the separation of powers doctrine - why did the founding fathers consider it essential?",
   },
   {
-    icon: GiCook,
-    prompt: "Suggest a unique recipe using uncommon ingredients",
+    icon: BsShieldCheck,
+    prompt: "What are the key differences between a written constitution like the US and an unwritten one like the UK?",
   },
   {
-    icon: FaChessKnight,
-    prompt: "Describe an interesting chess strategy for beginners",
+    icon: MdOutlinePolicy,
+    prompt: "Examine the concept of constitutional sovereignty versus parliamentary sovereignty",
   },
   {
-    icon: BsBookHalf,
-    prompt: "Recommend a book based on my favorite movie",
+    icon: IoIosBook,
+    prompt: "How do constitutional amendments work in Pakistan compared to the United States?",
   },
   {
-    icon: RiMusic2Line,
-    prompt: "Create a playlist for a specific mood or activity",
+    icon: GiScales,
+    prompt: "What role do constitutional courts play in protecting fundamental rights?",
   },
   {
-    icon: IoFitnessOutline,
-    prompt: "Design a 15-minute workout routine for busy professionals",
+    icon: MdOutlineHowToVote,
+    prompt: "Compare different electoral systems - FPTP, proportional representation, and mixed systems",
   },
   {
-    icon: MdOutlineNoFood,
-    prompt: "Explain the cultural significance of a traditional dish",
+    icon: BsFileEarmarkText,
+    prompt: "What is the significance of the Bill of Rights in the US Constitution?",
   },
   {
-    icon: BsCameraReels,
-    prompt: "Pitch an idea for a new sci-fi TV series",
+    icon: HiOutlineDocumentText,
+    prompt: "Analyze the concept of constitutional supremacy and its implications for governance",
   },
   {
-    icon: AiOutlineExperiment,
-    prompt: "Describe a fun science experiment to do at home",
+    icon: FaGavel,
+    prompt: "How do emergency powers provisions differ across various constitutions?",
   },
   {
-    icon: FaTheaterMasks,
-    prompt: "Write a short dramatic monologue for an audition",
+    icon: GiVote,
+    prompt: "What are the constitutional requirements for citizenship and naturalization in different countries?",
   },
   {
     icon: BsGlobe,
-    prompt: "Suggest an off-the-beaten-path travel destination",
+    prompt: "Examine the role of international law in domestic constitutional interpretation",
   },
   {
-    icon: TbMathFunction,
-    prompt: "Explain a complex mathematical concept using a real-world analogy",
+    icon: MdOutlineAccountBalance,
+    prompt: "How do constitutional provisions for economic rights differ between countries?",
   },
   {
-    icon: GiMaterialsScience,
-    prompt: "Describe a potential future technology and its implications",
+    icon: RiBookReadLine,
+    prompt: "What is the doctrine of basic structure in constitutional law and why is it important?",
   },
   {
-    icon: MdOutlineArchitecture,
-    prompt: "Design a unique tiny house with innovative features",
+    icon: FaFlag,
+    prompt: "Compare the constitutional frameworks for freedom of speech in different democracies",
   },
   {
-    icon: IoCompassOutline,
-    prompt: "Create a treasure hunt with clues for a birthday party",
+    icon: TbGavel,
+    prompt: "How do constitutional conventions and customs supplement written constitutional law?",
+  },
+  {
+    icon: HiOutlineScale,
+    prompt: "What are the constitutional challenges facing modern democracies in the digital age?",
+  },
+  {
+    icon: IoMdPaper,
+    prompt: "Analyze the constitutional basis for federalism and state rights in federal systems",
+  },
+  {
+    icon: GiTakeMyMoney,
+    prompt: "How do constitutional provisions regulate taxation and fiscal federalism?",
+  },
+  {
+    icon: BsBuildingDown,
+    prompt: "What constitutional mechanisms exist for impeachment and removal of government officials?",
   },
 ];
 

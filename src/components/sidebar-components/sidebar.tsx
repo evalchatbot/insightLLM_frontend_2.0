@@ -166,10 +166,6 @@ const SideBar = ({ sidebarList }: { sidebarList: any }) => {
           </li>
           
         </ul>
-        <DevButton variant="v1" className="gap-2 mt-2 text-sm md:!hidden !flex">
-          <FaBrain className="text-lg text-[#4E82EE]" />
-          Try Insight LLM Pro
-        </DevButton>
         <div
           className={`transform overflow-hidden ${open ? "block" : "hidden"}`}
         >

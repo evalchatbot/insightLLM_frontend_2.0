@@ -25,7 +25,7 @@ const ChatActionsBtns = ({
   userPrompt: string;
   shareMsg: string;
 }) => {
-  const { devToast, setToast, geminiApiKey } = insightZustand();
+  const { devToast, setToast } = insightZustand();
   // Use server proxy at /api/llm instead of SDK in browser
   const [searchRes, setSearchRes] = useState<string[] | null>(null)
   const [loader, setLoader] = useState(false)

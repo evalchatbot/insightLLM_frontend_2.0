@@ -49,7 +49,7 @@ const ChatProvider: React.FC<{
   imgName?: string;
   imgInfo: { imgSrc: string; imgAlt: string };
 }> = ({ llmResponse, chatUniqueId, userPrompt, imgInfo, imgName }) => {
-  const { topLoader, setCurrChat, setTopLoader, currChat, geminiApiKey } = insightZustand();
+  const { topLoader, setCurrChat, setTopLoader, currChat } = insightZustand();
   const [dropdown, setDropdown] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const [initialResponse, setInitialResponse] = useState(llmResponse);

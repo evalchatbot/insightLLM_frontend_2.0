@@ -1,7 +1,7 @@
 "use client";
 
 import { MessageProps } from "@/types/types";
-import React, { useEffect, useOptimistic } from "react";
+import React, { useEffect, useOptimistic, startTransition } from "react";
 import dynamic from "next/dynamic";
 
 const ChatProvider = dynamic(
@@ -33,13 +33,15 @@ const OptimisticChat = ({
 
   useEffect(() => {
     if (optimisticResponse) {
-      addOptimisticChat({
-        id: Date.now().toString(),
-        user_prompt: optimisticPrompt ?? "",
-        llm_response: optimisticResponse ?? "",
-        img_name: inputImgName ?? null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+      startTransition(() => {
+        addOptimisticChat({
+          id: Date.now().toString(),
+          user_prompt: optimisticPrompt ?? "",
+          llm_response: optimisticResponse ?? "",
+          img_name: inputImgName ?? null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
       });
     }
     // setCurrChat("userPrompt", null);

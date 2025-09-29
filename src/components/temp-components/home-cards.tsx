@@ -1,6 +1,8 @@
 'use client'
 import insightZustand from '@/utils/insight-zustand'
 import React, { useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { nanoid } from 'nanoid'
 import { FaBalanceScale, FaUniversity, FaGavel, FaFlag } from "react-icons/fa";
 import { IoIosBook, IoMdPaper } from "react-icons/io";
 import { MdOutlineGavel, MdOutlinePolicy, MdOutlineHowToVote, MdOutlineAccountBalance } from "react-icons/md";
@@ -106,19 +108,34 @@ const promptArray = [
 ];
 
 const HomeCards = () => {
-  const { setCurrChat } = insightZustand()
+  const { setCurrChat, setAutoSend } = insightZustand()
+  const router = useRouter()
   
   const randomPrompts = useMemo(() => {
     const shuffled = [...promptArray].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, 4);
   }, []);
 
+  const handleCardClick = (prompt: string) => {
+    // Generate a new chat ID
+    const chatID = nanoid();
+    
+    // Set the prompt in the store
+    setCurrChat('userPrompt', prompt);
+    
+    // Set autoSend flag so the message gets sent automatically after navigation
+    setAutoSend(true);
+    
+    // Navigate to the new chat page
+    router.push(`/app/${chatID}`);
+  };
+
   return (
     <div className="w-full h-auto grid md:grid-cols-4 grid-cols-1 overflow-hidden gap-2 mt-5 md:mt-16">
       {randomPrompts.map((item, index) => (
         <div
           key={index}
-          onClick={() => setCurrChat('userPrompt', item.prompt)}
+          onClick={() => handleCardClick(item.prompt)}
           className="dark:bg-rtlDark md:aspect-square bg-rtlLight hover:!bg-accentGray/20 cursor-pointer rounded-xl relative p-4 font-light"
         >
           <p>{item.prompt}</p>

@@ -28,6 +28,9 @@ interface GeminiState {
   setSelectedGenre: (genre: string) => void,
   availableGenres: string[],
   setAvailableGenres: (genres: string[]) => void
+  // Auto-send flag
+  autoSend: boolean,
+  setAutoSend: (autoSend: boolean) => void
 }
 
 const insightZustand = create<GeminiState>()((set) => ({
@@ -57,6 +60,9 @@ const insightZustand = create<GeminiState>()((set) => ({
   setSelectedGenre: (genre: string) => set({ selectedGenre: genre }),
   availableGenres: [],
   setAvailableGenres: (genres: string[]) => set({ availableGenres: genres }),
+  // Auto-send flag
+  autoSend: false,
+  setAutoSend: (autoSend: boolean) => set({ autoSend }),
   setCurrChat: (name: string | null, value: string | null) =>
     set((state) => ({
       currChat: { ...state.currChat, [name as string]: value },

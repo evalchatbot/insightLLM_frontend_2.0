@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import insightZustand from "@/utils/insight-zustand";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { createChat } from "@/actions/actions";
 import { nanoid } from "nanoid";
 import { useMeasure } from "react-use";
@@ -13,23 +13,30 @@ import { IoMdClose } from "react-icons/io";
 
 const InputPrompt = () => {
   const { user, isLoaded } = useUser();
-  const { currChat, setCurrChat, setToast, customPrompt, setInputImgName, inputImgName, setMsgLoader, prevChat, msgLoader, optimisticResponse, setOptimisticResponse, setOptimisticPrompt, selectedGenre } =
+  const { currChat, setCurrChat, setToast, customPrompt, setInputImgName, inputImgName, setMsgLoader, prevChat, msgLoader, optimisticResponse, setOptimisticResponse, setOptimisticPrompt, selectedGenre, autoSend, setAutoSend } =
     insightZustand();
   const [inputImg, setInputImg] = useState<File | null>(null)
 
   const { chat } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [inputRref, { height }] = useMeasure<HTMLTextAreaElement>();
-  const chatID = (chat as string) || nanoid();
+  const chatID = chat as string; // Only use the actual chat ID from params
   const cancelRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const generateMsg = useCallback(async () => {
-    if (!currChat.userPrompt?.trim() || !user) return;
+    if (!currChat.userPrompt?.trim() || !user) {
+      return;
+    }
     
-    // Navigate to chat only if not already in a chat route
+    // If we're not in a chat route, navigate to a new chat page with auto-trigger
     if (!chat) {
-      router.replace(`/app/${chatID}#new-chat`);
+      const newChatID = nanoid();
+      // Set autoSend flag so message gets sent automatically after navigation
+      setAutoSend(true);
+      router.push(`/app/${newChatID}`);
+      return;
     }
     
     const rawPrompt = currChat.userPrompt;
@@ -52,10 +59,6 @@ const InputPrompt = () => {
       // Create abort controller for this request
       abortControllerRef.current = new AbortController();
       
-      // Debug user object
-      console.log('User object:', user);
-      console.log('User ID:', user?.id);
-      
       // No authentication needed - backend has auth removed
       const sessionId = `sess_${Date.now()}_${user?.id || 'anonymous'}`;
       
@@ -68,8 +71,6 @@ const InputPrompt = () => {
         conversation_id: chatID,
         mode: "adaptive" // Options: "fast", "multi_step", "adaptive"
       };
-      
-      console.log('Request body:', requestBody);
       
       // Call the streaming endpoint
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/chatbot/ask-stream`, {
@@ -98,6 +99,10 @@ const InputPrompt = () => {
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
+          
+          if (done) {
+            break;
+          }
           
           if (done) break;
           
@@ -204,7 +209,6 @@ const InputPrompt = () => {
     setCurrChat,
     setMsgLoader,
     router,
-    chatID,
     customPrompt,
     inputImgName,
     setOptimisticPrompt,
@@ -247,6 +251,20 @@ const InputPrompt = () => {
     },
     [generateMsg, user, setToast]
   );
+
+  // Auto-trigger message generation when landing on a new chat page with a prompt
+  useEffect(() => {
+    if (autoSend && currChat.userPrompt?.trim() && !msgLoader && user && !optimisticResponse && isLoaded && chat) {
+      // Small delay to ensure the page has loaded
+      const timer = setTimeout(() => {
+        cancelRef.current = false;
+        setAutoSend(false); // Reset the flag
+        generateMsg();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currChat.userPrompt, msgLoader, user, optimisticResponse, isLoaded, autoSend, chat]); // Added autoSend and chat to deps
 
   // Note: User data is now accessed directly via useUser() hook instead of storing in Zustand
 

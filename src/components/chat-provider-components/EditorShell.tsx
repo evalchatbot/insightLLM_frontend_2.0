@@ -16,7 +16,10 @@ import root from "react-shadow/styled-components";
 import { FaWandMagicSparkles } from "react-icons/fa6";
 
 const extensions = [
-  StarterKit,
+  StarterKit.configure({
+    // Disable the default codeBlock since we're using CodeBlockLowlight
+    codeBlock: false,
+  }),
   TipTapMkd,
   CodeBlockLowlight.extend({
     addNodeView: () => ReactNodeViewRenderer(CodeBlock),
@@ -56,27 +59,29 @@ const EditorShell: React.FC<EditorShellProps> = ({
   return (
     <root.div className="w-full shadowDiv -translate-y-4">
       <FormatOutput>
-        <BubbleMenu editor={editor}>
-          {!dropdown && (
-            <button
-              ref={buttonRef}
-              onClick={onButtonClick}
-              style={{
-                fontSize: "1rem",
-                color: "white",
-                padding: "10px",
-                borderRadius: "50%",
-                border: "none",
-                aspectRatio: "1/1",
-                cursor: "pointer",
-                height: "2.5rem",
-                backgroundColor: "#334155"
-              }}
-            >
-              <FaWandMagicSparkles />
-            </button>
-          )}
-        </BubbleMenu>
+        {editor && (
+          <BubbleMenu editor={editor}>
+            {!dropdown && (
+              <button
+                ref={buttonRef}
+                onClick={onButtonClick}
+                style={{
+                  fontSize: "1rem",
+                  color: "white",
+                  padding: "10px",
+                  borderRadius: "50%",
+                  border: "none",
+                  aspectRatio: "1/1",
+                  cursor: "pointer",
+                  height: "2.5rem",
+                  backgroundColor: "#334155"
+                }}
+              >
+                <FaWandMagicSparkles />
+              </button>
+            )}
+          </BubbleMenu>
+        )}
         <EditorContent spellCheck={false} editor={editor} />
       </FormatOutput>
     </root.div>

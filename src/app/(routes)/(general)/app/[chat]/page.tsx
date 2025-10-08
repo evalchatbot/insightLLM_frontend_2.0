@@ -6,14 +6,18 @@ import OptimisticChat from "@/components/chat-provider-components/optimistic-cha
 
 const Page = async ({ params }: { params: { chat: string } }) => {
   const user = await currentUser();
-  const { chat } = params;
 
+  if (!user) {
+    redirect("/app");
+  }
+  
   const fetchedData = await getChatHistory({
-    chatID: chat,
+    chatID: params.chat,
     userID: user?.id as string,
   });
-  if (!fetchedData.success || !user) redirect("/app");
-  const { message } = fetchedData;
+  
+  // If chat doesn't exist yet (new chat), start with empty messages
+  const message = fetchedData.success ? fetchedData.message : [];
   const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || "User";
   const image = user.imageUrl;
 

@@ -288,7 +288,7 @@ const InputPrompt = () => {
         </div>
       }
       <div
-        className={`w-full md:border-8 border-4 relative border-card max-w-4xl mx-auto min-h-16 md:rounded-[50px] rounded-2xl ${inputImgName && " !rounded-tl-none "} overflow-hidden bg-card flex gap-1 md:items-center md:justify-between md:flex-row flex-col `}
+        className={`w-full md:border-8 border-4 relative border-card max-w-4xl mx-auto min-h-16 md:rounded-[50px] rounded-2xl ${inputImgName && " !rounded-tl-none "} overflow-hidden flex gap-1 md:items-center md:justify-between md:flex-row flex-col`}
       >
 
         <textarea
@@ -299,7 +299,7 @@ const InputPrompt = () => {
           onChange={handleTextareaChange}
           onKeyDown={handleKeyDown}
           value={optimisticResponse || msgLoader ? "" : currChat.userPrompt || ""}
-          className={`flex-1 bg-transparent rounded-4xl p-2 pl-6 outline-none text-lg max-h-56 resize-none`}
+          className={`flex-1 bg-transparent rounded-4xl p-2 pl-6 outline-none text-lg max-h-56 resize-none placeholder:text-muted-foreground`}
         />
         <InputActions handleCancel={handleCancel} handleImageUpload={handleImageUpload} generateMsg={generateMsg} />
 

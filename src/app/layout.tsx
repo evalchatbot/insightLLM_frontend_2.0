@@ -63,9 +63,9 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" className="dark" suppressHydrationWarning>
         <body
-          className={`${OutfitFont.className} dark:bg-[#131314] h-dvh w-full overflow-hidden bg-white text-black dark:text-white`}
+          className={`${OutfitFont.className} bg-background text-foreground h-dvh w-full overflow-hidden`}
         >
           <ThemeProviders>{children}</ThemeProviders>
         </body>

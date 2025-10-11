@@ -62,7 +62,7 @@ const DevEmojiPicker = ({
   }, []);
 
   return (
-    <section className="w-fit  shadow-lg h-72 rounded-xl space-y-2 bg-rtlLight dark:bg-rtlDark p-2 flex flex-col">
+    <section className="w-fit  shadow-lg h-72 rounded-xl space-y-2 bg-card p-2 flex flex-col">
       <div className="relative">
         <input
           type="text"

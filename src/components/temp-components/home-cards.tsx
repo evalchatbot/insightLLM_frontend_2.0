@@ -136,10 +136,10 @@ const HomeCards = () => {
         <div
           key={index}
           onClick={() => handleCardClick(item.prompt)}
-          className="dark:bg-rtlDark md:aspect-square bg-rtlLight hover:!bg-accentGray/20 cursor-pointer rounded-xl relative p-4 font-light"
+          className="bg-card md:aspect-square hover:!bg-accent cursor-pointer rounded-xl relative p-4 font-light"
         >
           <p>{item.prompt}</p>
-          <item.icon className="absolute text-4xl bottom-2 right-2 rounded-full p-2 aspect-square bg-white dark:bg-black" />
+          <item.icon className="absolute text-4xl bottom-2 right-2 rounded-full p-2 aspect-square bg-background text-foreground" />
         </div>
       ))}
     </div>

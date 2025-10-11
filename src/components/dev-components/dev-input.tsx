@@ -35,7 +35,7 @@ const DevInput = forwardRef<HTMLInputElement, InputProps>(
     ${reverseIcon && "flex-row-reverse"}`;
 
     const inputVariants = {
-      base: "bg-rtlLight dark:bg-rtlDark",
+      base: "bg-card",
       bordered: "bg-transparent",
       faded: "bg-accentBlue/20 text-accentBlue",
       underline:

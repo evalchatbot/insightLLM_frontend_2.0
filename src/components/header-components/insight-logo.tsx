@@ -56,7 +56,7 @@ const InsightLogo = () => {
       }
     >
       <div className="py-2 max-h-64 overflow-y-auto">
-        <div className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600">
+        <div className="px-3 py-2 text-sm font-medium text-muted-foreground border-b border-border">
           Select Book Genre
         </div>
         {availableGenres.length > 0 ? (
@@ -65,7 +65,7 @@ const InsightLogo = () => {
               key={genre}
               variant="v3"
               onClick={() => handleGenreSelect(genre)}
-              className="w-full !justify-between gap-3 group hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="w-full !justify-between gap-3 group hover:bg-accent"
               rounded="none"
             >
               <span className="flex items-center gap-2">

@@ -33,7 +33,7 @@ export default function Loading() {
               </div>
               {inputImgName &&
                 <div className="w-full mt-3">
-                  <div className="p-4 max-w-full w-fit bg-rtlLight overflow-hidden dark:bg-rtlDark rounded-md flex items-start gap-2">
+                  <div className="p-4 max-w-full w-fit bg-card overflow-hidden rounded-md flex items-start gap-2">
                     <MdOutlineImage className="text-4xl" />
                     <p className="text-lg truncate"> {inputImgName}</p></div>
                 </div>

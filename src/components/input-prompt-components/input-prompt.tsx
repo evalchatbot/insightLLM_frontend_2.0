@@ -277,10 +277,10 @@ const InputPrompt = () => {
   };
 
   return (
-    <div className=" flex-shrink-0 w-full md:px-10 px-5 pb-2 space-y-2 bg-white dark:bg-[#131314]">
+    <div className=" flex-shrink-0 w-full md:px-10 px-5 pb-2 space-y-2 bg-background">
       {inputImgName &&
         <div className="max-w-4xl overflow-hidden w-full mx-auto">
-          <div className="p-5 w-fit relative max-w-full overflow-hidden bg-rtlLight group dark:bg-rtlDark rounded-t-3xl flex items-start gap-2">
+          <div className="p-5 w-fit relative max-w-full overflow-hidden bg-card group rounded-t-3xl flex items-start gap-2">
             <MdImageSearch className="text-4xl" />
             <p className="text-lg font-semibold truncate"> {inputImgName}</p>
             <IoMdClose onClick={() => { setInputImgName(null); setInputImg(null) }} className="absolute top-1 right-1 text-2xl rounded-full cursor-pointer hover:opacity-100 hidden group-hover:block opacity-80 bg-accentGray/40 p-1" />
@@ -288,7 +288,7 @@ const InputPrompt = () => {
         </div>
       }
       <div
-        className={`w-full md:border-8 border-4 relative border-rtlLight dark:border-rtlDark max-w-4xl mx-auto min-h-16 md:rounded-[50px] rounded-2xl ${inputImgName && " !rounded-tl-none "} overflow-hidden bg-rtlLight dark:bg-rtlDark flex gap-1 md:items-center md:justify-between md:flex-row flex-col `}
+        className={`w-full md:border-8 border-4 relative border-card max-w-4xl mx-auto min-h-16 md:rounded-[50px] rounded-2xl ${inputImgName && " !rounded-tl-none "} overflow-hidden bg-card flex gap-1 md:items-center md:justify-between md:flex-row flex-col `}
       >
 
         <textarea

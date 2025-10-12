@@ -4,7 +4,6 @@ import { FormatOutput } from "@/utils/shadow";
 import Image from "next/image";
 import React, { useEffect } from "react";
 import { FaBrain } from "react-icons/fa";
-import Markdown from "react-markdown";
 import root from "react-shadow/styled-components";
 import GradientLoader from "./gradient-loader";
 import { MdImageSearch, MdOutlineImage } from "react-icons/md";
@@ -51,7 +50,7 @@ const MsgLoader = ({
           ) : (
             <root.div className="w-full shadowDiv -translate-y-4">
               <FormatOutput>
-                <Markdown>{currChat.llmResponse}</Markdown>
+                <div className="whitespace-pre-wrap break-words text-base">{currChat.llmResponse}</div>
               </FormatOutput>
             </root.div>
           )}

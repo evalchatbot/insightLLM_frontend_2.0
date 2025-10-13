@@ -120,6 +120,7 @@ export const getChatHistory = async ({
   chatID: string;
 }): Promise<ApiResponse> => {
   try {
+    console.log(`Fetching chat history for userID: ${userID} and chatID: ${chatID}`);
     // First get the conversation
     const { data: conversation, error: conversationError } = await supabaseAdmin
       .from('conversations')
@@ -135,6 +136,7 @@ export const getChatHistory = async ({
     if (!conversation) {
       return { success: false, error: `No conversation found for chat ID: ${chatID}` };
     }
+    console.log(`Found conversation with ID: ${conversation.id}`);
     
     // Then get all messages for this conversation
     const { data: messages, error: messagesError } = await supabaseAdmin
@@ -147,7 +149,7 @@ export const getChatHistory = async ({
       throw new Error(`Failed to fetch messages: ${messagesError.message}`);
     }
     
-    return { success: true, message: messages };
+    return { success: true, message: messages, conversationID: conversation.id };
   } catch (error: any) {
     console.error("Error in getChatHistory:", error);
     return { success: false, error: error.message };

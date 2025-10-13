@@ -52,5 +52,6 @@ export type ApiResponse<T = any> = {
     success: boolean;
     message?: T;
     error?: string;
+    conversationID?: string;
 }
 

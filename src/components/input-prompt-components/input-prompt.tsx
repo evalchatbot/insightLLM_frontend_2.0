@@ -13,7 +13,7 @@ import { IoMdClose } from "react-icons/io";
 
 const InputPrompt = () => {
   const { user, isLoaded } = useUser();
-  const { currChat, setCurrChat, setToast, customPrompt, setInputImgName, inputImgName, setMsgLoader, prevChat, msgLoader, optimisticResponse, setOptimisticResponse, setOptimisticPrompt, selectedGenre, autoSend, setAutoSend } =
+  const { currChat, setCurrChat, setToast, customPrompt, setInputImgName, inputImgName, setMsgLoader, prevChat, msgLoader, optimisticResponse, setOptimisticResponse, setOptimisticPrompt, selectedGenre, autoSend, setAutoSend, conversationID } =
     insightZustand();
   const [inputImg, setInputImg] = useState<File | null>(null)
 
@@ -66,9 +66,9 @@ const InputPrompt = () => {
       const requestBody = {
         user_id: user?.id || 'anonymous',
         session_id: sessionId,
-        question: contextualQuestion,
+        question: rawPrompt,
         genre: selectedGenre || "General", // Use selected genre from store
-        conversation_id: chatID,
+        conversation_id: conversationID,
         mode: "adaptive" // Options: "fast", "multi_step", "adaptive"
       };
       

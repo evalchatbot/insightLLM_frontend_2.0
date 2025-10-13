@@ -31,6 +31,8 @@ interface GeminiState {
   // Auto-send flag
   autoSend: boolean,
   setAutoSend: (autoSend: boolean) => void
+  conversationID: string | null,
+  setConversationID: (conversationID: string | null) => void
 }
 
 const insightZustand = create<GeminiState>()((set) => ({
@@ -43,6 +45,8 @@ const insightZustand = create<GeminiState>()((set) => ({
   optimisticPrompt:null,
   inputImgName:null,
   customPrompt:{prompt:null, placeholder:null},
+  conversationID: null,
+  setConversationID: (conversationID: string | null) => set({ conversationID }),
   setCustomPrompt:(value:{prompt:string|null, placeholder:string|null})=>set({customPrompt:value}),
   setOptimisticPrompt:(value:string|null)=>set({optimisticPrompt:value}),
   setInputImgName:(value:string|null)=>set({inputImgName:value}),

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProviders } from "@/utils/theme-providers";
 import {
@@ -10,10 +9,6 @@ import {
   SignedOut,
   UserButton,
 } from "@clerk/nextjs";
-const OutfitFont = Outfit({
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
 
 
 export const metadata: Metadata = {
@@ -63,9 +58,9 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" className="dark" suppressHydrationWarning>
         <body
-          className={`${OutfitFont.className} dark:bg-[#131314] h-dvh w-full overflow-hidden bg-white text-black dark:text-white`}
+          className="bg-background text-foreground h-dvh w-full overflow-hidden"
         >
           <ThemeProviders>{children}</ThemeProviders>
         </body>

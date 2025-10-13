@@ -156,14 +156,14 @@ const ChatProvider: React.FC<{
   const DropdownContent = () => (
     <div
       className={`${updateLoader && "dropdown-loader pointer-events-none "
-        } p-[3px] bg-rtlLight dark:bg-rtlDark rounded-xl shadow-md absolute z-50`}
+        } p-[3px] bg-card rounded-xl shadow-md absolute z-50`}
       style={{
         top: `${dropdownPosition.top}px`,
         left: `${dropdownPosition.left}px`,
       }}
       ref={dropdownRef}
     >
-      <div className=" flex flex-col rounded-xl p-3 bg-rtlLight dark:bg-rtlDark max-h-52 overflow-hidden">
+      <div className=" flex flex-col rounded-xl p-3 bg-card max-h-52 overflow-hidden">
         <input
           ref={inputRef}
           onKeyDown={(e) => {
@@ -258,7 +258,7 @@ const ChatProvider: React.FC<{
       )}
        {imgName &&
         <div className="w-full mt-3 overflow-hidden ">
-          <div className="p-4 w-fit max-w-full bg-rtlLight dark:bg-rtlDark rounded-md flex items-start gap-2">
+          <div className="p-4 w-fit max-w-full bg-card rounded-md flex items-start gap-2">
             <MdOutlineImage className="text-4xl" />
             <p className="text-lg truncate"> {imgName}</p></div>
         </div>

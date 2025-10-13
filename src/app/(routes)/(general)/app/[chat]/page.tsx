@@ -10,14 +10,14 @@ const Page = async ({ params }: { params: { chat: string } }) => {
   const user = await currentUser();
 
   if (!user) {
-    redirect("/app");
+    redirect("/app")
   }
-  
+
   const fetchedData = await getChatHistory({
     chatID: params.chat,
     userID: user?.id as string,
-  });
-  
+  })
+
   // If chat doesn't exist yet (new chat), start with empty messages
   const message = fetchedData.success ? fetchedData.message : [];
   const conversationID = fetchedData.success ? fetchedData.conversationID : null;
@@ -33,4 +33,4 @@ const Page = async ({ params }: { params: { chat: string } }) => {
   );
 };
 
-export default Page;
+export default Page

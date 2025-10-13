@@ -59,30 +59,7 @@ const EditorShell: React.FC<EditorShellProps> = ({
   return (
     <root.div className="w-full shadowDiv -translate-y-4">
       <FormatOutput>
-        {editor && (
-          <BubbleMenu editor={editor}>
-            {!dropdown && (
-              <button
-                ref={buttonRef}
-                onClick={onButtonClick}
-                style={{
-                  fontSize: "1rem",
-                  color: "white",
-                  padding: "10px",
-                  borderRadius: "50%",
-                  border: "none",
-                  aspectRatio: "1/1",
-                  cursor: "pointer",
-                  height: "2.5rem",
-                  backgroundColor: "#334155"
-                }}
-              >
-                <FaWandMagicSparkles />
-              </button>
-            )}
-          </BubbleMenu>
-        )}
-        <EditorContent spellCheck={false} editor={editor} />
+        <div className="whitespace-pre-wrap break-words text-base">{initialResponse}</div>
       </FormatOutput>
     </root.div>
   );

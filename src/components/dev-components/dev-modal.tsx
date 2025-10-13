@@ -59,7 +59,7 @@ const DevModal = ({
               variants={sectionVariants}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-[95vw] flex flex-col md:w-[40vw] min-h-40 rounded-3xl shadow-md bg-rtlLight dark:bg-rtlDark overflow-hidden p-5"
+              className="relative w-[95vw] flex flex-col md:w-[40vw] min-h-40 rounded-3xl shadow-md bg-card overflow-hidden p-5"
             >
               <h3 className="text-2xl">{modalTitle}</h3>
              { loader && <span className="modal-loader absolute top-4 right-4"></span>}

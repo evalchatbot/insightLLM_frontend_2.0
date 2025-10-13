@@ -57,7 +57,7 @@ const DevPopover = ({
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               ref={desktopPopoverRef}
-              className="min-h-4 text-black md:block hidden dark:text-white border border-accentGray/30 bg-rtlLight shadow-md dark:bg-rtlDark rounded-lg z-50"
+              className="min-h-4 text-foreground md:block hidden border border-border bg-card shadow-md rounded-lg z-50"
               onClick={() => contentClick && setMounted(!mounted)}
             >
               {children && children}

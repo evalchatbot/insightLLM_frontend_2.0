@@ -5,6 +5,7 @@ import { FiMenu } from "react-icons/fi";
 import { IoMdAdd, IoMdHelpCircleOutline } from "react-icons/io";
 import { MdOutlineDarkMode } from "react-icons/md";
 import { RxCounterClockwiseClock } from "react-icons/rx";
+import { AiOutlineFileText } from "react-icons/ai";
 import {
   IoExtensionPuzzleOutline,
   IoLinkSharp,
@@ -45,7 +46,7 @@ const SideBar = ({ sidebarList }: { sidebarList: any }) => {
 
   return (
     <section
-      className={`h-full md:flex-shrink-0 bg-rtlLight md:transform-none transition-[width] ${open ? " w-[300px] " : " md:w-[70px] w-0 opacity-0 pointer-events-none md:pointer-events-auto md:opacity-100"} fixed inset-0 dark:bg-rtlDark p-3 w-[300px] flex flex-col justify-between z-10 md:relative overflow-hidden md:z-0`}
+      className={`h-full md:flex-shrink-0 bg-card md:transform-none transition-[width] ${open ? " w-[300px] " : " md:w-[70px] w-0 opacity-0 pointer-events-none md:pointer-events-auto md:opacity-100"} fixed inset-0 p-3 w-[300px] flex flex-col justify-between z-10 md:relative overflow-hidden md:z-0`}
     >
       <div className="mt-14">
         {
@@ -102,6 +103,23 @@ const SideBar = ({ sidebarList }: { sidebarList: any }) => {
               >
                 <IoMdHelpCircleOutline />
                 {open && "Help"}
+              </DevButton>
+            </ReactTooltip>
+          </li>
+          <li>
+            <ReactTooltip
+              occupy={false}
+              place="right"
+              tipData="Document OCR Analysis"
+            >
+              <DevButton
+                variant="v3"
+                href="/app/ocr"
+                className={`text-sm *:text-xl ${open ? " aspect-auto " : " aspect-square "} group !w-full !justify-start gap-3`}
+                rounded="full"
+              >
+                <AiOutlineFileText />
+                {open && "OCR Analysis"}
               </DevButton>
             </ReactTooltip>
           </li>

@@ -14,7 +14,7 @@ const DevToast = () => {
   }, [devToast]);
   return (
     devToast && (
-      <div className="dev-toast bottom-6 left-6 text-left dark:text-black text-white w-80 text-sm font-light p-3 fixed z-50 dark:bg-rtlLight bg-rtlDark rounded">
+      <div className="dev-toast fixed top-6 left-1/2 transform -translate-x-1/2 text-center dark:text-black text-white max-w-md w-[min(90%,28rem)] text-sm font-light p-3 z-50 dark:bg-rtlLight bg-rtlDark rounded shadow-md backdrop-blur-sm">
         {devToast}
       </div>
     )

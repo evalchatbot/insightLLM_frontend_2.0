@@ -38,24 +38,7 @@ const InputActions = ({
 
       )
         : (<>
-          <ReactTooltip tipData="Upload image">
-
-            <DevButton
-              className="p-3 relative"
-              rounded="full"
-              variant="v3"
-              asIcon
-            >
-              <input
-                type="file"
-                id="file-input"
-                className="absolute inset-0 z-10 opacity-0 cursor-pointer"
-                onChange={handleImageUpload}
-                accept="image/*"
-              />
-              <RiImageAddFill className="text-2xl text-black dark:text-white" />
-            </DevButton>
-          </ReactTooltip>
+          
 
           <ReactTooltip tipData="Upload photo">
 

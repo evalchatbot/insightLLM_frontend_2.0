@@ -7,23 +7,26 @@
 :root {
   --background: 0 0% 3.9%;
   --foreground: 0 0% 98%;
-  --card: 0 0% 3.9%;
+  /* Layered dark surfaces */
+  --card: 220 6% 8%;          /* very dark grey for page background elements */
   --card-foreground: 0 0% 98%;
-  --popover: 0 0% 3.9%;
+  --card-variant: 220 6% 11%; /* slightly lighter card for nested surfaces */
+  --popover: 220 5% 10%;
   --popover-foreground: 0 0% 98%;
   --primary: 0 0% 98%;
   --primary-foreground: 0 0% 9%;
-  --secondary: 0 0% 14.9%;
+  --secondary: 220 4% 18%;
   --secondary-foreground: 0 0% 98%;
-  --muted: 0 0% 14.9%;
-  --muted-foreground: 0 0% 63.9%;
-  --accent: 0 0% 14.9%;
+  --muted: 220 6% 22%;
+  --muted-foreground: 0 0% 66%;
+  --accent: 220 8% 16%;
   --accent-foreground: 0 0% 98%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 14.9%;
-  --input: 0 0% 14.9%;
-  --ring: 0 0% 83.1%;
+  --border: 220 6% 16%;      /* softer border color */
+  --border-variant: 220 5% 12%;
+  --input: 220 6% 18%;
+  --ring: 215 80% 60%;
   --radius: 0.5rem;
 }
 
@@ -121,6 +124,20 @@ body {
 .fade-in-section {
   opacity: 1;
   animation: fadeInSection 1s ease-in-out;
+}
+
+/* Layered container util used across chat/cards */
+.shadowDiv {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border-variant));
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.card-muted {
+  background: hsl(var(--card-variant));
+  border: 1px solid hsl(var(--border));
 }
 
 /* Top Loader */

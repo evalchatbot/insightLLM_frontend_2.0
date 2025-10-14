@@ -12,6 +12,7 @@ import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import { lowlight } from "lowlight";
 import { Markdown as TipTapMkd } from "tiptap-markdown";
 import { FormatOutput } from "@/utils/shadow";
+import MarkdownRenderer from "./MarkdownRenderer";
 import root from "react-shadow/styled-components";
 import { FaWandMagicSparkles } from "react-icons/fa6";
 
@@ -57,9 +58,9 @@ const EditorShell: React.FC<EditorShellProps> = ({
   });
 
   return (
-    <root.div className="w-full shadowDiv -translate-y-4">
+    <root.div className="w-full -translate-y-4">
       <FormatOutput>
-        <div className="whitespace-pre-wrap break-words text-base">{initialResponse}</div>
+        <MarkdownRenderer source={initialResponse} partial={false} className="break-words text-base" />
       </FormatOutput>
     </root.div>
   );

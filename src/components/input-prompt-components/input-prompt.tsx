@@ -1,6 +1,6 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import MarkdownRenderer from "@/components/chat-provider-components/MarkdownRenderer";
 import insightZustand from "@/utils/insight-zustand";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { createChat } from "@/actions/actions";
@@ -55,6 +55,12 @@ const InputPrompt = () => {
     `;
 
     try {
+      // Require genre selection before generation
+      if (!selectedGenre || selectedGenre.trim() === "") {
+        setToast('Please select a genre before sending your message.');
+        return;
+      }
+
       setMsgLoader(true);
       
       // Create abort controller for this request
@@ -294,7 +300,7 @@ const InputPrompt = () => {
 
         {msgLoader ? (
           <div className="flex-1 bg-transparent rounded-4xl p-2 pl-6 text-lg max-h-56 resize-none placeholder:text-muted-foreground overflow-y-auto">
-            <ReactMarkdown>{optimisticResponse || "_Loading..._"}</ReactMarkdown>
+            <MarkdownRenderer source={optimisticResponse || "_Loading..._"} partial={true} />
           </div>
         ) : (
           <textarea

@@ -56,7 +56,7 @@ const insightZustand = create<GeminiState>()((set) => ({
   geminiApiKey: null,
   setGeminiApiKey:(geminiApiKey:string | null)=>set({geminiApiKey}),
   // Genre management
-  selectedGenre: "General",
+  selectedGenre: "",
   setSelectedGenre: (genre: string) => set({ selectedGenre: genre }),
   availableGenres: [],
   setAvailableGenres: (genres: string[]) => set({ availableGenres: genres }),

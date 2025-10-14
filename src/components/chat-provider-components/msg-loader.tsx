@@ -1,6 +1,7 @@
 "use client";
 import insightZustand from "@/utils/insight-zustand";
 import { FormatOutput } from "@/utils/shadow";
+import MarkdownRenderer from "./MarkdownRenderer";
 import Image from "next/image";
 import React, { useEffect } from "react";
 import { FaBrain } from "react-icons/fa";
@@ -48,9 +49,10 @@ const MsgLoader = ({
           {!currChat.llmResponse ? (
             <GradientLoader />
           ) : (
-            <root.div className="w-full shadowDiv -translate-y-4">
+            <root.div className="w-full -translate-y-4">
               <FormatOutput>
-                <div className="whitespace-pre-wrap break-words text-base">{currChat.llmResponse}</div>
+                {/* Use partial heuristic for streaming. If msgLoader is true we keep partial styling */}
+                <MarkdownRenderer source={currChat.llmResponse} partial={true} className="text-base" />
               </FormatOutput>
             </root.div>
           )}

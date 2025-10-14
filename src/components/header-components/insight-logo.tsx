@@ -17,10 +17,8 @@ const InsightLogo = () => {
         const genres = await fetchGenres();
         setAvailableGenres(genres);
         
-        // Set default genre if not already set
-        if (!selectedGenre || selectedGenre === 'General') {
-          setSelectedGenre(genres[0] || 'General');
-        }
+        // Do not auto-select a genre on first load; let the user choose explicitly
+        // Keep available genres populated for the user to pick from
       } catch (error) {
         console.error('Failed to load genres:', error);
         

@@ -16,11 +16,11 @@ const config: Config = {
   			accentBlue: '#3b82f6',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
-  			card: {
-  				DEFAULT: 'hsl(var(--card))',
-  				foreground: 'hsl(var(--card-foreground))'
-  			},
-			'card-variant': 'hsl(var(--card-variant))',
+			card: {
+				DEFAULT: 'rgb(var(--card-rgb) / <alpha-value>)',
+				foreground: 'hsl(var(--card-foreground))'
+			},
+			'card-variant': 'rgb(var(--card-rgb) / <alpha-value>)',
   			popover: {
   				DEFAULT: 'hsl(var(--popover))',
   				foreground: 'hsl(var(--popover-foreground))'

@@ -295,7 +295,7 @@ const InputPrompt = () => {
         </div>
       }
       <div
-        className={`w-full md:border-8 border-4 relative border-card max-w-4xl mx-auto min-h-16 md:rounded-[50px] rounded-2xl ${inputImgName && " !rounded-tl-none "} overflow-hidden flex gap-1 md:items-center md:justify-between md:flex-row flex-col`}
+        className={`w-full md:border-[3px] border-4 relative border-transparent border-gradient max-w-4xl mx-auto min-h-16 md:rounded-[50px] rounded-2xl ${inputImgName && " !rounded-tl-none "} overflow-hidden flex gap-1 md:items-center md:justify-between md:flex-row flex-col`}
       >
 
         {msgLoader ? (

@@ -5,12 +5,15 @@
 
 /* Dark theme CSS variables (forced as default) */
 :root {
-  --background: 0 0% 3.9%;
+  --background: #262627;
   --foreground: 0 0% 98%;
   /* Layered dark surfaces */
-  --card: 220 6% 8%;          /* very dark grey for page background elements */
+  /* Card color: set to #1e1e1e (RGB 30,30,30). Keep HSL equivalents for existing hsl(var(--card)) usage */
+  --card-hex: #1e1e1e;
+  --card-rgb: 30 30 30;
+  --card: 0 0% 12%;          /* very dark grey for page background elements (≈ #1e1e1e) */
   --card-foreground: 0 0% 98%;
-  --card-variant: 220 6% 11%; /* slightly lighter card for nested surfaces */
+  --card-variant: 0 0% 12%; /* keep same as card so all card surfaces appear #1e1e1e */
   --popover: 220 5% 10%;
   --popover-foreground: 0 0% 98%;
   --primary: 0 0% 98%;
@@ -128,7 +131,7 @@ body {
 
 /* Layered container util used across chat/cards */
 .shadowDiv {
-  background: hsl(var(--card));
+  background: var(--card-hex);
   color: hsl(var(--card-foreground));
   border: 1px solid hsl(var(--border-variant));
   box-shadow: 0 6px 18px rgba(0,0,0,0.45);
@@ -136,8 +139,35 @@ body {
 }
 
 .card-muted {
-  background: hsl(var(--card-variant));
+  background: var(--card-hex);
   border: 1px solid hsl(var(--border));
+}
+
+/* Gradient border helper: renders a gradient only on the border while keeping the inner background solid.
+   Usage: add `border-transparent border-gradient` plus your desired border-width utilities (e.g. border-4)
+*/
+.border-gradient {
+  /* two layered backgrounds: first layer is the inner background (use card hex), second is the gradient used for the border */
+  background-image: linear-gradient(var(--card-hex), var(--card-hex)), linear-gradient(to right, #4E82EE, #D96570);
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  border-color: transparent; /* ensure CSS border is transparent so gradient shows */
+  /* animate the second (gradient) layer so the border looks flowy */
+  background-size: 100% 100%, 200% 100%;
+  background-position: 0 0, 0 50%;
+  animation: border-gradient-flow 6s linear infinite;
+}
+
+@keyframes border-gradient-flow {
+  0% {
+    background-position: 0 0, 0 50%;
+  }
+  50% {
+    background-position: 0 0, 100% 50%;
+  }
+  100% {
+    background-position: 0 0, 0 50%;
+  }
 }
 
 /* Top Loader */

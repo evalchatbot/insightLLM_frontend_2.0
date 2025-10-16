@@ -49,13 +49,30 @@ const EditorShell: React.FC<EditorShellProps> = ({
   const editor = useEditor({
     extensions,
     content: initialResponse,
-    onUpdate: ({ editor }) => {
-      editor.commands.setContent(initialResponse);
-    },
+    // Do not forcibly overwrite editor content on every update (this caused remounts/reloads).
+    // Instead we will sync content only when the `initialResponse` prop changes via effect below.
     onCreate: ({ editor }) => {
+      console.log("EditorShell: editor created");
       onEditorReady?.(editor);
     },
   });
+
+  // Sync editor content only when the prop changes (prevents content-reset loops)
+  React.useEffect(() => {
+    try {
+      if (editor) {
+        editor.commands.setContent(initialResponse || "");
+      }
+    } catch (e) {
+      console.warn("EditorShell sync error:", e);
+    }
+  }, [initialResponse, editor]);
+
+  // mount/unmount logs to help diagnose remounts
+  React.useEffect(() => {
+    console.log("EditorShell mounted");
+    return () => console.log("EditorShell unmounted");
+  }, []);
 
   return (
     <root.div className="w-full -translate-y-4">

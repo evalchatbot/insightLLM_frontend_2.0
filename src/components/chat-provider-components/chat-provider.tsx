@@ -127,6 +127,14 @@ const ChatProvider: React.FC<{
   };
 
   useEffect(() => {
+    console.log("ChatProvider mounted for id", chatUniqueId, "initial llmResponse prop:", llmResponse);
+
+    // Sync local initialResponse state only when prop changes and is different
+    if (llmResponse !== initialResponse) {
+      console.log("ChatProvider: llmResponse prop changed. Updating initialResponse state.");
+      setInitialResponse(llmResponse);
+    }
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -139,6 +147,11 @@ const ChatProvider: React.FC<{
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Log when initialResponse updates to help debug remounts
+  useEffect(() => {
+    console.log("ChatProvider initialResponse updated:", initialResponse?.slice?.(0, 120));
+  }, [initialResponse]);
 
 
 

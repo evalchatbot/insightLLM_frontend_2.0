@@ -284,7 +284,7 @@ const InputPrompt = () => {
   };
 
   return (
-  <div className=" flex-shrink-0 w-full md:px-10 px-5 pb-2 space-y-2 -z-10 "style={{backgroundColor: 'transparent'}}>
+  <div className=" flex-shrink-0 w-full md:px-10 px-5 pb-2 space-y-2 " style={{backgroundColor: 'transparent'}}>
       {inputImgName &&
         <div className="max-w-4xl overflow-hidden w-full mx-auto">
           <div className="p-5 w-fit relative max-w-full overflow-hidden bg-transparent group rounded-t-3xl flex items-start gap-2">

@@ -9,7 +9,7 @@ import DevButton from "../dev-components/dev-button";
 
 const Header = () => {
   return (
-    <header className="w-full h-fit flex-shrink-0 flex items-center p-3 md:px-10 px-5 md:justify-between relative justify-end">
+    <header className="absolute inset-x-0 top-0 w-full h-fit flex-shrink-0 flex items-center p-3 md:px-10 px-5 md:justify-between justify-end -z-10 bg-transparent" style={{backgroundColor: 'transparent'}}>
       <div className="md:block hidden">
         <InsightLogo />
       </div>

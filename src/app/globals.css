@@ -5,15 +5,16 @@
 
 /* Dark theme CSS variables (forced as default) */
 :root {
-  --background: #262627;
+  /* Home page background (lighter) */
+  --background: 0 0% 15%; /* HSL approximation for #262627 */
   --foreground: 0 0% 98%;
   /* Layered dark surfaces */
-  /* Card color: set to #1e1e1e (RGB 30,30,30). Keep HSL equivalents for existing hsl(var(--card)) usage */
+  /* Sidebar / card color: use the darker black (#1e1e1e) */
   --card-hex: #1e1e1e;
   --card-rgb: 30 30 30;
-  --card: 0 0% 12%;          /* very dark grey for page background elements (≈ #1e1e1e) */
+  --card: 0 0% 12%;          /* HSL approx for #1e1e1e */
   --card-foreground: 0 0% 98%;
-  --card-variant: 0 0% 12%; /* keep same as card so all card surfaces appear #1e1e1e */
+  --card-variant: 0 0% 16%; /* slight variant for nested surfaces */
   --popover: 220 5% 10%;
   --popover-foreground: 0 0% 98%;
   --primary: 0 0% 98%;

@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import MarkdownRenderer from "@/components/chat-provider-components/MarkdownRenderer";
 import insightZustand from "@/utils/insight-zustand";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { createChat } from "@/actions/actions";
+import { createChat, renameChat } from "@/actions/actions";
 import { nanoid } from "nanoid";
 import { useMeasure } from "react-use";
 import { useUser } from "@clerk/nextjs";
@@ -14,7 +14,7 @@ import { IoMdClose } from "react-icons/io";
 
 const InputPrompt = () => {
   const { user, isLoaded } = useUser();
-  const { currChat, setCurrChat, setToast, customPrompt, setInputImgName, inputImgName, setMsgLoader, prevChat, msgLoader, optimisticResponse, setOptimisticResponse, setOptimisticPrompt, selectedGenre, autoSend, setAutoSend, conversationID } =
+  const { currChat, setCurrChat, setToast, customPrompt, setInputImgName, inputImgName, setMsgLoader, msgLoader, optimisticResponse, setOptimisticResponse, setOptimisticPrompt, selectedGenre, autoSend, setAutoSend, conversationID, setConversationID } =
     insightZustand();
   const [inputImg, setInputImg] = useState<File | null>(null)
 
@@ -30,6 +30,7 @@ const InputPrompt = () => {
     if (!currChat.userPrompt?.trim() || !user) {
       return;
     }
+    let finalMetadata: any = null;
     
     // If we're not in a chat route, navigate to a new chat page with auto-trigger
     if (!chat) {
@@ -44,16 +45,6 @@ const InputPrompt = () => {
     const rawImage = inputImgName;
     
     // Build the question with context
-    const contextualQuestion = `
-      ${customPrompt.prompt ? customPrompt.prompt : 'Please provide a comprehensive and helpful response.'}
-      
-      Previous context:
-      User: ${prevChat.userPrompt || 'No previous context'}
-      Assistant: ${prevChat.llmResponse || 'No previous response'}
-      
-      Current question: ${rawPrompt}
-    `;
-
     try {
       // Require genre selection before generation
       if (!selectedGenre || selectedGenre.trim() === "") {
@@ -133,6 +124,7 @@ const InputPrompt = () => {
                   // Final response received
                   fullResponse = parsedData.answer;
                   setCurrChat("llmResponse", fullResponse);
+                  finalMetadata = parsedData.metadata || null;
                   break;
                 } else if (parsedData.type === 'metadata') {
                   // Handle metadata if needed
@@ -171,6 +163,24 @@ const InputPrompt = () => {
         userPrompt: rawPrompt,
         llmResponse: fullResponse,
       });
+      
+      if (chatResult.success && chatResult.conversationID) {
+        setConversationID(chatResult.conversationID);
+        const conversationTitle = (finalMetadata?.conversation_title as string | undefined)?.trim();
+        const suggestedTitle = (finalMetadata?.suggested_title as string | undefined)?.trim();
+        const needsRename =
+          !conversationTitle ||
+          conversationTitle.length === 0 ||
+          conversationTitle.toLowerCase() === "new chat";
+        const desiredTitle = needsRename ? suggestedTitle : undefined;
+        if (desiredTitle) {
+          try {
+            await renameChat(chatID, { title: desiredTitle });
+          } catch (renameError) {
+            console.error("Failed to rename chat:", renameError);
+          }
+        }
+      }
       
       // Only clear state after successful chat creation
       if (chatResult.success) {
@@ -212,7 +222,6 @@ const InputPrompt = () => {
     currChat.userPrompt,
     user,
     chat,
-    prevChat,
     setCurrChat,
     setMsgLoader,
     router,
@@ -222,7 +231,10 @@ const InputPrompt = () => {
     setOptimisticResponse,
     setInputImgName,
     setToast,
-    selectedGenre
+    selectedGenre,
+    conversationID,
+    setAutoSend,
+    setConversationID
   ]);
 
   const handleTextareaChange = useCallback(

@@ -73,7 +73,7 @@ export const createChat = async (
     }
     
     revalidatePath(`/app/${chatID}`);
-    return { message, success: true };
+    return { message, success: true, conversationID: conversation.id };
   } catch (error: any) {
     console.error('Error in createChat:', error);
     return { success: false, error: error.message };

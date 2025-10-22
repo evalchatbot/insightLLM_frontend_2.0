@@ -26,7 +26,7 @@ const Page = async ({ params }: { params: { chat: string } }) => {
 
   return (
       <div className="w-full max-w-3xl mx-auto p-4 pb-40">
-        <SetConversationID conversationID={conversationID} />
+  <SetConversationID conversationID={conversationID ?? null} />
         <OptimisticChat message={message} name={name} image={image} />
         <MsgLoader name={name} image={image} />
       </div>

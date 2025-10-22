@@ -42,7 +42,8 @@ const InsightLogo = dynamic(() => import("../header-components/insight-logo"), {
 const SideBar = ({ sidebarList }: { sidebarList: any }) => {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const { chat } = useParams()
+  const params = useParams();
+  const chat = params && typeof params === 'object' && 'chat' in params ? (params as Record<string, string | string[]>).chat : undefined;
 
   return (
     <section
@@ -92,6 +93,19 @@ const SideBar = ({ sidebarList }: { sidebarList: any }) => {
       </div>
       <div>
         <ul className="mt-5 space-y-1">
+          <li>
+            <ReactTooltip occupy={false} place="right" tipData="Quiz">
+              <DevButton
+                variant="v3"
+                href="/quiz"
+                className={`text-sm *:text-xl ${open ? " aspect-auto " : " aspect-square "} group !w-full !justify-start gap-3`}
+                rounded="full"
+              >
+                <FaBrain />
+                {open && "Quiz"}
+              </DevButton>
+            </ReactTooltip>
+          </li>
           <li>
             {" "}
             <ReactTooltip occupy={false} place="right" tipData="Help">

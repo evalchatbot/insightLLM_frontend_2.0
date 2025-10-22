@@ -18,7 +18,8 @@ const InputPrompt = () => {
     insightZustand();
   const [inputImg, setInputImg] = useState<File | null>(null)
 
-  const { chat } = useParams();
+  const params = useParams();
+  const chat = params && typeof params === 'object' && 'chat' in params ? (params as Record<string, string | string[]>).chat : undefined;
   const router = useRouter();
   const searchParams = useSearchParams();
   const [inputRref, { height }] = useMeasure<HTMLTextAreaElement>();
@@ -70,8 +71,11 @@ const InputPrompt = () => {
         mode: "adaptive" // Options: "fast", "multi_step", "adaptive"
       };
       
+      // Determine backend URL with fallback to localhost if env not set
+      const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
       // Call the streaming endpoint
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/chatbot/ask-stream`, {
+      const response = await fetch(`${BACKEND_URL}/chatbot/ask-stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -126,6 +130,14 @@ const InputPrompt = () => {
                   setCurrChat("llmResponse", fullResponse);
                   finalMetadata = parsedData.metadata || null;
                   break;
+                } else if (parsedData.type === 'error') {
+                  // Backend reported an error while streaming. Surface to user and abort.
+                  const errMsg = parsedData.error || 'Streaming error from backend';
+                  console.error('Backend stream error:', errMsg);
+                  setToast(`Backend error: ${errMsg}`);
+                  fullResponse = errMsg;
+                  setMsgLoader(false);
+                  break;
                 } else if (parsedData.type === 'metadata') {
                   // Handle metadata if needed
                   console.log('Stream metadata:', parsedData);
@@ -156,13 +168,44 @@ const InputPrompt = () => {
       setMsgLoader(false);
       
       // Create chat in database
-      const chatResult = await createChat({
+      // Ensure payload is serializable and contains no client functions
+      const payload = {
         chatID,
         userID: user?.id || 'anonymous',
         imgName: rawImage ?? undefined,
         userPrompt: rawPrompt,
         llmResponse: fullResponse,
-      });
+      } as const;
+
+      // sanitize payload by removing any function values before sending to server action
+      const sanitize = (obj: any) => {
+        if (obj === null || obj === undefined) return obj;
+        if (typeof obj === "function") return undefined;
+        if (typeof obj !== "object") return obj;
+        if (Array.isArray(obj)) return obj.map((v) => sanitize(v));
+        const out: any = {};
+        for (const k of Object.keys(obj)) {
+          const v = (obj as any)[k];
+          if (typeof v === "function") continue;
+          try {
+            out[k] = sanitize(v);
+          } catch (e) {
+            // fallback: stringify-safe
+            out[k] = undefined;
+          }
+        }
+        return out;
+      };
+
+      let safePayload = payload;
+      try {
+        JSON.stringify(payload);
+      } catch (err) {
+        console.warn("Non-serializable payload detected, sanitizing before sending to server action", err);
+        safePayload = sanitize(payload);
+      }
+
+      const chatResult = await createChat(safePayload as any);
       
       if (chatResult.success && chatResult.conversationID) {
         setConversationID(chatResult.conversationID);
@@ -201,7 +244,8 @@ const InputPrompt = () => {
       if (error.name === 'AbortError') {
         setToast('Request was cancelled.');
       } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-        setToast(`Failed to connect to API at ${process.env.NEXT_PUBLIC_API_BASE_URL}. Please check if the backend is running.`);
+        const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+        setToast(`Failed to connect to API at ${BACKEND_URL}. Please check if the backend is running.`);
       } else if (error.message?.includes('HTTP error')) {
         setToast(`Backend API error: ${error.message}`);
       } else {

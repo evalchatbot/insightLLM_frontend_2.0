@@ -8,9 +8,9 @@ import { SidebarProvider } from "@/context/SidebarContext";
 const GeneralLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <SidebarProvider>
-      <main className="h-dvh w-full flex overflow-hidden">
+  <main className="h-dvh w-full flex overflow-auto">
         <SidebarWrapper />
-        <div className="flex flex-grow h-full overflow-hidden flex-col justify-between relative">
+  <div className="flex flex-grow h-full overflow-auto flex-col justify-between relative">
           <Header />
           <section className="w-full flex-grow overflow-y-auto relative mx-auto">
             {children}

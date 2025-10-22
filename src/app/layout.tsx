@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProviders } from "@/utils/theme-providers";
+import ErrorBoundary from '@/components/ErrorBoundary';
 import {
   ClerkProvider,
   SignInButton,
@@ -60,9 +61,11 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className="dark" suppressHydrationWarning>
         <body
-          className="bg-background text-foreground h-dvh w-full overflow-hidden"
+          className="bg-background text-foreground h-dvh w-full overflow-auto"
         >
-          <ThemeProviders>{children}</ThemeProviders>
+          <ErrorBoundary>
+            <ThemeProviders>{children}</ThemeProviders>
+          </ErrorBoundary>
         </body>
       </html>
     </ClerkProvider>

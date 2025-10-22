@@ -1,31 +1,16 @@
-'use client'
+"use client"
 
-import { NodeViewContent, NodeViewWrapper } from '@tiptap/react';
+import { NodeViewContent, NodeViewWrapper, type ReactNodeViewProps } from '@tiptap/react';
 import React, { useRef, useState } from 'react';
 import { IoCheckmarkDoneSharp } from 'react-icons/io5';
 import { MdContentCopy } from 'react-icons/md';
 
-interface NodeAttrs {
-  language: string;
-  // Add other properties of the attrs object here
-}
-
-interface Node {
-  attrs: NodeAttrs;
-  // Add other properties of the node object here
-}
-
-const CodeBlock = ({
-  node: {
-    attrs: { language: defaultLanguage },
-  },
-  updateAttributes,
-  extension,
-}: {
-  node: Node;
-  updateAttributes: (attributes: { language: string }) => void;
-  extension: any; // Add the correct type for the extension prop
-}) => {
+// Use the tiptap-provided ReactNodeViewProps so the component matches
+// the shape expected by ReactNodeViewRenderer
+const CodeBlock = ({ node, updateAttributes, extension }: ReactNodeViewProps<HTMLElement>) => {
+  // node.attrs may or may not have a language property depending on schema.
+  // Access it safely and provide a default.
+  const defaultLanguage = (node.attrs as any)?.language ?? '';
   const codeRef = useRef<HTMLPreElement>(null);
   const [isCopying, setIsCopying] = useState(false);
 

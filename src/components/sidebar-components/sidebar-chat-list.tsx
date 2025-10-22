@@ -20,7 +20,12 @@ import { useRouter } from "next/navigation";
 import { useSidebarContext } from "@/context/SidebarContext";
 
 const SidebarChatList = ({ sidebarList }: any) => {
-  const { chat } = useParams();
+  const params = useParams();
+  // useParams() may return null or a Record<string, string | string[]>
+  // Normalize chat so it's either a string or null
+  const chat = Array.isArray((params as any)?.chat)
+    ? (params as any).chat[0]
+    : (params as any)?.chat ?? null;
   const [settings, setSettings] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { setTopLoader, setToast } = insightZustand();

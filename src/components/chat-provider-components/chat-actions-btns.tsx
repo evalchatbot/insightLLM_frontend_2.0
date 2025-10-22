@@ -10,7 +10,7 @@ import DevPopover from "../dev-components/dev-popover";
 import { MdContentCopy, MdOutlineFlag } from "react-icons/md";
 import insightZustand from "@/utils/insight-zustand";
 import { MdSearch } from "react-icons/md";
-import Link from "next/link";
+// Link intentionally unused here
 import { IoMdSearch } from "react-icons/io";
 
 

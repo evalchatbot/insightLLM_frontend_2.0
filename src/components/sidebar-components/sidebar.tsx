@@ -6,11 +6,7 @@ import { IoMdAdd, IoMdHelpCircleOutline } from "react-icons/io";
 import { MdOutlineDarkMode } from "react-icons/md";
 import { RxCounterClockwiseClock } from "react-icons/rx";
 import { AiOutlineFileText } from "react-icons/ai";
-import {
-  IoExtensionPuzzleOutline,
-  IoLinkSharp,
-  IoSettingsOutline,
-} from "react-icons/io5";
+import { IoSettingsOutline } from "react-icons/io5";
 import { GoDotFill } from "react-icons/go";
 import ThemeSwitch from "./theme-switch";
 import { useParams, useRouter } from "next/navigation";

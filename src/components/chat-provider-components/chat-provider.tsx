@@ -7,21 +7,21 @@ const EditorShell = dynamic(() => import("./EditorShell"), {
   ssr: false,
   loading: () => <div className="w-full h-32 bg-gray-100 animate-pulse rounded" />,
 });
-import { FormatOutput } from "@/utils/shadow";
-import root from "react-shadow/styled-components";
+// Keep some optional imports commented for future reference
+// import { FormatOutput } from "@/utils/shadow";
+// import root from "react-shadow/styled-components";
 import insightZustand from "@/utils/insight-zustand";
-import { FaWandMagicSparkles } from "react-icons/fa6";
 import { createPortal } from "react-dom";
 import { updateResponse } from "@/actions/actions";
 import DevButton from "../dev-components/dev-button";
-import { MdImageSearch, MdOutlineImage, MdOutlineModeEditOutline } from "react-icons/md";
+import { MdOutlineImage, MdOutlineModeEditOutline } from "react-icons/md";
 import { FaBrain } from "react-icons/fa";
 
 import Image from "next/image";
 import ReactTooltip from "../dev-components/react-tooltip";
 import TextToSpeech from "./text-to-speech";
 import ChatActionsBtns from "./chat-actions-btns";
-import { BsImage } from "react-icons/bs";
+// import { BsImage } from "react-icons/bs"; // unused
 
 // Extensions and editor setup moved to EditorShell component
 

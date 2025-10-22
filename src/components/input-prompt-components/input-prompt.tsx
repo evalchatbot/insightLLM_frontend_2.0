@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import MarkdownRenderer from "@/components/chat-provider-components/MarkdownRenderer";
 import insightZustand from "@/utils/insight-zustand";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { createChat, renameChat } from "@/actions/actions";
 import { nanoid } from "nanoid";
 import { useMeasure } from "react-use";
@@ -16,13 +16,11 @@ const InputPrompt = () => {
   const { user, isLoaded } = useUser();
   const { currChat, setCurrChat, setToast, customPrompt, setInputImgName, inputImgName, setMsgLoader, msgLoader, optimisticResponse, setOptimisticResponse, setOptimisticPrompt, selectedGenre, autoSend, setAutoSend, conversationID, setConversationID } =
     insightZustand();
-  const [inputImg, setInputImg] = useState<File | null>(null)
 
   const params = useParams();
   const chat = params && typeof params === 'object' && 'chat' in params ? (params as Record<string, string | string[]>).chat : undefined;
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [inputRref, { height }] = useMeasure<HTMLTextAreaElement>();
+  const [inputRref] = useMeasure<HTMLTextAreaElement>();
   const chatID = chat as string; // Only use the actual chat ID from params
   const cancelRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -142,7 +140,7 @@ const InputPrompt = () => {
                   // Handle metadata if needed
                   console.log('Stream metadata:', parsedData);
                 }
-              } catch (parseError) {
+              } catch (_e) {
                 console.warn('Failed to parse SSE data:', data);
               }
             }
@@ -258,7 +256,6 @@ const InputPrompt = () => {
       setOptimisticPrompt(null);
     } finally {
       // Clean up temporary states
-      setInputImg(null);
       setInputImgName(null);
       abortControllerRef.current = null;
     }
@@ -334,7 +331,7 @@ const InputPrompt = () => {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target && event.target.files) {
       const file = event.target.files[0];
-      setInputImg(file);
+      // store filename only in global store
       setInputImgName(file.name);
     }
   };
@@ -346,7 +343,7 @@ const InputPrompt = () => {
           <div className="p-5 w-fit relative max-w-full overflow-hidden bg-transparent group rounded-t-3xl flex items-start gap-2">
             <MdImageSearch className="text-4xl" />
             <p className="text-lg font-semibold truncate"> {inputImgName}</p>
-            <IoMdClose onClick={() => { setInputImgName(null); setInputImg(null) }} className="absolute top-1 right-1 text-2xl rounded-full cursor-pointer hover:opacity-100 hidden group-hover:block opacity-80 bg-accentGray/40 p-1" />
+            <IoMdClose onClick={() => { setInputImgName(null); }} className="absolute top-1 right-1 text-2xl rounded-full cursor-pointer hover:opacity-100 hidden group-hover:block opacity-80 bg-accentGray/40 p-1" />
           </div>
         </div>
       }

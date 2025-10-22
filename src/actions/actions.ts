@@ -1,7 +1,7 @@
 "use server";
 import supabaseAdmin from "../utils/db";
-import { Message, CreateChatRequest, ApiResponse } from "../types/types";
-import type { ConversationInsert, MessageInsert, Conversation, MessageUpdate } from "../types/database.types";
+import { CreateChatRequest, ApiResponse } from "../types/types";
+import type { ConversationInsert, MessageInsert } from "../types/database.types";
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 

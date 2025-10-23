@@ -20,6 +20,21 @@ export interface OCRResult {
     file_name: string;
     page_count: number;
     processing_time_seconds: number;
+    fast_mode?: boolean;
+    provided_question?: string;
+    question_occurrences_removed?: number;
+    question_occurrences_removed_per_page?: number[];
+    answer_char_count?: number;
+    subject?: {
+      id: string;
+      label: string;
+    };
+    scoring_profile?: {
+      content_max: number;
+      writing_max: number;
+      total_max: number;
+      criteria: Array<{ label: string; max_points: number }>;
+    };
   };
 }
 
@@ -32,14 +47,22 @@ export interface OCRAnnotateResponse {
  * Upload PDF for OCR annotation and get back the annotated PDF
  * Note: user_id should be obtained from useUser() hook in the component
  */
-export async function annotateDocument(file: File, userId: string): Promise<Blob> {
+export async function annotateDocument(file: File, userId: string, question: string, subject: string): Promise<Blob> {
   if (!userId) {
     throw new Error("User ID is required");
+  }
+  if (!question || !question.trim()) {
+    throw new Error("Question text is required");
+  }
+  if (!subject || !subject.trim()) {
+    throw new Error("Subject selection is required");
   }
 
   const formData = new FormData();
   formData.append("file", file);
   formData.append("user_id", userId);
+  formData.append("question", question);
+  formData.append("subject", subject);
 
   const response = await fetch(`${BACKEND_URL}/api/ocr/annotate`, {
     method: "POST",
@@ -59,14 +82,22 @@ export async function annotateDocument(file: File, userId: string): Promise<Blob
  * Upload PDF for OCR analysis and get only the metadata (no PDF)
  * Note: user_id should be obtained from useUser() hook in the component
  */
-export async function analyzeDocument(file: File, userId: string): Promise<OCRResult> {
+export async function analyzeDocument(file: File, userId: string, question: string, subject: string): Promise<OCRResult> {
   if (!userId) {
     throw new Error("User ID is required");
+  }
+  if (!question || !question.trim()) {
+    throw new Error("Question text is required");
+  }
+  if (!subject || !subject.trim()) {
+    throw new Error("Subject selection is required");
   }
 
   const formData = new FormData();
   formData.append("file", file);
   formData.append("user_id", userId);
+  formData.append("question", question);
+  formData.append("subject", subject);
 
   const response = await fetch(`${BACKEND_URL}/api/ocr/annotate/json`, {
     method: "POST",

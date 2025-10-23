@@ -20,6 +20,8 @@ interface OCRUploadProps {
 export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps) {
   const { user } = useUser()
   const [file, setFile] = useState<File | null>(null)
+  const [question, setQuestion] = useState("")
+  const [subject, setSubject] = useState("political_science")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<OCRResult | null>(null)
@@ -43,12 +45,35 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     }
   }
 
+  const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setQuestion(e.target.value)
+    setError(null)
+    setResults(null)
+    setAnnotatedPdfBlob(null)
+  }
+
+  const handleSubjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSubject(e.target.value)
+    setError(null)
+    setResults(null)
+    setAnnotatedPdfBlob(null)
+  }
+
   const handleAnalyze = async () => {
     if (!file || !user) return
+    const trimmedQuestion = question.trim()
+    if (!trimmedQuestion) {
+      setError("Please enter a question to evaluate the document against")
+      return
+    }
+    if (!subject) {
+      setError("Please select a subject before analyzing")
+      return
+    }
     setLoading(true)
     setError(null)
     try {
-      const analysisResults = await analyzeDocument(file, user.id)
+      const analysisResults = await analyzeDocument(file, user.id, trimmedQuestion, subject)
       setResults(analysisResults)
       onResults?.(analysisResults)
     } catch (err) {
@@ -61,12 +86,21 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
   const handleAnnotate = async () => {
     if (!file || !user) return
+    const trimmedQuestion = question.trim()
+    if (!trimmedQuestion) {
+      setError("Please enter a question before generating an annotated PDF")
+      return
+    }
+    if (!subject) {
+      setError("Please select a subject before generating an annotated PDF")
+      return
+    }
     setLoading(true)
     setError(null)
     try {
-      const annotatedBlob = await annotateDocument(file, user.id)
+      const annotatedBlob = await annotateDocument(file, user.id, trimmedQuestion, subject)
       setAnnotatedPdfBlob(annotatedBlob)
-      const analysisResults = await analyzeDocument(file, user.id)
+      const analysisResults = await analyzeDocument(file, user.id, trimmedQuestion, subject)
       setResults(analysisResults)
       onResults?.(analysisResults)
       const url = URL.createObjectURL(annotatedBlob)
@@ -112,6 +146,41 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             </Alert>
           )}
 
+          {/* Question Input */}
+          <div className="space-y-2">
+            <label htmlFor="ocr-question" className="block text-sm font-medium text-foreground">
+              Question to evaluate
+            </label>
+            <textarea
+              id="ocr-question"
+              value={question}
+              onChange={handleQuestionChange}
+              placeholder="Enter the question that the document answers"
+              className="min-h-[96px] w-full rounded-2xl border border-border/70 bg-background/70 p-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+            <p className="text-xs text-muted-foreground">
+              The question text will be stripped from the OCR output before analysis so only the answer is evaluated.
+            </p>
+          </div>
+
+          {/* Subject Selection */}
+          <div className="space-y-2">
+            <label htmlFor="ocr-subject" className="block text-sm font-medium text-foreground">
+              Subject
+            </label>
+            <select
+              id="ocr-subject"
+              value={subject}
+              onChange={handleSubjectChange}
+              className="w-full rounded-2xl border border-border/70 bg-background/70 p-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option value="political_science">Political Science (CSS)</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Political Science uses the CSS marking scheme with detailed criteria for relevance, theory, analysis, structure, and evidence.
+            </p>
+          </div>
+
           {/* File Upload */}
           <div className="space-y-3">
             <div
@@ -151,13 +220,13 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <Button
               onClick={handleAnalyze}
-              disabled={!file || !user || loading}
+              disabled={!file || !user || !question.trim() || loading}
               className="w-full bg-transparent"
               variant="outline"
             >
               {loading ? "Analyzing..." : "Analyze Only"}
             </Button>
-            <Button onClick={handleAnnotate} disabled={!file || !user || loading} className="w-full">
+            <Button onClick={handleAnnotate} disabled={!file || !user || !question.trim() || loading} className="w-full">
               {loading ? "Processing..." : "Analyze & Annotate"}
             </Button>
           </div>
@@ -209,6 +278,28 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                 <div className="mt-2 text-xs text-muted-foreground">
                   File: {results.metadata?.file_name || "Unknown"}
                 </div>
+                {results.metadata?.provided_question && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Question: {results.metadata.provided_question}
+                  </div>
+                )}
+                {results.metadata?.subject && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Subject: {results.metadata.subject.label}
+                  </div>
+                )}
+                {typeof results.metadata?.question_occurrences_removed === "number" && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Removed question instances in OCR text: {results.metadata.question_occurrences_removed}
+                  </div>
+                )}
+                {results.metadata?.scoring_profile && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Scoring breakdown: Content /{results.metadata.scoring_profile.content_max} + Writing /
+                    {results.metadata.scoring_profile.writing_max} → Total /
+                    {results.metadata.scoring_profile.total_max}
+                  </div>
+                )}
               </div>
 
               {results.issues && results.issues.length > 0 && (

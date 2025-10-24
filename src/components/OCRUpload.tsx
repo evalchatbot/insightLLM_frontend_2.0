@@ -263,6 +263,11 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                     <div className="text-foreground text-lg font-semibold">
                       {results.score?.total_score || 0} / {results.score?.max_possible_score || 0}
                     </div>
+                    {typeof results.score?.max_achievable_score === "number" && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Max achievable: {results.score.max_achievable_score} / {results.score?.max_possible_score || 0}
+                      </div>
+                    )}
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
                     <div className="text-muted-foreground">Pages</div>
@@ -297,7 +302,8 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                   <div className="mt-1 text-xs text-muted-foreground">
                     Scoring breakdown: Content /{results.metadata.scoring_profile.content_max} + Writing /
                     {results.metadata.scoring_profile.writing_max} → Total /
-                    {results.metadata.scoring_profile.total_max}
+                    {results.metadata.scoring_profile.total_max} (max achievable{" "}
+                    {results.metadata.scoring_profile.achievable_max ?? results.metadata.scoring_profile.total_max})
                   </div>
                 )}
               </div>

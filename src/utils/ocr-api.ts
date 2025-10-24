@@ -15,6 +15,7 @@ export interface OCRResult {
   score: {
     total_score: number;
     max_possible_score: number;
+    max_achievable_score?: number;
   };
   metadata: {
     file_name: string;
@@ -29,12 +30,13 @@ export interface OCRResult {
       id: string;
       label: string;
     };
-    scoring_profile?: {
-      content_max: number;
-      writing_max: number;
-      total_max: number;
-      criteria: Array<{ label: string; max_points: number }>;
-    };
+  scoring_profile?: {
+    content_max: number;
+    writing_max: number;
+    total_max: number;
+    achievable_max?: number;
+    criteria: Array<{ label: string; max_points: number }>;
+  };
   };
 }
 

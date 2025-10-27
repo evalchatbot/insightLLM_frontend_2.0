@@ -26,17 +26,18 @@ export interface OCRResult {
     question_occurrences_removed?: number;
     question_occurrences_removed_per_page?: number[];
     answer_char_count?: number;
+    overall_remark?: string; // For qualitative evaluations (e.g., Essay Outline): "Excellent", "Good", "Average", "Weak"
     subject?: {
       id: string;
       label: string;
     };
-  scoring_profile?: {
-    content_max: number;
-    writing_max: number;
-    total_max: number;
-    achievable_max?: number;
-    criteria: Array<{ label: string; max_points: number }>;
-  };
+    scoring_profile?: {
+      content_max: number;
+      writing_max: number;
+      total_max: number;
+      achievable_max?: number;
+      criteria: Array<{ label: string; max_points: number }>;
+    };
   };
 }
 

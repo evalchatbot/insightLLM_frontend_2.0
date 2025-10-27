@@ -46,10 +46,15 @@ export interface OCRAnnotateResponse {
 }
 
 /**
- * Upload PDF for OCR annotation and get back the annotated PDF
+ * Upload PDF for OCR annotation and get back both the annotated PDF and metadata
  * Note: user_id should be obtained from useUser() hook in the component
  */
-export async function annotateDocument(file: File, userId: string, question: string, subject: string): Promise<Blob> {
+export async function annotateDocument(
+  file: File,
+  userId: string,
+  question: string,
+  subject: string
+): Promise<{ pdfBlob: Blob; metadata: OCRResult }> {
   if (!userId) {
     throw new Error("User ID is required");
   }
@@ -76,8 +81,30 @@ export async function annotateDocument(file: File, userId: string, question: str
     throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
   }
 
-  // Return the PDF blob directly
-  return response.blob();
+  // Parse JSON response containing both PDF and metadata
+  const data = await response.json();
+
+  // Decode base64 PDF to Blob
+  const base64Data = data.pdf_base64;
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  const pdfBlob = new Blob([bytes], { type: "application/pdf" });
+
+  // Extract metadata
+  const metadata: OCRResult = data.metadata || {
+    issues: [],
+    score: { total_score: 0, max_possible_score: 20 },
+    metadata: {
+      file_name: file.name,
+      page_count: 0,
+      processing_time_seconds: 0,
+    },
+  };
+
+  return { pdfBlob, metadata };
 }
 
 /**

@@ -23,6 +23,8 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   const [question, setQuestion] = useState("")
   const [subject, setSubject] = useState("political_science")
   const [loading, setLoading] = useState(false)
+  const [loadingStage, setLoadingStage] = useState<string>("")
+  const [progress, setProgress] = useState<number>(0)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<OCRResult | null>(null)
   const [annotatedPdfBlob, setAnnotatedPdfBlob] = useState<Blob | null>(null)
@@ -59,7 +61,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     setAnnotatedPdfBlob(null)
   }
 
-  const handleAnalyze = async () => {
+  const handleEvaluate = async () => {
     if (!file || !user) return
     const trimmedQuestion = question.trim()
     if (!trimmedQuestion) {
@@ -67,49 +69,73 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
       return
     }
     if (!subject) {
-      setError("Please select a subject before analyzing")
+      setError("Please select a subject before evaluating")
       return
     }
     setLoading(true)
     setError(null)
-    try {
-      const analysisResults = await analyzeDocument(file, user.id, trimmedQuestion, subject)
-      setResults(analysisResults)
-      onResults?.(analysisResults)
-    } catch (err) {
-      console.error("Analysis failed:", err)
-      setError(err instanceof Error ? err.message : "Analysis failed")
-    } finally {
-      setLoading(false)
-    }
-  }
+    setProgress(0)
+    setLoadingStage("Uploading document...")
 
-  const handleAnnotate = async () => {
-    if (!file || !user) return
-    const trimmedQuestion = question.trim()
-    if (!trimmedQuestion) {
-      setError("Please enter a question before generating an annotated PDF")
-      return
-    }
-    if (!subject) {
-      setError("Please select a subject before generating an annotated PDF")
-      return
-    }
-    setLoading(true)
-    setError(null)
     try {
-      const annotatedBlob = await annotateDocument(file, user.id, trimmedQuestion, subject)
-      setAnnotatedPdfBlob(annotatedBlob)
-      const analysisResults = await analyzeDocument(file, user.id, trimmedQuestion, subject)
-      setResults(analysisResults)
-      onResults?.(analysisResults)
-      const url = URL.createObjectURL(annotatedBlob)
+      // Simulate progress stages
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev < 90) return prev + 1
+          return prev
+        })
+      }, 300)
+
+      setLoadingStage("Performing OCR extraction...")
+      setProgress(10)
+
+      setTimeout(() => setLoadingStage("Analyzing content..."), 3000)
+      setTimeout(() => setProgress(40), 3000)
+
+      setTimeout(() => setLoadingStage("Evaluating answer quality..."), 6000)
+      setTimeout(() => setProgress(60), 6000)
+
+      setTimeout(() => setLoadingStage("Generating detailed report..."), 9000)
+      setTimeout(() => setProgress(80), 9000)
+
+      // Single API call that returns both PDF and metadata
+      const { pdfBlob, metadata } = await annotateDocument(file, user.id, trimmedQuestion, subject)
+
+      clearInterval(progressInterval)
+      setProgress(100)
+      setLoadingStage("Evaluation complete!")
+
+      setAnnotatedPdfBlob(pdfBlob)
+      setResults(metadata)
+      onResults?.(metadata)
+      const url = URL.createObjectURL(pdfBlob)
       onAnnotatedPDF?.(url)
+
+      // Reset progress after a brief moment
+      setTimeout(() => {
+        setLoadingStage("")
+        setProgress(0)
+      }, 1000)
     } catch (err) {
-      console.error("Annotation failed:", err)
-      setError(err instanceof Error ? err.message : "Annotation failed")
+      console.error("Evaluation failed:", err)
+      const errorMessage = err instanceof Error ? err.message : "Evaluation failed"
+
+      // Provide more detailed error messages
+      if (errorMessage.includes("503")) {
+        setError("OCR service is temporarily unavailable. Please try again later.")
+      } else if (errorMessage.includes("413")) {
+        setError("File is too large. Please upload a PDF smaller than 10MB.")
+      } else if (errorMessage.includes("timeout")) {
+        setError("Request timed out. The document may be too complex. Please try a shorter document.")
+      } else if (errorMessage.includes("OCR")) {
+        setError("OCR extraction failed. Please ensure the PDF contains readable text.")
+      } else {
+        setError(`Evaluation failed: ${errorMessage}`)
+      }
     } finally {
       setLoading(false)
+      setLoadingStage("")
+      setProgress(0)
     }
   }
 
@@ -174,10 +200,16 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               onChange={handleSubjectChange}
               className="w-full rounded-2xl border border-border/70 bg-background/70 p-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
             >
-              <option value="political_science">Political Science (CSS)</option>
+              <option value="political_science">Political Science (CSS) - 20 marks</option>
+              <optgroup label="English Essay (CSS)">
+                <option value="english_essay_full_length">  → Full Length Essay - 100 marks</option>
+                <option value="english_essay_outline">  → Outline Only - Qualitative</option>
+              </optgroup>
             </select>
             <p className="text-xs text-muted-foreground">
-              Political Science uses the CSS marking scheme with detailed criteria for relevance, theory, analysis, structure, and evidence.
+              {subject === "political_science" && "Political Science uses the CSS marking scheme with detailed criteria for relevance, theory, analysis, structure, and evidence (max 20 marks)."}
+              {subject === "english_essay_full_length" && "Full Length Essay is evaluated on 7 comprehensive criteria: relevance, outline quality, thesis, critical thinking, content, structure, and language (max 100 marks)."}
+              {subject === "english_essay_outline" && "Essay Outline is evaluated qualitatively (Excellent/Good/Average/Weak) on 6 criteria: relevance, comprehensiveness, logical sequencing, expression quality, balance, and originality."}
             </p>
           </div>
 
@@ -217,19 +249,30 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
           </div>
 
           {/* Actions */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Button
-              onClick={handleAnalyze}
-              disabled={!file || !user || !question.trim() || loading}
-              className="w-full bg-transparent"
-              variant="outline"
-            >
-              {loading ? "Analyzing..." : "Analyze Only"}
-            </Button>
-            <Button onClick={handleAnnotate} disabled={!file || !user || !question.trim() || loading} className="w-full">
-              {loading ? "Processing..." : "Analyze & Annotate"}
+          <div className="flex justify-center">
+            <Button onClick={handleEvaluate} disabled={!file || !user || !question.trim() || loading} className="w-full md:w-auto px-8">
+              {loading ? "Evaluating..." : "Evaluate"}
             </Button>
           </div>
+
+          {/* Progress Indicator */}
+          {loading && (
+            <div className="space-y-3 rounded-2xl border border-border/60 bg-card/60 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">{loadingStage}</span>
+                <span className="text-sm text-muted-foreground">{progress}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full bg-primary transition-all duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This may take 30-60 seconds depending on document length and complexity.
+              </p>
+            </div>
+          )}
 
           {/* Error */}
           {error && (
@@ -259,13 +302,23 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                 <h3 className="text-lg font-medium text-foreground">Analysis Results</h3>
                 <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <div className="text-muted-foreground">Overall Score</div>
-                    <div className="text-foreground text-lg font-semibold">
-                      {results.score?.total_score || 0} / {results.score?.max_possible_score || 0}
+                    <div className="text-muted-foreground">
+                      {subject === "english_essay_outline" ? "Overall Remark" : "Overall Score"}
                     </div>
-                    {typeof results.score?.max_achievable_score === "number" && (
+                    <div className="text-foreground text-lg font-semibold">
+                      {subject === "english_essay_outline"
+                        ? (results.metadata?.overall_remark || "N/A")
+                        : `${typeof results.score?.total_score === 'number' ? results.score.total_score.toFixed(1) : '0'} / ${results.score?.max_possible_score || 0}`
+                      }
+                    </div>
+                    {results.score?.max_possible_score === 100 && (
                       <div className="mt-1 text-xs text-muted-foreground">
-                        Max achievable: {results.score.max_achievable_score} / {results.score?.max_possible_score || 0}
+                        CSS English Essay: Good essays typically score 30-40/100
+                      </div>
+                    )}
+                    {subject === "english_essay_outline" && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Qualitative evaluation - no numeric marks
                       </div>
                     )}
                   </div>

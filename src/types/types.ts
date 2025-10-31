@@ -55,3 +55,21 @@ export type ApiResponse<T = any> = {
     conversationID?: string;
 }
 
+export type KeyVerificationResponse = {
+  success: boolean;
+  message: string;
+  expiryDate?: string;
+  durationDays?: number;
+}
+
+export type KeyVerificationRequest = {
+  key: string;
+  userId: string;
+}
+
+export type ProAccessState = {
+    active: boolean;
+    expiryDate?: string;
+    durationDays?: number;
+}
+

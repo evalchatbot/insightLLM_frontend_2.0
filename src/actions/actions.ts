@@ -1,6 +1,6 @@
 "use server";
 import supabaseAdmin from "../utils/db";
-import { CreateChatRequest, ApiResponse } from "../types/types";
+import { CreateChatRequest, ApiResponse, KeyVerificationResponse } from "../types/types";
 import type { ConversationInsert, MessageInsert } from "../types/database.types";
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
@@ -300,6 +300,69 @@ export const updateResponse = async ({
     return {
       success: false,
       error: "An error occurred while updating response",
+    };
+  }
+};
+
+export const verifyProKey = async (key: string): Promise<KeyVerificationResponse> => {
+  try {
+    const user = await currentUser();
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    // Check if key exists and is unused
+    const { data: keyData, error: keyError } = await supabaseAdmin
+      .from('keys')
+      .select('*')
+      .eq('key', key)
+      .single();
+
+    if (keyError || !keyData) {
+      return { 
+        success: false, 
+        message: "Invalid key" 
+      };
+    }
+
+    if (keyData.is_used) {
+      return { 
+        success: false, 
+        message: "This key has already been used" 
+      };
+    }
+
+    if (new Date(keyData.expiry_date) < new Date()) {
+      return { 
+        success: false, 
+        message: "This key has expired" 
+      };
+    }
+
+    // Activate key for user
+    const { error: updateError } = await supabaseAdmin
+      .from('keys')
+      .update({ 
+        is_used: true,
+        used_by: user.id,
+      })
+      .eq('id', keyData.id);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return {
+      success: true,
+      message: "Pro access activated successfully!",
+      expiryDate: keyData.expiry_date,
+      durationDays: keyData.duration_days
+    };
+  } catch (error: any) {
+    console.error("Error verifying pro key:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to verify key"
     };
   }
 };

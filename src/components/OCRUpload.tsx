@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useUser } from "@clerk/nextjs"
 import { annotateDocument, analyzeDocument, type OCRResult } from "@/utils/ocr-api"
 import { AiOutlineFileText } from "react-icons/ai"
@@ -10,24 +10,60 @@ import { AiOutlineFileText } from "react-icons/ai"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 
 interface OCRUploadProps {
   onResults?: (results: OCRResult) => void
   onAnnotatedPDF?: (pdfUrl: string) => void
 }
 
+interface Subject {
+  id: string
+  display_name: string
+}
+
 export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps) {
   const { user } = useUser()
   const [file, setFile] = useState<File | null>(null)
   const [question, setQuestion] = useState("")
-  const [subject, setSubject] = useState("political_science")
+  const [subject, setSubject] = useState("")
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [loadingSubjects, setLoadingSubjects] = useState(true)
   const [loading, setLoading] = useState(false)
   const [loadingStage, setLoadingStage] = useState<string>("")
   const [progress, setProgress] = useState<number>(0)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<OCRResult | null>(null)
   const [annotatedPdfBlob, setAnnotatedPdfBlob] = useState<Blob | null>(null)
+
+  // Fetch available subjects on component mount
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+        const response = await fetch(`${apiUrl}/api/ocr/subjects`)
+
+        if (!response.ok) {
+          throw new Error("Failed to load subjects")
+        }
+
+        const data = await response.json()
+        setSubjects(data.subjects || [])
+
+        // Set first subject as default if available
+        if (data.subjects && data.subjects.length > 0) {
+          setSubject(data.subjects[0].id)
+        }
+      } catch (err) {
+        console.error("Failed to fetch subjects:", err)
+        // Fallback to empty array - user will see error in UI
+        setSubjects([])
+      } finally {
+        setLoadingSubjects(false)
+      }
+    }
+
+    fetchSubjects()
+  }, [])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -152,6 +188,22 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     }
   }
 
+  const resetEvaluation = () => {
+    setFile(null)
+    setQuestion("")
+    setResults(null)
+    setAnnotatedPdfBlob(null)
+    setError(null)
+    setLoading(false)
+    setLoadingStage("")
+    setProgress(0)
+    // Reset file input
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    if (fileInput) {
+      fileInput.value = ""
+    }
+  }
+
   return (
     <div className="w-full max-w-4xl mx-auto p-4 md:p-6">
       <Card className="rounded-3xl border border-border/60 bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/50 shadow-sm">
@@ -198,18 +250,19 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               id="ocr-subject"
               value={subject}
               onChange={handleSubjectChange}
-              className="w-full rounded-2xl border border-border/70 bg-background/70 p-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+              disabled={loadingSubjects || subjects.length === 0}
+              className="w-full rounded-2xl border border-border/70 bg-background/70 p-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="political_science">Political Science (CSS) - 20 marks</option>
-              <optgroup label="English Essay (CSS)">
-                <option value="english_essay_full_length">  → Full Length Essay - 100 marks</option>
-                <option value="english_essay_outline">  → Outline Only - Qualitative</option>
-              </optgroup>
+              {loadingSubjects && <option value="">Loading subjects...</option>}
+              {!loadingSubjects && subjects.length === 0 && <option value="">No subjects available</option>}
+              {!loadingSubjects && subjects.length > 0 && subjects.map((subj) => (
+                <option key={subj.id} value={subj.id}>
+                  {subj.display_name}
+                </option>
+              ))}
             </select>
             <p className="text-xs text-muted-foreground">
-              {subject === "political_science" && "Political Science uses the CSS marking scheme with detailed criteria for relevance, theory, analysis, structure, and evidence (max 20 marks)."}
-              {subject === "english_essay_full_length" && "Full Length Essay is evaluated on 7 comprehensive criteria: relevance, outline quality, thesis, critical thinking, content, structure, and language (max 100 marks)."}
-              {subject === "english_essay_outline" && "Essay Outline is evaluated qualitatively (Excellent/Good/Average/Weak) on 6 criteria: relevance, comprehensiveness, logical sequencing, expression quality, balance, and originality."}
+              {loadingSubjects ? "Loading available subjects..." : subjects.length > 0 ? `${subjects.length} subjects available from rubric folders. Add/rename folders to update list.` : "No subjects found. Please check rubric folders."}
             </p>
           </div>
 
@@ -282,145 +335,22 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             </Alert>
           )}
 
-          {/* Annotated PDF ready */}
+          {/* Report Ready */}
           {annotatedPdfBlob && (
             <Alert className="border-border bg-secondary/40">
-              <AlertTitle className="text-foreground">Annotated PDF is ready</AlertTitle>
-              <AlertDescription className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <span className="text-muted-foreground">You can download the annotated document now.</span>
-                <Button onClick={downloadAnnotatedPDF} className="w-full md:w-auto">
-                  Download Annotated PDF
-                </Button>
+              <AlertTitle className="text-foreground">Evaluation Report Ready</AlertTitle>
+              <AlertDescription className="flex flex-col gap-3">
+                <span className="text-muted-foreground">Your detailed evaluation report is ready for download. The report includes scores, detailed feedback, issues found, and a model answer outline.</span>
+                <div className="flex flex-col gap-2 md:flex-row">
+                  <Button onClick={downloadAnnotatedPDF} className="w-full md:w-auto">
+                    Download Report
+                  </Button>
+                  <Button onClick={resetEvaluation} variant="outline" className="w-full md:w-auto">
+                    Evaluate Another Question
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
-          )}
-
-          {/* Results */}
-          {results && (
-            <div className="space-y-5">
-              <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-                <h3 className="text-lg font-medium text-foreground">Analysis Results</h3>
-                <div className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <div className="text-muted-foreground">
-                      {subject === "english_essay_outline" ? "Overall Remark" : "Overall Score"}
-                    </div>
-                    <div className="text-foreground text-lg font-semibold">
-                      {subject === "english_essay_outline"
-                        ? (results.metadata?.overall_remark || "N/A")
-                        : `${typeof results.score?.total_score === 'number' ? results.score.total_score.toFixed(1) : '0'} / ${results.score?.max_possible_score || 0}`
-                      }
-                    </div>
-                    {results.score?.max_possible_score === 100 && (
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        CSS English Essay: Good essays typically score 30-40/100
-                      </div>
-                    )}
-                    {subject === "english_essay_outline" && (
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Qualitative evaluation - no numeric marks
-                      </div>
-                    )}
-                  </div>
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <div className="text-muted-foreground">Pages</div>
-                    <div className="text-foreground text-lg font-semibold">{results.metadata?.page_count || 0}</div>
-                  </div>
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <div className="text-muted-foreground">Processing Time</div>
-                    <div className="text-foreground text-lg font-semibold">
-                      {(results.metadata?.processing_time_seconds?.toFixed(2) || 0) + "s"}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  File: {results.metadata?.file_name || "Unknown"}
-                </div>
-                {results.metadata?.provided_question && (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    Question: {results.metadata.provided_question}
-                  </div>
-                )}
-                {results.metadata?.subject && (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    Subject: {results.metadata.subject.label}
-                  </div>
-                )}
-                {typeof results.metadata?.question_occurrences_removed === "number" && (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    Removed question instances in OCR text: {results.metadata.question_occurrences_removed}
-                  </div>
-                )}
-                {results.metadata?.scoring_profile && (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    Scoring breakdown: Content /{results.metadata.scoring_profile.content_max} + Writing /
-                    {results.metadata.scoring_profile.writing_max} → Total /
-                    {results.metadata.scoring_profile.total_max} (max achievable{" "}
-                    {results.metadata.scoring_profile.achievable_max ?? results.metadata.scoring_profile.total_max})
-                  </div>
-                )}
-              </div>
-
-              {results.issues && results.issues.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-base font-semibold text-foreground">Issues Found ({results.issues.length})</h4>
-
-                  <div className="grid grid-cols-1 gap-3">
-                    {results.issues.map((issue) => {
-                      const severity = issue.impact_points_0to3 || 0
-                      const severityBadgeClass =
-                        severity >= 3
-                          ? "bg-destructive/15 text-destructive-foreground"
-                          : severity >= 2
-                            ? "bg-accent text-accent-foreground"
-                            : "bg-secondary text-secondary-foreground"
-
-                      return (
-                        <div
-                          key={issue.issue_id || Math.random()}
-                          className="rounded-2xl border border-border/60 bg-card/60 p-4"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <h5 className="text-foreground font-medium">{issue.issue_title || "Untitled Issue"}</h5>
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                {issue.why_it_matters || "No description available"}
-                              </p>
-                            </div>
-                            <Badge className={`shrink-0 ${severityBadgeClass}`} variant="outline">
-                              Impact: {severity}/3
-                            </Badge>
-                          </div>
-
-                          <div className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-                            <p>
-                              <span className="text-foreground font-medium">How to verify:</span>{" "}
-                              {issue.how_to_verify || "Not specified"}
-                            </p>
-                            <p>
-                              <span className="text-foreground font-medium">Location:</span>{" "}
-                              {issue.location_hint || "Not specified"}
-                            </p>
-                            {issue.evidence_suggestions && issue.evidence_suggestions.length > 0 && (
-                              <div className="mt-2">
-                                <span className="text-foreground font-medium">Evidence suggestions:</span>
-                                <ul className="mt-1 list-inside list-disc space-y-0.5">
-                                  {issue.evidence_suggestions.map((suggestion, idx) => (
-                                    <li key={idx} className="text-muted-foreground">
-                                      {suggestion}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
           )}
         </CardContent>
       </Card>

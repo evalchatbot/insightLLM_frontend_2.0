@@ -80,6 +80,72 @@ export interface Database {
           }
         ]
       }
+      keys: {
+        Row: {
+          id: string
+          key: string
+          is_used: boolean
+          used_by: string | null
+          expiry_date: string
+          duration_days: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          key: string
+          is_used?: boolean
+          used_by?: string | null
+          expiry_date: string
+          duration_days: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          key?: string
+          is_used?: boolean
+          used_by?: string | null
+          expiry_date?: string
+          duration_days?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          key_id: string | null
+          start_date: string
+          end_date: string
+          is_active: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          key_id?: string | null
+          start_date?: string
+          end_date?: string
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          key_id?: string | null
+          start_date?: string
+          end_date?: string
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {}
     Functions: {}
@@ -105,3 +171,11 @@ export type ConversationWithMessages = Conversation & {
 export type MessageWithConversation = Message & {
   conversation: Conversation
 }
+
+export type KeyRow = Database['public']['Tables']['keys']['Row']
+export type KeyInsert = Database['public']['Tables']['keys']['Insert']
+export type KeyUpdate = Database['public']['Tables']['keys']['Update']
+
+export type SubscriptionRow = Database['public']['Tables']['subscriptions']['Row']
+export type SubscriptionInsert = Database['public']['Tables']['subscriptions']['Insert']
+export type SubscriptionUpdate = Database['public']['Tables']['subscriptions']['Update']

@@ -39,7 +39,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
         const response = await fetch(`${apiUrl}/api/ocr/subjects`)
 
         if (!response.ok) {

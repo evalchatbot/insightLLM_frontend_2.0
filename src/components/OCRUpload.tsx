@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useUser } from "@clerk/nextjs"
-import { annotateDocument, analyzeDocument, type OCRResult } from "@/utils/ocr-api"
+import { annotateDocument, type OCRResult } from "@/utils/ocr-api"
 import { AiOutlineFileText } from "react-icons/ai"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,7 +24,6 @@ interface Subject {
 export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps) {
   const { user } = useUser()
   const [file, setFile] = useState<File | null>(null)
-  const [question, setQuestion] = useState("")
   const [subject, setSubject] = useState("")
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loadingSubjects, setLoadingSubjects] = useState(true)
@@ -83,13 +82,6 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     }
   }
 
-  const handleQuestionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setQuestion(e.target.value)
-    setError(null)
-    setResults(null)
-    setAnnotatedPdfBlob(null)
-  }
-
   const handleSubjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSubject(e.target.value)
     setError(null)
@@ -99,11 +91,6 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
   const handleEvaluate = async () => {
     if (!file || !user) return
-    const trimmedQuestion = question.trim()
-    if (!trimmedQuestion) {
-      setError("Please enter a question to evaluate the document against")
-      return
-    }
     if (!subject) {
       setError("Please select a subject before evaluating")
       return
@@ -122,20 +109,20 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
         })
       }, 300)
 
-      setLoadingStage("Performing OCR extraction...")
+      setLoadingStage("Extracting handwriting and text...")
       setProgress(10)
 
-      setTimeout(() => setLoadingStage("Analyzing content..."), 3000)
+      setTimeout(() => setLoadingStage("Understanding the question..."), 3000)
       setTimeout(() => setProgress(40), 3000)
 
-      setTimeout(() => setLoadingStage("Evaluating answer quality..."), 6000)
+      setTimeout(() => setLoadingStage("Evaluating answer with rubric..."), 6000)
       setTimeout(() => setProgress(60), 6000)
 
-      setTimeout(() => setLoadingStage("Generating detailed report..."), 9000)
+      setTimeout(() => setLoadingStage("Generating annotated report..."), 9000)
       setTimeout(() => setProgress(80), 9000)
 
       // Single API call that returns both PDF and metadata
-      const { pdfBlob, metadata } = await annotateDocument(file, user.id, trimmedQuestion, subject)
+      const { pdfBlob, metadata } = await annotateDocument(file, user.id, subject)
 
       clearInterval(progressInterval)
       setProgress(100)
@@ -190,7 +177,6 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
   const resetEvaluation = () => {
     setFile(null)
-    setQuestion("")
     setResults(null)
     setAnnotatedPdfBlob(null)
     setError(null)
@@ -224,23 +210,6 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             </Alert>
           )}
 
-          {/* Question Input */}
-          <div className="space-y-2">
-            <label htmlFor="ocr-question" className="block text-sm font-medium text-foreground">
-              Question to evaluate
-            </label>
-            <textarea
-              id="ocr-question"
-              value={question}
-              onChange={handleQuestionChange}
-              placeholder="Enter the question that the document answers"
-              className="min-h-[96px] w-full rounded-2xl border border-border/70 bg-background/70 p-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
-            />
-            <p className="text-xs text-muted-foreground">
-              The question text will be stripped from the OCR output before analysis so only the answer is evaluated.
-            </p>
-          </div>
-
           {/* Subject Selection */}
           <div className="space-y-2">
             <label htmlFor="ocr-subject" className="block text-sm font-medium text-foreground">
@@ -262,7 +231,11 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               ))}
             </select>
             <p className="text-xs text-muted-foreground">
-              {loadingSubjects ? "Loading available subjects..." : subjects.length > 0 ? `${subjects.length} subjects available from rubric folders. Add/rename folders to update list.` : "No subjects found. Please check rubric folders."}
+              {loadingSubjects
+                ? "Loading available subjects..."
+                : subjects.length > 0
+                  ? `${subjects.length} subjects available from rubric folders. Add/rename folders to update list.`
+                  : "No subjects found. Please check rubric folders."}
             </p>
           </div>
 
@@ -303,7 +276,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
           {/* Actions */}
           <div className="flex justify-center">
-            <Button onClick={handleEvaluate} disabled={!file || !user || !question.trim() || loading} className="w-full md:w-auto px-8">
+            <Button onClick={handleEvaluate} disabled={!file || !user || !subject || loading} className="w-full md:w-auto px-8">
               {loading ? "Evaluating..." : "Evaluate"}
             </Button>
           </div>

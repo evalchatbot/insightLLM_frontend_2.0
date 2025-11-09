@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import { useUser } from "@clerk/nextjs"
 import { annotateDocument, type OCRResult } from "@/utils/ocr-api"
 import { AiOutlineFileText } from "react-icons/ai"
+import insightZustand from "@/utils/insight-zustand"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -23,6 +24,7 @@ interface Subject {
 
 export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps) {
   const { user } = useUser()
+  const { setToast } = insightZustand()
   const [file, setFile] = useState<File | null>(null)
   const [subject, setSubject] = useState("")
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -143,17 +145,42 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
       console.error("Evaluation failed:", err)
       const errorMessage = err instanceof Error ? err.message : "Evaluation failed"
 
-      // Provide more detailed error messages
-      if (errorMessage.includes("503")) {
-        setError("OCR service is temporarily unavailable. Please try again later.")
-      } else if (errorMessage.includes("413")) {
-        setError("File is too large. Please upload a PDF smaller than 10MB.")
-      } else if (errorMessage.includes("timeout")) {
-        setError("Request timed out. The document may be too complex. Please try a shorter document.")
-      } else if (errorMessage.includes("OCR")) {
-        setError("OCR extraction failed. Please ensure the PDF contains readable text.")
+      // Check if this is a limit exceeded error - show in toast beautifully
+      if (errorMessage.includes("limit reached") || 
+          errorMessage.includes("limit exceeded") || 
+          errorMessage.includes("Monthly token limit")) {
+        // Show limit exceeded message in toast (beautiful display)
+        setToast(errorMessage)
+        // Also set local error for component display
+        setError(errorMessage)
+        // Trigger status refresh if user was downgraded
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('refreshProStatus'))
+          localStorage.setItem('proStatusRefresh', Date.now().toString())
+        }
       } else {
-        setError(`Evaluation failed: ${errorMessage}`)
+        // Provide more detailed error messages for other errors
+        if (errorMessage.includes("503")) {
+          const msg = "OCR service is temporarily unavailable. Please try again later."
+          setError(msg)
+          setToast(msg)
+        } else if (errorMessage.includes("413")) {
+          const msg = "File is too large. Please upload a PDF smaller than 10MB."
+          setError(msg)
+          setToast(msg)
+        } else if (errorMessage.includes("timeout")) {
+          const msg = "Request timed out. The document may be too complex. Please try a shorter document."
+          setError(msg)
+          setToast(msg)
+        } else if (errorMessage.includes("OCR")) {
+          const msg = "OCR extraction failed. Please ensure the PDF contains readable text."
+          setError(msg)
+          setToast(msg)
+        } else {
+          const msg = `Evaluation failed: ${errorMessage}`
+          setError(msg)
+          setToast(msg)
+        }
       }
     } finally {
       setLoading(false)

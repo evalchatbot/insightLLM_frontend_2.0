@@ -10,9 +10,15 @@ export const createChat = async (
   chat: CreateChatRequest
 ): Promise<ApiResponse> => {
   try {
-    const user = await currentUser();
+    // Retry logic for transient auth issues (race conditions during hot reload)
+    let user = await currentUser();
     if (!user) {
-      throw new Error("User not authenticated");
+      // Retry once after a short delay (handles race conditions)
+      await new Promise(resolve => setTimeout(resolve, 100));
+      user = await currentUser();
+      if (!user) {
+        throw new Error("User not authenticated. Please refresh the page and try again.");
+      }
     }
 
     const { userPrompt, llmResponse, chatID, imgName } = chat;

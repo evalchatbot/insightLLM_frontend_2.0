@@ -6,10 +6,10 @@ import insightZustand from "@/utils/insight-zustand";
 
 interface ProAccessModalProps {
   onClose: () => void;
-  onSubscriptionChange?: (subscription: { end_date: string }) => void;
+  onSuccess?: (data: { end_date: string }) => void;
 }
 
-const ProAccessModal = ({ onClose, onSubscriptionChange }: ProAccessModalProps) => {
+const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
   const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
   const { setToast } = insightZustand();
@@ -27,21 +27,35 @@ const ProAccessModal = ({ onClose, onSubscriptionChange }: ProAccessModalProps) 
         body: JSON.stringify({ key })
       });
 
+      // Handle 503 Service Unavailable (transient Clerk API errors)
+      if (response.status === 503) {
+        const data = await response.json();
+        // For transient errors, show a message that suggests retrying
+        if (data?.retry) {
+          setToast("Temporary authentication issue. Please try again in a moment.");
+        } else {
+          setToast(data.message || "Service temporarily unavailable. Please try again.");
+        }
+        return;
+      }
+
       const data = await response.json();
       
       if (data.success) {
         // We don't need localStorage anymore as we're using the database
         setToast("Pro access activated successfully!");
         onClose();
-        // Trigger parent component to refresh subscription status
-        if (onSubscriptionChange) {
-          onSubscriptionChange({ end_date: data.expiryDate });
+        // Notify parent component of successful activation
+        if (onSuccess) {
+          onSuccess({ end_date: data.expiryDate });
         }
       } else {
         setToast(data.message || "Invalid key");
       }
     } catch (error) {
-      setToast("Failed to verify key");
+      // Network errors are also transient - show appropriate message
+      console.warn('Failed to verify key (will retry):', error);
+      setToast("Network error. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }

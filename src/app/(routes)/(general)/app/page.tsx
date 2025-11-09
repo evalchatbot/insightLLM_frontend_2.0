@@ -1,11 +1,38 @@
 import { currentUser } from "@clerk/nextjs/server";
+import type { User } from "@clerk/nextjs/server";
 import HomeCards from "@/components/temp-components/home-cards";
 import OCRCard from "@/components/OCRCard";
 import React from "react";
 
 
 const page = async () => {
-  const user = await currentUser();
+  // Handle Clerk API errors gracefully to prevent Server Component crashes
+  let user: User | null = null;
+  try {
+    // Retry logic for transient Clerk API failures
+    let retryCount = 0;
+    const maxRetries = 2;
+    
+    while (retryCount <= maxRetries && !user) {
+      try {
+        user = await currentUser();
+        break; // Success, exit retry loop
+      } catch (e: any) {
+        retryCount++;
+        if (retryCount > maxRetries) {
+          console.error('Failed to fetch current user after retries:', e);
+          // Continue with null user instead of crashing
+          break;
+        }
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 100 * retryCount));
+      }
+    }
+  } catch (error: any) {
+    // Catch any unexpected errors and log them
+    console.error('Unexpected error in page component:', error);
+    // Continue rendering with null user instead of crashing
+  }
 
   return (
     <section className="mt-5 fade-in-section w-full max-w-4xl mx-auto md:p-10 p-5">

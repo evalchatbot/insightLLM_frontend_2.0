@@ -53,6 +53,67 @@ const InputPrompt = () => {
 
       setMsgLoader(true);
       
+      // Check usage limits BEFORE processing (estimate input tokens from prompt)
+      // Simple estimation: ~4 characters per token
+      const estimatedInputTokens = Math.ceil(rawPrompt.length / 4);
+      // Estimate output tokens (conservative estimate: assume 500 tokens output)
+      const estimatedOutputTokens = 500;
+      
+      try {
+        const limitCheck = await fetch('/api/chat/check-limit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            input_tokens: estimatedInputTokens,
+            output_tokens: estimatedOutputTokens
+          })
+        });
+        
+        if (limitCheck.status === 429) {
+          const errorData = await limitCheck.json();
+          setToast(errorData.message || "Monthly token limit exceeded. Please upgrade to Pro or wait for next month.");
+          setMsgLoader(false);
+          
+          // If user was downgraded from pro to free, trigger status refresh
+          if (errorData.downgraded || errorData.is_pro === false) {
+            // Trigger immediate refresh
+            window.dispatchEvent(new CustomEvent('refreshProStatus'));
+            // Also use storage event as backup
+            localStorage.setItem('proStatusRefresh', Date.now().toString());
+          }
+          return;
+        }
+        
+        // If check-limit returns non-200 status, block the request
+        if (!limitCheck.ok) {
+          const errorText = await limitCheck.text();
+          console.error('Failed to check usage limit:', limitCheck.status, errorText);
+          setToast("Unable to verify usage limits. Please try again or contact support.");
+          setMsgLoader(false);
+          return;
+        }
+        
+        // Verify that can_proceed is true before proceeding
+        try {
+          const limitData = await limitCheck.json();
+          if (!limitData.can_proceed) {
+            setToast(limitData.message || "Monthly token limit exceeded. Please upgrade to Pro or wait for next month.");
+            setMsgLoader(false);
+            return;
+          }
+        } catch (parseErr) {
+          console.error('Failed to parse limit check response:', parseErr);
+          setToast("Unable to verify usage limits. Please try again.");
+          setMsgLoader(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to check usage limit:', err);
+        setToast("Unable to verify usage limits. Please try again or contact support.");
+        setMsgLoader(false);
+        return;
+      }
+      
       // Create abort controller for this request
       abortControllerRef.current = new AbortController();
       
@@ -127,6 +188,59 @@ const InputPrompt = () => {
                   fullResponse = parsedData.answer;
                   setCurrChat("llmResponse", fullResponse);
                   finalMetadata = parsedData.metadata || null;
+                  
+                  // Track usage using actual token counts from backend
+                  if (finalMetadata?.token_usage) {
+                    try {
+                      const inputTokens = finalMetadata.token_usage.prompt_tokens || 0;
+                      const outputTokens = finalMetadata.token_usage.completion_tokens || 0;
+                      
+                      // Record usage via API (only log errors)
+                      const usageResponse = await fetch('/api/chat/usage', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          input_tokens: inputTokens,
+                          output_tokens: outputTokens
+                        })
+                      });
+                      
+                      // Only log if there's an error
+                      if (!usageResponse.ok) {
+                        console.error('❌ Usage API error:', usageResponse.status);
+                      }
+                      
+                      // Check if limit was exceeded
+                      if (usageResponse.status === 429) {
+                        const errorData = await usageResponse.json();
+                        setToast(errorData.message || "Monthly token limit exceeded. Please upgrade to Pro or wait for next month.");
+                        // Note: Chat already completed, but user will be blocked on next attempt
+                        console.warn('Usage limit exceeded after chat:', errorData.message);
+                        
+                        // If user was downgraded from pro to free, trigger status refresh
+                        if (errorData.downgraded || errorData.is_pro === false) {
+                          // Trigger immediate refresh
+                          window.dispatchEvent(new CustomEvent('refreshProStatus'));
+                          // Also use storage event as backup
+                          localStorage.setItem('proStatusRefresh', Date.now().toString());
+                        }
+                      } else if (!usageResponse.ok) {
+                        console.warn('Failed to track usage:', await usageResponse.text());
+                      } else if (usageResponse.ok) {
+                        // Check if usage result indicates downgrade
+                        const usageData = await usageResponse.json();
+                        // If is_pro is false in the response, user was downgraded
+                        if (usageData.is_pro === false) {
+                          // User was downgraded, refresh status
+                          window.dispatchEvent(new CustomEvent('refreshProStatus'));
+                          // Also use storage event as backup
+                          localStorage.setItem('proStatusRefresh', Date.now().toString());
+                        }
+                      }
+                    } catch (err) {
+                      console.warn('Failed to track usage:', err);
+                    }
+                  }
                   break;
                 } else if (parsedData.type === 'error') {
                   // Backend reported an error while streaming. Surface to user and abort.
@@ -159,6 +273,9 @@ const InputPrompt = () => {
         setToast('No response received from the API.');
         return;
       }
+      
+      // Token usage is now tracked in the 'complete' event handler above
+      // using actual token counts from the backend
       
       // Set optimistic states
       setOptimisticPrompt(rawPrompt);
@@ -204,6 +321,14 @@ const InputPrompt = () => {
       }
 
       const chatResult = await createChat(safePayload as any);
+      
+      // Handle authentication errors gracefully
+      if (!chatResult.success && chatResult.error?.includes("not authenticated")) {
+        console.warn('Authentication error in createChat, user may need to refresh:', chatResult.error);
+        // Don't show error toast for transient auth issues - user can retry
+        // The error is already logged, and retrying usually works
+        return;
+      }
       
       if (chatResult.success && chatResult.conversationID) {
         setConversationID(chatResult.conversationID);

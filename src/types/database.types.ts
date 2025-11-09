@@ -113,34 +113,61 @@ export interface Database {
         }
         Relationships: []
       }
-      subscriptions: {
+      usage_free: {
         Row: {
-          id: string
           user_id: string
-          key_id: string | null
-          start_date: string
-          end_date: string
-          is_active: boolean
+          tokens_input_used: number
+          tokens_output_used: number
+          pages_used: number
+          period_start: string
           created_at: string | null
           updated_at: string | null
         }
         Insert: {
-          id?: string
           user_id: string
-          key_id?: string | null
-          start_date?: string
-          end_date?: string
-          is_active?: boolean
+          tokens_input_used?: number
+          tokens_output_used?: number
+          pages_used?: number
+          period_start?: string
           created_at?: string | null
           updated_at?: string | null
         }
         Update: {
-          id?: string
           user_id?: string
-          key_id?: string | null
-          start_date?: string
-          end_date?: string
-          is_active?: boolean
+          tokens_input_used?: number
+          tokens_output_used?: number
+          pages_used?: number
+          period_start?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      usage_pro: {
+        Row: {
+          user_id: string
+          tokens_input_used: number
+          tokens_output_used: number
+          pages_used: number
+          period_start: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          user_id: string
+          tokens_input_used?: number
+          tokens_output_used?: number
+          pages_used?: number
+          period_start?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          user_id?: string
+          tokens_input_used?: number
+          tokens_output_used?: number
+          pages_used?: number
+          period_start?: string
           created_at?: string | null
           updated_at?: string | null
         }
@@ -176,6 +203,10 @@ export type KeyRow = Database['public']['Tables']['keys']['Row']
 export type KeyInsert = Database['public']['Tables']['keys']['Insert']
 export type KeyUpdate = Database['public']['Tables']['keys']['Update']
 
-export type SubscriptionRow = Database['public']['Tables']['subscriptions']['Row']
-export type SubscriptionInsert = Database['public']['Tables']['subscriptions']['Insert']
-export type SubscriptionUpdate = Database['public']['Tables']['subscriptions']['Update']
+export type UsageFreeRow = Database['public']['Tables']['usage_free']['Row']
+export type UsageFreeInsert = Database['public']['Tables']['usage_free']['Insert']
+export type UsageFreeUpdate = Database['public']['Tables']['usage_free']['Update']
+
+export type UsageProRow = Database['public']['Tables']['usage_pro']['Row']
+export type UsageProInsert = Database['public']['Tables']['usage_pro']['Insert']
+export type UsageProUpdate = Database['public']['Tables']['usage_pro']['Update']

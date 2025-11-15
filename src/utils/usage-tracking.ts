@@ -29,22 +29,48 @@ export async function trackUsage(req: NextRequest, userId: string, inputTokens: 
       return false;
     }
 
-    // Find supabase user by email
-    const { data: supUser, error: supUserError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', userEmail)
-      .single();
+    // Find supabase user by email, create if missing
+    let supUserId: string | null = null;
+    {
+      const { data: supUser, error: supUserError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userEmail)
+        .maybeSingle();
 
-    if (supUserError || !supUser) {
-      console.error('No matching Supabase user found');
-      return false;
+      if (supUser?.id) {
+        supUserId = supUser.id as string;
+      } else {
+        // Create minimal user row by email
+        const { data: inserted, error: insertErr } = await supabase
+          .from('users')
+          .insert({ email: userEmail })
+          .select('id')
+          .single();
+
+        if (insertErr) {
+          // If unique violation due to race, re-read
+          if ((insertErr as any).code === '23505') {
+            const { data: again } = await supabase
+              .from('users')
+              .select('id')
+              .eq('email', userEmail)
+              .single();
+            supUserId = (again as any)?.id ?? null;
+          } else {
+            console.error('Failed to create Supabase user:', insertErr);
+            return false;
+          }
+        } else {
+          supUserId = (inserted as any)?.id ?? null;
+        }
+      }
     }
 
     // Track usage using the track_usage function
     const { data: usageResult, error: usageError } = await supabase
       .rpc('track_usage', {
-        p_user_id: supUser.id,
+        p_user_id: supUserId,
         p_input_tokens: inputTokens,
         p_output_tokens: outputTokens
       });

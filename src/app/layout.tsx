@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProviders } from "@/utils/theme-providers";
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { ClerkProvider } from "@clerk/nextjs";
+import EnsureSupabaseUser from "@/components/EnsureSupabaseUser";
 
 
 export const metadata: Metadata = {
@@ -57,7 +58,10 @@ export default function RootLayout({
           className="bg-background text-foreground h-dvh w-full overflow-auto"
         >
           <ErrorBoundary>
-            <ThemeProviders>{children}</ThemeProviders>
+            <ThemeProviders>
+              <EnsureSupabaseUser />
+              {children}
+            </ThemeProviders>
           </ErrorBoundary>
         </body>
       </html>

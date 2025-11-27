@@ -64,7 +64,7 @@ const ChatActionsBtns = ({
   }
   return (
     <>
-      <div className="w-full flex items-center gap-2 !text-2xl mt-2">
+      <div className="w-full flex items-center gap-1.5 sm:gap-2 !text-xl sm:!text-2xl mt-2 flex-wrap">
         {[
           { icon: BiLike, tipdata: "Good job" },
           { icon: BiDislike, tipdata: "Bad job" },
@@ -75,7 +75,7 @@ const ChatActionsBtns = ({
               rounded="full"
               size="lg"
               variant="v2"
-              className="opacity-80"
+              className="opacity-80 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation active:scale-95"
             >
               <item.icon />
             </DevButton>
@@ -90,7 +90,7 @@ const ChatActionsBtns = ({
             onClick={handleDoubleCheck}
             size="lg"
             variant="v2"
-            className="opacity-80"
+            className="opacity-80 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation active:scale-95"
           >
             {loader ? <span className="modal-loader"></span> : <MdSearch />}
           </DevButton>
@@ -104,7 +104,7 @@ const ChatActionsBtns = ({
                 rounded="full"
                 size="lg"
                 variant="v2"
-                className="opacity-80"
+                className="opacity-80 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation active:scale-95"
               >
                 <FiMoreVertical />
               </DevButton>
@@ -133,12 +133,12 @@ const ChatActionsBtns = ({
         </DevPopover>
       </div>
 
-      {searchRes && searchRes.length > 0 && <div className="w-full md:w-[90%] mt-5 mx-auto overflow-hidden p-5 rounded-2xl space-y-3 bg-accentGray/10">
-        <h3>Search related topics</h3>
+      {searchRes && searchRes.length > 0 && <div className="w-full md:w-[90%] mt-4 sm:mt-5 mx-auto overflow-hidden p-4 sm:p-5 rounded-xl sm:rounded-2xl space-y-2 sm:space-y-3 bg-accentGray/10">
+        <h3 className="text-base sm:text-lg font-medium">Search related topics</h3>
         <div className="space-y-1">
           {
-            searchRes.map((item, index) => <DevButton target="_blank" variant="v2" href={`https://www.google.com/search?q=${item}`} className=" text-accentBlue/80 w-full !justify-start text-left flex items-center gap-2 hover:!bg-accentBlue/15" key={index}>
-              <IoMdSearch className="text-xl" />
+            searchRes.map((item, index) => <DevButton target="_blank" variant="v2" href={`https://www.google.com/search?q=${item}`} className="text-accentBlue/80 w-full !justify-start text-left flex items-center gap-2 hover:!bg-accentBlue/15 min-h-[44px] touch-manipulation active:scale-[0.98] text-sm sm:text-base" key={index}>
+              <IoMdSearch className="text-lg sm:text-xl flex-shrink-0" />
               <p className="truncate">{item}</p>
             </DevButton>)
           }

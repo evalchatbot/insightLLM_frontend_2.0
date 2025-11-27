@@ -1,11 +1,9 @@
 import React from 'react'
 
 const Loading = () => {
-  return (
-    <section className='h-full w-full grid place-content-center'>
-      <div className="loader" />
-    </section>
-  )
+  // Return null to prevent loading screen during chat interactions
+  // The chatbot has its own loading state with typing animation
+  return null;
 }
 
 export default Loading

@@ -3,6 +3,7 @@ import insightZustand from '@/utils/insight-zustand'
 import React, { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { nanoid } from 'nanoid'
+import { motion } from 'framer-motion'
 import { FaBalanceScale, FaUniversity, FaGavel, FaFlag } from "react-icons/fa";
 import { IoIosBook, IoMdPaper } from "react-icons/io";
 import { MdOutlineGavel, MdOutlinePolicy, MdOutlineHowToVote, MdOutlineAccountBalance } from "react-icons/md";
@@ -110,7 +111,7 @@ const promptArray = [
 const HomeCards = () => {
   const { setCurrChat, setAutoSend } = insightZustand()
   const router = useRouter()
-  
+
   const randomPrompts = useMemo(() => {
     const shuffled = [...promptArray].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, 4);
@@ -119,30 +120,55 @@ const HomeCards = () => {
   const handleCardClick = (prompt: string) => {
     // Generate a new chat ID
     const chatID = nanoid();
-    
+
     // Set the prompt in the store
     setCurrChat('userPrompt', prompt);
-    
+
     // Set autoSend flag so the message gets sent automatically after navigation
     setAutoSend(true);
-    
+
     // Navigate to the new chat page
     router.push(`/app/${chatID}`);
   };
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemAnim = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="w-full h-auto grid md:grid-cols-4 grid-cols-1 overflow-hidden gap-2 mt-5 md:mt-16">
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="w-full max-w-4xl mx-auto flex flex-wrap justify-center gap-2.5"
+    >
       {randomPrompts.map((item, index) => (
-        <div
+        <motion.div
           key={index}
+          variants={itemAnim}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => handleCardClick(item.prompt)}
-          className="bg-card md:aspect-square hover:!bg-accent cursor-pointer rounded-xl relative p-4 font-light"
+          className="group relative px-4 py-2.5 rounded-full cursor-pointer touch-manipulation bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-emerald-200/50 dark:border-emerald-800/50 hover:border-emerald-400 dark:hover:border-emerald-600 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/50 transition-all duration-300 shadow-sm hover:shadow-md flex items-center gap-2.5"
         >
-          <p>{item.prompt}</p>
-          <item.icon className="absolute text-4xl bottom-2 right-2 rounded-full p-2 aspect-square bg-background text-foreground" />
-        </div>
+          <item.icon className="text-base text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+          <p className="text-xs sm:text-sm text-foreground/80 font-medium group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors duration-300 line-clamp-1">
+            {item.prompt}
+          </p>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   )
 }
 

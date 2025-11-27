@@ -10,8 +10,9 @@ import insightZustand from "@/utils/insight-zustand";
 import { useUser } from "@clerk/nextjs";
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@/types/database.types";
+import Confetti from 'react-confetti';
 
-const CustomApiKey = () => {
+const CustomApiKey = ({ preloadedData }: { preloadedData?: any } = {}) => {
   const [showProModal, setShowProModal] = useState(false);
   const [proStatus, setProStatus] = useState<{
     hasAccess: boolean;
@@ -28,11 +29,9 @@ const CustomApiKey = () => {
     };
   }>({ hasAccess: false });
   const [showCelebration, setShowCelebration] = useState(false);
-  const [confettiSize, setConfettiSize] = useState({ width: 0, height: 0 });
-  const [confettiReady, setConfettiReady] = useState(false);
-  const Confetti = dynamic(() => import('react-confetti'), { 
-    ssr: false,
-    loading: () => null
+  const [confettiSize, setConfettiSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1920,
+    height: typeof window !== 'undefined' ? window.innerHeight : 1080
   });
   const { setToast } = insightZustand();
   const { isSignedIn, user } = useUser();
@@ -44,12 +43,12 @@ const CustomApiKey = () => {
   const checkProAccessAndUsage = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch('/api/pro/status', { 
-        method: 'GET', 
+      const res = await fetch('/api/pro/status', {
+        method: 'GET',
         credentials: 'include',
         cache: 'no-cache' // Ensure fresh data
       });
-      
+
       // Handle 503 Service Unavailable (transient Clerk API errors)
       if (res.status === 503) {
         const data = await res.json();
@@ -60,12 +59,12 @@ const CustomApiKey = () => {
           return;
         }
       }
-      
+
       const data = await res.json();
       if (data?.success) {
         // If user was downgraded, ensure we show free status
         const finalHasAccess = data.downgraded ? false : (data.hasAccess || false);
-        
+
         setProStatus({
           hasAccess: finalHasAccess,
           daysLeft: finalHasAccess ? data.daysLeft : undefined,
@@ -73,7 +72,7 @@ const CustomApiKey = () => {
           usage: data.usage,
           limits: data.limits
         });
-        
+
         // If downgraded, show toast notification
         if (data.downgraded) {
           setToast("Your Pro plan limit has been exceeded. You have been downgraded to Free user.");
@@ -91,6 +90,20 @@ const CustomApiKey = () => {
     }
   }, [user]);
 
+  // Use preloaded data immediately if available
+  useEffect(() => {
+    if (preloadedData?.success) {
+      const finalHasAccess = preloadedData.downgraded ? false : (preloadedData.hasAccess || false);
+      setProStatus({
+        hasAccess: finalHasAccess,
+        daysLeft: finalHasAccess ? preloadedData.daysLeft : undefined,
+        endDate: finalHasAccess ? preloadedData.end_date : undefined,
+        usage: preloadedData.usage,
+        limits: preloadedData.limits
+      });
+    }
+  }, [preloadedData]);
+
   useEffect(() => {
     if (user) checkProAccessAndUsage();
   }, [user, checkProAccessAndUsage]);
@@ -101,11 +114,11 @@ const CustomApiKey = () => {
       // Immediately refresh status when downgrade is detected
       checkProAccessAndUsage();
     };
-    
+
     window.addEventListener('refreshProStatus', handleRefreshProStatus);
     return () => window.removeEventListener('refreshProStatus', handleRefreshProStatus);
   }, [checkProAccessAndUsage]);
-  
+
   // Also listen for storage event as backup (in case of cross-tab communication)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -113,7 +126,7 @@ const CustomApiKey = () => {
         checkProAccessAndUsage();
       }
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [checkProAccessAndUsage]);
@@ -121,12 +134,12 @@ const CustomApiKey = () => {
   // Refresh usage data periodically (every 30 seconds)
   useEffect(() => {
     if (!user) return;
-    
+
     // Refresh immediately, then every 30 seconds
     const interval = setInterval(() => {
       checkProAccessAndUsage();
     }, 30000); // 30 seconds
-    
+
     return () => clearInterval(interval);
   }, [user, checkProAccessAndUsage]);
 
@@ -151,31 +164,27 @@ const CustomApiKey = () => {
     return () => clearInterval(t);
   }, [proStatus.hasAccess, proStatus.endDate]);
 
-  // set confetti size on mount and resize
+  // Update confetti size on mount and resize
   useEffect(() => {
-    const setSize = () => {
+    const updateSize = () => {
       if (typeof window !== 'undefined') {
-        setConfettiSize({ 
-          width: window.innerWidth || window.document.documentElement.clientWidth, 
-          height: window.innerHeight || window.document.documentElement.clientHeight 
+        setConfettiSize({
+          width: window.innerWidth,
+          height: window.innerHeight
         });
-        setConfettiReady(true);
       }
     };
-    
-    // Set initial size
-    if (typeof window !== 'undefined') {
-      setSize();
-      window.addEventListener('resize', setSize);
-      // Also listen to orientation change for mobile
-      window.addEventListener('orientationchange', setSize);
-    }
-    
+
+    // Set initial size immediately
+    updateSize();
+
+    // Update on resize and orientation change
+    window.addEventListener('resize', updateSize);
+    window.addEventListener('orientationchange', updateSize);
+
     return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('resize', setSize);
-        window.removeEventListener('orientationchange', setSize);
-      }
+      window.removeEventListener('resize', updateSize);
+      window.removeEventListener('orientationchange', updateSize);
     };
   }, []);
 
@@ -197,7 +206,7 @@ const CustomApiKey = () => {
   };
 
   const usagePercentage = getUsagePercentage();
-  
+
   // Determine icon color based on usage
   const getIconColor = () => {
     if (usagePercentage >= 90) return 'text-red-500';
@@ -207,78 +216,46 @@ const CustomApiKey = () => {
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        {/* Usage percentage indicator - small icon button */}
-        {proStatus.usage && proStatus.limits && (
-          <DevPopover
-            popButton={
-              <button className={`flex items-center justify-center w-6 h-6 ${getIconColor()} hover:opacity-80 transition-opacity`}>
-                <FaChartPie className="text-sm" />
-              </button>
-            }
-            place="bottom-end"
-            contentClick={false}
-          >
-            <div className="p-4 space-y-3 min-w-[240px] bg-[#1a1625] border border-purple-900/30 rounded-lg">
-              <h4 className="font-semibold text-sm text-purple-100">Usage</h4>
-              {/* Single combined usage bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-purple-200">Usage</span>
-                  <span className="font-mono text-purple-100 font-medium">{Math.round(usagePercentage)}%</span>
-                </div>
-                <div className="w-full bg-purple-900/30 rounded-full h-3 overflow-hidden shadow-inner relative">
-                  <div
-                    className={`h-3 rounded-full transition-all duration-500 relative ${
-                      usagePercentage >= 90 ? 'bg-red-500' : 
-                      usagePercentage >= 70 ? 'bg-orange-500' : 
-                      'bg-blue-500'
-                    }`}
-                    style={{
-                      width: `${Math.min(usagePercentage, 100)}%`,
-                    }}
-                  >
-                    <div className={`absolute inset-0 bg-gradient-to-r ${
-                      usagePercentage >= 90 ? 'from-red-600 to-red-400' : 
-                      usagePercentage >= 70 ? 'from-orange-600 to-orange-400' : 
-                      'from-blue-600 to-blue-400'
-                    } opacity-80`} />
-                  </div>
-                </div>
-              </div>
+      <div className="w-full space-y-3">
+        {/* Usage Display Removed as per user request */}
+        {/* {proStatus.usage && proStatus.limits && (
+          <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/30">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-medium text-blue-700 dark:text-blue-200">Monthly Usage</span>
+              <span className="text-xs font-mono font-semibold text-blue-900 dark:text-blue-100">{Math.round(usagePercentage)}%</span>
             </div>
-          </DevPopover>
-        )}
+            <div className="w-full bg-blue-100 dark:bg-blue-950/50 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  usagePercentage >= 90 ? 'bg-red-500' : 
+                  usagePercentage >= 70 ? 'bg-orange-500' : 
+                  'bg-blue-500'
+                }`}
+                style={{
+                  width: `${Math.min(usagePercentage, 100)}%`,
+                }}
+              />
+            </div>
+          </div>
+        )} */}
 
+        {/* Pro Status Button */}
         {proStatus.hasAccess ? (
-          <DevPopover
-            popButton={
-              <DevButton variant="v1" className="gap-2 text-sm flex">
-                <FaBrain className="text-lg text-[#4E82EE]" />
-                Pro Subscriber
-              </DevButton>
-            }
-            place="bottom-start"
-            contentClick={false}
-          >
-            <div className="p-4 space-y-2">
-              <h4 className="font-semibold">Pro Access Status</h4>
-              {proStatus.daysLeft !== undefined && (
-                <p className="text-sm text-muted-foreground">
-                  Days remaining: {proStatus.daysLeft}
-                </p>
-              )}
-            </div>
-          </DevPopover>
+          <button className="w-full py-2.5 px-4 bg-blue-100 hover:bg-blue-200 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 border border-blue-300 dark:border-blue-500/50 rounded-lg transition-colors flex items-center justify-center gap-2">
+            <FaBrain className="text-blue-600 dark:text-blue-400" />
+            <span className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Pro Active</span>
+            {proStatus.daysLeft !== undefined && (
+              <span className="text-xs text-blue-700 dark:text-blue-300">({proStatus.daysLeft}d)</span>
+            )}
+          </button>
         ) : (
-          <DevButton
-            variant="v1"
-            className="gap-2 text-sm flex"
+          <button
             onClick={handleProButtonClick}
+            className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-lg transition-all flex items-center justify-center gap-2 font-semibold text-white text-sm shadow-lg"
           >
-            <FaBrain className="text-lg text-[#4E82EE]" />
-            Try Insight LLM Pro
-          </DevButton>
+            <FaBrain />
+            Try Pro
+          </button>
         )}
       </div>
 
@@ -290,32 +267,20 @@ const CustomApiKey = () => {
               if (data?.end_date) {
                 const daysLeft = Math.max(0, Math.ceil((new Date(data.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
                 setProStatus({ hasAccess: true, daysLeft, endDate: data.end_date });
-                
-                // Ensure confetti size is set before showing
-                if (typeof window !== 'undefined') {
-                  setConfettiSize({ 
-                    width: window.innerWidth || window.document.documentElement.clientWidth, 
-                    height: window.innerHeight || window.document.documentElement.clientHeight 
-                  });
-                  setConfettiReady(true);
-                }
-                
-                // Close modal first, then show celebration after a brief delay
+
+                // Close modal and show confetti immediately
                 setShowProModal(false);
-                
-                // Show celebration animation after modal closes
-                // Use requestAnimationFrame for smoother timing
-                requestAnimationFrame(() => {
+
+                // Show confetti immediately after modal close
+                setTimeout(() => {
+                  setShowCelebration(true);
+
+                  // Auto-hide after 5 seconds
                   setTimeout(() => {
-                    setShowCelebration(true);
-                    // Hide confetti after animation completes
-                    setTimeout(() => {
-                      setShowCelebration(false);
-                      setConfettiReady(false);
-                    }, 5000); // Longer duration for smoother animation
-                  }, 150); // Slightly longer delay to ensure modal is fully closed
-                });
-                
+                    setShowCelebration(false);
+                  }, 5000);
+                }, 100);
+
                 // Refresh usage data
                 checkProAccessAndUsage();
               } else {
@@ -328,7 +293,7 @@ const CustomApiKey = () => {
       )}
 
       {/* Celebration confetti */}
-      {showCelebration && confettiReady && confettiSize.width > 0 && confettiSize.height > 0 && (
+      {showCelebration && (
         <Confetti
           width={confettiSize.width}
           height={confettiSize.height}

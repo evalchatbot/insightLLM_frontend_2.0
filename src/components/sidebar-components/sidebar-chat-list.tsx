@@ -200,9 +200,9 @@ const SidebarChatList = ({ sidebarList }: any) => {
                 variant="v3"
                 onClick={() => setSettings(item.chatID)}
                 className={clsx(
-                  "text-sm overflow-hidden group !w-full justify-between relative !pr-2 gap-4",
+                  "text-sm overflow-hidden group !w-full justify-between relative !pr-2 gap-4 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors",
                   item.chatID === chat
-                  && "!bg-accentBlue/50"
+                  && "!bg-emerald-100 dark:!bg-emerald-900/50 border-l-2 border-emerald-600"
                 )}
               >
                 <Link

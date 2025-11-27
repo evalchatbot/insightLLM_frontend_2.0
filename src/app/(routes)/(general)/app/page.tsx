@@ -1,57 +1,55 @@
+'use client';
 import { currentUser } from "@clerk/nextjs/server";
 import type { User } from "@clerk/nextjs/server";
 import HomeCards from "@/components/temp-components/home-cards";
-import OCRCard from "@/components/OCRCard";
-import React from "react";
+import TypingText from "@/components/TypingText";
+import React, { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
 
+export const dynamic = 'force-dynamic';
 
-const page = async () => {
-  // Handle Clerk API errors gracefully to prevent Server Component crashes
-  let user: User | null = null;
-  try {
-    // Retry logic for transient Clerk API failures
-    let retryCount = 0;
-    const maxRetries = 2;
-    
-    while (retryCount <= maxRetries && !user) {
-      try {
-        user = await currentUser();
-        break; // Success, exit retry loop
-      } catch (e: any) {
-        retryCount++;
-        if (retryCount > maxRetries) {
-          console.error('Failed to fetch current user after retries:', e);
-          // Continue with null user instead of crashing
-          break;
-        }
-        // Wait before retry (exponential backoff)
-        await new Promise(resolve => setTimeout(resolve, 100 * retryCount));
-      }
-    }
-  } catch (error: any) {
-    // Catch any unexpected errors and log them
-    console.error('Unexpected error in page component:', error);
-    // Continue rendering with null user instead of crashing
-  }
+const Page = () => {
+  const { user, isLoaded } = useUser();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   return (
-    <section className="mt-5 fade-in-section w-full max-w-4xl mx-auto md:p-10 p-5">
-      <h2 className="text-animation inline-block bg-gradient-to-r from-[#4E82EE] to-[#D96570] bg-clip-text md:text-5xl text-4xl text-transparent font-medium">
-        Hello, {user ? user.firstName : "Guest"}
-      </h2>
-      <h3 className="md:text-5xl text-4xl text-wrap text-muted-foreground">
-        {user ? "How can I help you today?" : "Sign in to get started"}
-      </h3>
-      
-      <div className="mt-8">
-        <h4 className="text-lg font-medium text-foreground mb-4">
-          💬 Quick Constitutional Law Prompts
-        </h4>
-        <HomeCards />
+    <section className="fade-in-section w-full h-[calc(100vh-120px)] flex items-center justify-center px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center gap-6">
+        {/* Hero Section */}
+        <div className="text-center w-full relative">
+          {/* Background Glow - Green Theme */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-gradient-to-r from-emerald-500/10 via-green-500/10 to-teal-500/10 blur-[100px] rounded-full -z-10 animate-pulse-slow"></div>
+
+          <h2 className="animate-fade-in-up inline-block bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 dark:from-emerald-400 dark:via-green-400 dark:to-teal-400 bg-clip-text text-3xl sm:text-4xl md:text-5xl text-transparent font-bold mb-2 tracking-tight leading-tight">
+            <TypingText text={`Hello, ${isLoaded && user ? user.firstName : "Guest"}`} speed={50} />
+          </h2>
+          <p className="animate-fade-in-up delay-100 text-sm sm:text-base text-foreground/70 font-normal">
+            Ask anything. Get instant exam-focused answers.
+          </p>
+        </div>
+
+        {/* Feature Cards */}
+        <div className="w-full animate-fade-in-up delay-200">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="text-lg">✨</span>
+            <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wider">
+              Quick Start
+            </h4>
+          </div>
+
+          <div className="w-full">
+            <HomeCards />
+          </div>
+        </div>
       </div>
     </section>
   );
 };
 
-export default page;
-
+export default Page;

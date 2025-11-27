@@ -25,7 +25,7 @@ const Page = async ({ params }: { params: { chat: string } }) => {
   const image = user.imageUrl;
 
   return (
-      <div className="w-full max-w-3xl mx-auto p-4 pb-40">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pt-8 pb-32 sm:pb-40 animate-in fade-in slide-in-from-bottom-4 duration-500">
   <SetConversationID conversationID={conversationID ?? null} />
         <OptimisticChat message={message} name={name} image={image} />
         <MsgLoader name={name} image={image} />

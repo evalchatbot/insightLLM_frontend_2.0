@@ -1,13 +1,37 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-export default clerkMiddleware();
+// Public routes for signed-out users
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/api/(.*)",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/sso-callback(.*)"
+]);
+
+// Protect all other routes by redirecting to sign-in
+export default clerkMiddleware(async (auth, req) => {
+  if (isPublicRoute(req)) return;
+  try {
+    const a = await (auth as any)();
+    if (!a?.userId) {
+      const url = new URL("/", req.url);
+      url.searchParams.set("auth", "required");
+      url.searchParams.set("from", req.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
+  } catch {
+    const url = new URL("/", req.url);
+    url.searchParams.set("auth", "required");
+    url.searchParams.set("from", req.nextUrl.pathname);
+    return NextResponse.redirect(url);
+  }
+});
 
 export const config = {
   matcher: [
-    // Run middleware for all app routes except static assets and _next internals
-    // This regex excludes requests with file extensions (images, fonts, static) and _next paths
     "/((?!.+\\.[\\w]+$|_next).*)",
-    // Also make sure the root and API routes are covered
     "/",
     "/(api)(.*)",
   ],

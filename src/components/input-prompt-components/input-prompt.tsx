@@ -30,7 +30,7 @@ const InputPrompt = () => {
       return;
     }
     let finalMetadata: any = null;
-    
+
     // If we're not in a chat route, navigate to a new chat page with auto-trigger
     if (!chat) {
       const newChatID = nanoid();
@@ -39,26 +39,26 @@ const InputPrompt = () => {
       router.push(`/app/${newChatID}`);
       return;
     }
-    
+
     const rawPrompt = currChat.userPrompt;
     const rawImage = inputImgName;
-    
+
     // Build the question with context
     try {
-      // Require genre selection before generation
-      if (!selectedGenre || selectedGenre.trim() === "") {
-        setToast('Please select a genre before sending your message.');
-        return;
-      }
+      // Genre selection is now optional - use "General" as default
+      // No longer required before generation
 
       setMsgLoader(true);
+
+      // CRITICAL: Check usage limits BEFORE processing
+      // This prevents any API calls if limit is exceeded
+      console.log('🔒 Checking usage limit before processing...');
       
-      // Check usage limits BEFORE processing (estimate input tokens from prompt)
       // Simple estimation: ~4 characters per token
       const estimatedInputTokens = Math.ceil(rawPrompt.length / 4);
-      // Estimate output tokens (conservative estimate: assume 500 tokens output)
-      const estimatedOutputTokens = 500;
-      
+      // Estimate output tokens (conservative estimate: assume 1500 tokens output to prevent limit edge cases)
+      const estimatedOutputTokens = 1500;
+
       try {
         const limitCheck = await fetch('/api/chat/check-limit', {
           method: 'POST',
@@ -68,12 +68,15 @@ const InputPrompt = () => {
             output_tokens: estimatedOutputTokens
           })
         });
-        
+
+        console.log('📊 Limit check response status:', limitCheck.status);
+
         if (limitCheck.status === 429) {
           const errorData = await limitCheck.json();
+          console.log('🚫 BLOCKED: Limit exceeded!', errorData);
           setToast(errorData.message || "Monthly token limit exceeded. Please upgrade to Pro or wait for next month.");
           setMsgLoader(false);
-          
+
           // If user was downgraded from pro to free, trigger status refresh
           if (errorData.downgraded || errorData.is_pro === false) {
             // Trigger immediate refresh
@@ -81,45 +84,50 @@ const InputPrompt = () => {
             // Also use storage event as backup
             localStorage.setItem('proStatusRefresh', Date.now().toString());
           }
-          return;
+          return; // BLOCK the request
         }
-        
+
         // If check-limit returns non-200 status, block the request
         if (!limitCheck.ok) {
           const errorText = await limitCheck.text();
-          console.error('Failed to check usage limit:', limitCheck.status, errorText);
+          console.error('❌ Failed to check usage limit:', limitCheck.status, errorText);
           setToast("Unable to verify usage limits. Please try again or contact support.");
           setMsgLoader(false);
-          return;
+          return; // BLOCK the request
         }
-        
+
         // Verify that can_proceed is true before proceeding
         try {
           const limitData = await limitCheck.json();
-          if (!limitData.can_proceed) {
+          console.log('📋 Limit check data:', limitData);
+          
+          if (!limitData.can_proceed || limitData.can_proceed === false) {
+            console.log('🚫 BLOCKED: can_proceed is false!');
             setToast(limitData.message || "Monthly token limit exceeded. Please upgrade to Pro or wait for next month.");
             setMsgLoader(false);
-            return;
+            return; // BLOCK the request
           }
+          
+          console.log('✅ Usage check passed, proceeding with request...');
         } catch (parseErr) {
-          console.error('Failed to parse limit check response:', parseErr);
+          console.error('❌ Failed to parse limit check response:', parseErr);
           setToast("Unable to verify usage limits. Please try again.");
           setMsgLoader(false);
-          return;
+          return; // BLOCK the request
         }
       } catch (err) {
-        console.error('Failed to check usage limit:', err);
+        console.error('❌ Failed to check usage limit:', err);
         setToast("Unable to verify usage limits. Please try again or contact support.");
         setMsgLoader(false);
-        return;
+        return; // BLOCK the request
       }
-      
+
       // Create abort controller for this request
       abortControllerRef.current = new AbortController();
-      
+
       // No authentication needed - backend has auth removed
       const sessionId = `sess_${Date.now()}_${user?.id || 'anonymous'}`;
-      
+
       // Prepare request body for ask-stream endpoint
       const requestBody = {
         user_id: user?.id || 'anonymous',
@@ -129,7 +137,7 @@ const InputPrompt = () => {
         conversation_id: conversationID,
         mode: "adaptive" // Options: "fast", "multi_step", "adaptive"
       };
-      
+
       // Determine backend URL with fallback to localhost if env not set
       const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -142,7 +150,7 @@ const InputPrompt = () => {
         body: JSON.stringify(requestBody),
         signal: abortControllerRef.current.signal
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error Response:', {
@@ -152,33 +160,33 @@ const InputPrompt = () => {
         });
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
-      
+
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let fullResponse = '';
-      
+
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
-          
+
           if (done) {
             break;
           }
-          
+
           if (done) break;
-          
+
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split('\n');
-          
+
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data = line.slice(6);
-              
+
               if (data.trim() === '') continue;
-              
+
               try {
                 const parsedData = JSON.parse(data);
-                
+
                 if (parsedData.type === 'chunk') {
                   // Update the response with streaming content
                   fullResponse = parsedData.full_content || fullResponse + parsedData.content;
@@ -188,13 +196,13 @@ const InputPrompt = () => {
                   fullResponse = parsedData.answer;
                   setCurrChat("llmResponse", fullResponse);
                   finalMetadata = parsedData.metadata || null;
-                  
+
                   // Track usage using actual token counts from backend
                   if (finalMetadata?.token_usage) {
                     try {
                       const inputTokens = finalMetadata.token_usage.prompt_tokens || 0;
                       const outputTokens = finalMetadata.token_usage.completion_tokens || 0;
-                      
+
                       // Record usage via API (only log errors)
                       const usageResponse = await fetch('/api/chat/usage', {
                         method: 'POST',
@@ -204,19 +212,19 @@ const InputPrompt = () => {
                           output_tokens: outputTokens
                         })
                       });
-                      
+
                       // Only log if there's an error
                       if (!usageResponse.ok) {
                         console.error('❌ Usage API error:', usageResponse.status);
                       }
-                      
+
                       // Check if limit was exceeded
                       if (usageResponse.status === 429) {
                         const errorData = await usageResponse.json();
                         setToast(errorData.message || "Monthly token limit exceeded. Please upgrade to Pro or wait for next month.");
                         // Note: Chat already completed, but user will be blocked on next attempt
                         console.warn('Usage limit exceeded after chat:', errorData.message);
-                        
+
                         // If user was downgraded from pro to free, trigger status refresh
                         if (errorData.downgraded || errorData.is_pro === false) {
                           // Trigger immediate refresh
@@ -259,7 +267,7 @@ const InputPrompt = () => {
               }
             }
           }
-          
+
           // Check if request was cancelled
           if (cancelRef.current) {
             fullResponse = "User has aborted the request";
@@ -268,20 +276,20 @@ const InputPrompt = () => {
           }
         }
       }
-      
+
       if (!fullResponse) {
         setToast('No response received from the API.');
         return;
       }
-      
+
       // Token usage is now tracked in the 'complete' event handler above
       // using actual token counts from the backend
-      
+
       // Set optimistic states
       setOptimisticPrompt(rawPrompt);
       setOptimisticResponse(fullResponse);
       setMsgLoader(false);
-      
+
       // Create chat in database
       // Ensure payload is serializable and contains no client functions
       const payload = {
@@ -321,7 +329,7 @@ const InputPrompt = () => {
       }
 
       const chatResult = await createChat(safePayload as any);
-      
+
       // Handle authentication errors gracefully
       if (!chatResult.success && chatResult.error?.includes("not authenticated")) {
         console.warn('Authentication error in createChat, user may need to refresh:', chatResult.error);
@@ -329,7 +337,7 @@ const InputPrompt = () => {
         // The error is already logged, and retrying usually works
         return;
       }
-      
+
       if (chatResult.success && chatResult.conversationID) {
         setConversationID(chatResult.conversationID);
         const conversationTitle = (finalMetadata?.conversation_title as string | undefined)?.trim();
@@ -347,23 +355,26 @@ const InputPrompt = () => {
           }
         }
       }
-      
-      // Only clear state after successful chat creation
+
+      // Clear optimistic state immediately to prevent duplicates
+      // The message is now in the database and will be fetched on next render
       if (chatResult.success) {
-        setTimeout(() => {
-          setCurrChat("userPrompt", null);
-          setCurrChat("llmResponse", null);
-          setOptimisticResponse(null);
-          setOptimisticPrompt(null);
-        }, 100);
+        // Clear immediately - no delay needed
+        setCurrChat("userPrompt", null);
+        setCurrChat("llmResponse", null);
+        // Keep optimistic state until page refresh to avoid flash
+        // It will be replaced by actual DB data on next navigation
       } else {
         console.error('Failed to create chat:', chatResult.error);
         setToast('Failed to save chat. Please try again.');
+        // Clear optimistic state on error
+        setOptimisticResponse(null);
+        setOptimisticPrompt(null);
       }
-      
+
     } catch (error: any) {
       console.error("Error generating message:", error);
-      
+
       if (error.name === 'AbortError') {
         setToast('Request was cancelled.');
       } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
@@ -374,7 +385,7 @@ const InputPrompt = () => {
       } else {
         setToast(`Error: ${error.message || 'Failed to get response'}`);
       }
-      
+
       // Reset state on error
       setMsgLoader(false);
       setOptimisticResponse(null);
@@ -411,23 +422,23 @@ const InputPrompt = () => {
   );
   const handleCancel = useCallback(() => {
     cancelRef.current = true;
-    
+
     // Abort the fetch request if it's in progress
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     setOptimisticResponse("User has aborted the request");
     setMsgLoader(false);
   }, [setOptimisticResponse, setMsgLoader]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (!user) { 
+      if (!user) {
         setToast('Please sign in to use Insight LLM!');
         return;
       }
-      
+
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         cancelRef.current = false;
@@ -446,7 +457,7 @@ const InputPrompt = () => {
         setAutoSend(false); // Reset the flag
         generateMsg();
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [currChat.userPrompt, msgLoader, user, optimisticResponse, isLoaded, autoSend, chat]); // Added autoSend and chat to deps
@@ -462,19 +473,19 @@ const InputPrompt = () => {
   };
 
   return (
-  <div className=" flex-shrink-0 w-full md:px-10 px-5 pb-2 space-y-2 " style={{backgroundColor: 'transparent'}}>
+    <div className="flex-shrink-0 w-full px-4 sm:px-5 md:px-10 pb-4 sm:pb-5 space-y-2 sm:space-y-3 bg-gradient-to-t from-background via-background/95 to-transparent" style={{ marginBottom: '8px' }}>
       {inputImgName &&
         <div className="max-w-4xl overflow-hidden w-full mx-auto">
-          <div className="p-5 w-fit relative max-w-full overflow-hidden bg-transparent group rounded-t-3xl flex items-start gap-2">
-            <MdImageSearch className="text-4xl" />
-            <p className="text-lg font-semibold truncate"> {inputImgName}</p>
-            <IoMdClose onClick={() => { setInputImgName(null); }} className="absolute top-1 right-1 text-2xl rounded-full cursor-pointer hover:opacity-100 hidden group-hover:block opacity-80 bg-accentGray/40 p-1" />
+          <div className="p-4 sm:p-5 w-fit relative max-w-full overflow-hidden bg-transparent group rounded-t-2xl sm:rounded-t-3xl flex items-start gap-2 sm:gap-3 touch-manipulation">
+            <MdImageSearch className="text-2xl sm:text-3xl md:text-4xl" />
+            <p className="text-base sm:text-lg font-semibold truncate"> {inputImgName}</p>
+            <IoMdClose onClick={() => { setInputImgName(null); }} className="absolute top-1 right-1 w-8 h-8 sm:w-7 sm:h-7 text-xl sm:text-2xl rounded-full cursor-pointer hover:opacity-100 sm:hidden sm:group-hover:block opacity-80 bg-accentGray/40 p-1 active:scale-95 touch-manipulation" />
           </div>
         </div>
       }
       <div
-        className={`w-full md:border-[3px] border-4 relative border-transparent border-gradient max-w-4xl mx-auto min-h-16 md:rounded-[50px] rounded-2xl ${inputImgName && " !rounded-tl-none "} overflow-hidden flex gap-1 md:items-center md:justify-between md:flex-row flex-col z-50`}
-        style={{position: 'relative'}}
+        className={`w-full relative animated-border-input max-w-4xl mx-auto min-h-[60px] sm:min-h-16 ${inputImgName && " !rounded-tl-none "} overflow-hidden flex gap-1 sm:gap-2 md:items-center md:justify-between md:flex-row flex-col z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border border-emerald-200/50 dark:border-emerald-800/50 shadow-xl shadow-emerald-500/10 hover:shadow-2xl hover:shadow-emerald-500/20 transition-all duration-300 touch-manipulation`}
+        style={{ position: 'relative' }}
       >
 
         {msgLoader ? (
@@ -490,13 +501,16 @@ const InputPrompt = () => {
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             value={currChat.userPrompt || ""}
-            className={`flex-1 bg-transparent rounded-4xl p-2 pl-6 outline-none text-lg max-h-56 resize-none placeholder:text-muted-foreground`}
+            className={`flex-1 bg-transparent rounded-4xl p-2 pl-6 outline-none text-lg max-h-56 resize-none text-foreground placeholder:text-muted-foreground touch-manipulation`}
           />
         )}
         <InputActions handleCancel={handleCancel} handleImageUpload={handleImageUpload} generateMsg={generateMsg} />
 
       </div>
-      <p className="text-xs font-light opacity-80 text-center">Insight LLM may display inaccurate info, including about people, so double-check its responses. <Link className="underline" href="/">Your privacy & AI Apps</Link></p>
+      <p className="text-[11px] sm:text-xs text-muted-foreground/70 text-center max-w-4xl mx-auto px-2">
+        Insight LLM may display inaccurate info, including about people, so double-check its responses.
+        <Link className="underline hover:text-primary transition-colors ml-1 touch-manipulation" href="/">Your privacy & AI Apps</Link>
+      </p>
     </div>
   );
 };

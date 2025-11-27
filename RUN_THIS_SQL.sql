@@ -436,11 +436,17 @@ BEGIN
             );
         END IF;
         
+        -- CRITICAL: Always return usage data so API can enforce limits
         RETURN jsonb_build_object(
             'success', true,
             'is_pro', false,
             'can_proceed', true,
-            'message', 'Usage within limits'
+            'message', 'Usage within limits',
+            'usage', jsonb_build_object(
+                'tokens_input_used', usage_record.tokens_input_used,
+                'tokens_output_used', usage_record.tokens_output_used,
+                'period_start', usage_record.period_start
+            )
         );
     END IF;
 END;

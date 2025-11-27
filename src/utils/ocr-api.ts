@@ -50,9 +50,9 @@ export async function annotateDocument(
 
   // Check usage limits BEFORE processing OCR
   // Estimate tokens: OCR typically uses more tokens (estimate based on file size)
-  // Conservative estimate: assume 2000 input tokens and 3000 output tokens for OCR
-  const estimatedInputTokens = 2000;
-  const estimatedOutputTokens = 3000;
+  // Conservative estimate: assume 3000 input tokens and 5000 output tokens for OCR to prevent limit edge cases
+  const estimatedInputTokens = 3000;
+  const estimatedOutputTokens = 5000;
   
   try {
     const limitCheck = await fetch('/api/chat/check-limit', {
@@ -205,9 +205,9 @@ export async function analyzeDocument(file: File, subject: string): Promise<OCRR
 
   // Check usage limits BEFORE processing OCR
   // Estimate tokens: OCR typically uses more tokens (estimate based on file size)
-  // Conservative estimate: assume 2000 input tokens and 3000 output tokens for OCR
-  const estimatedInputTokens = 2000;
-  const estimatedOutputTokens = 3000;
+  // Conservative estimate: assume 3000 input tokens and 5000 output tokens for OCR to prevent limit edge cases
+  const estimatedInputTokens = 3000;
+  const estimatedOutputTokens = 5000;
   
   try {
     const limitCheck = await fetch('/api/chat/check-limit', {

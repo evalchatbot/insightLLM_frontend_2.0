@@ -47,9 +47,9 @@ const InsightLogo = () => {
   return (
     <DevPopover
       popButton={
-        <DevButton size="sm" rounded="sm" className="text-lg gap-2">
-          {selectedGenre || 'Select Genre'}
-          <FaCaretDown />
+        <DevButton size="sm" rounded="sm" className="text-sm sm:text-base md:text-lg gap-1.5 sm:gap-2 max-w-[200px] sm:max-w-none truncate">
+          <span className="truncate">{selectedGenre || 'Select Genre'}</span>
+          <FaCaretDown className="flex-shrink-0" />
         </DevButton>
       }
     >

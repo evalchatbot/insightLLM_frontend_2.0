@@ -1,8 +1,9 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DevButton from "../dev-components/dev-button";
 import DevInput from "../dev-components/dev-input";
 import insightZustand from "@/utils/insight-zustand";
+import Confetti from 'react-confetti';
 
 interface ProAccessModalProps {
   onClose: () => void;
@@ -12,12 +13,29 @@ interface ProAccessModalProps {
 const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
   const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [confettiSize, setConfettiSize] = useState({ width: 0, height: 0 });
   const { setToast } = insightZustand();
+
+  // Update confetti size on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setConfettiSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    }
+  }, []);
 
   const handleVerifyKey = async () => {
     if (!key.trim()) return;
     
     setLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+    
     try {
       const response = await fetch("/api/pro/verify-key", {
         method: "POST",
@@ -31,31 +49,47 @@ const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
       if (response.status === 503) {
         const data = await response.json();
         // For transient errors, show a message that suggests retrying
-        if (data?.retry) {
-          setToast("Temporary authentication issue. Please try again in a moment.");
-        } else {
-          setToast(data.message || "Service temporarily unavailable. Please try again.");
-        }
+        const message = data?.retry 
+          ? "Temporary authentication issue. Please try again in a moment."
+          : data.message || "Service temporarily unavailable. Please try again.";
+        setErrorMessage(message);
+        setToast(message);
         return;
       }
 
       const data = await response.json();
       
       if (data.success) {
-        // We don't need localStorage anymore as we're using the database
-        setToast("Pro access activated successfully!");
-        onClose();
-        // Notify parent component of successful activation
-        if (onSuccess) {
-          onSuccess({ end_date: data.expiryDate });
-        }
+        const message = "🎉 Pro access activated successfully!";
+        setSuccessMessage(message);
+        setShowConfetti(true);
+        setToast(message);
+        
+        // Wait for confetti animation before closing
+        setTimeout(() => {
+          setShowConfetti(false);
+          onClose();
+          // Notify parent component of successful activation
+          if (onSuccess) {
+            onSuccess({ end_date: data.expiryDate });
+          }
+          // Trigger pro status refresh
+          window.dispatchEvent(new CustomEvent('refreshProStatus'));
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('proStatusRefresh', Date.now().toString());
+          }
+        }, 3500);
       } else {
-        setToast(data.message || "Invalid key");
+        const message = data.message || "Invalid key";
+        setErrorMessage(message);
+        setToast(message);
       }
     } catch (error) {
       // Network errors are also transient - show appropriate message
       console.warn('Failed to verify key (will retry):', error);
-      setToast("Network error. Please check your connection and try again.");
+      const message = "Network error. Please check your connection and try again.";
+      setErrorMessage(message);
+      setToast(message);
     } finally {
       setLoading(false);
     }
@@ -104,17 +138,62 @@ const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
             onChange={(e) => setKey(e.target.value)}
             placeholder="Enter your Pro key"
             onKeyDown={(e) => e.key === "Enter" && handleVerifyKey()}
-            disabled={loading}
+            disabled={loading || !!successMessage}
           />
           <DevButton
             onClick={handleVerifyKey}
-            disabled={!key.trim() || loading}
+            disabled={!key.trim() || loading || !!successMessage}
             aria-busy={loading}
           >
             {loading ? 'Activating...' : 'Activate'}
           </DevButton>
         </div>
+        
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-green-800 dark:text-green-200 font-medium text-center">
+              {successMessage}
+            </p>
+            <p className="text-green-600 dark:text-green-300 text-sm text-center mt-2">
+              Redirecting...
+            </p>
+          </div>
+        )}
+        
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-red-800 dark:text-red-200 font-medium text-center">
+              ❌ {errorMessage}
+            </p>
+          </div>
+        )}
       </div>
+      
+      {/* Celebration confetti */}
+      {showConfetti && (
+        <Confetti
+          width={confettiSize.width}
+          height={confettiSize.height}
+          recycle={false}
+          numberOfPieces={600}
+          gravity={0.25}
+          initialVelocityY={25}
+          initialVelocityX={15}
+          wind={0.08}
+          friction={0.99}
+          colors={['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#FFD93D', '#6BCF7F']}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            zIndex: 9999,
+            pointerEvents: 'none',
+            willChange: 'transform'
+          }}
+        />
+      )}
     </div>
   );
 };

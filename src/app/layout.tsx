@@ -1,23 +1,28 @@
 import type { Metadata } from "next";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProviders } from "@/utils/theme-providers";
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { ClerkProvider } from "@clerk/nextjs";
 import EnsureSupabaseUser from "@/components/EnsureSupabaseUser";
+import NavigationWrapper from "@/components/NavigationWrapper";
+import Footer from "@/components/Footer";
 
+const outfit = Outfit({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Insight LLM",
-  description: "An intelligent AI assistant built with Next.js for seamless conversations",
-  keywords: ["AI", "assistant", "LLM", "Insight", "Next.js", "Chat", "Intelligence"],
-  authors: [{ name: "Your Name" }],
-  creator: "Your Name or Company",
-  publisher: "Your Name or Company",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+  title: "Rubrik AI",
+  description: "AI-powered essay evaluation and feedback for CSS exam preparation",
+  keywords: ["AI", "essay evaluation", "CSS", "Rubrik", "exam preparation", "feedback", "grading"],
+  authors: [{ name: "Rubrik AI" }],
+  creator: "Rubrik AI",
+  publisher: "Rubrik AI",
   openGraph: {
-    title: "Insight LLM",
-    description: "An advanced AI assistant built with Next.js, featuring enhanced functionalities and faster response times.",
+    title: "Rubrik AI",
+    description: "AI-powered essay evaluation and feedback for CSS exam preparation",
     url: "https://insight-llm.vercel.app",
-    siteName: "Insight LLM",
+    siteName: "Rubrik AI",
     images: [
       {
         url: "/assets/insight-banner.png",
@@ -28,15 +33,18 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
   },
-  
+
   twitter: {
     card: "summary_large_image",
-    title: "Insight LLM",
-    description: "Experience the power of AI with our intelligent assistant",
+    title: "Rubrik AI",
+    description: "AI-powered essay evaluation and feedback for CSS exam preparation",
     creator: "@yourTwitterHandle",
     images: ["/assets/insight-banner.png"],
   },
 };
+
+
+export const dynamic = 'force-dynamic';
 
 
 export const viewport = {
@@ -53,13 +61,14 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className="dark" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning>
         <body
-          className="bg-background text-foreground h-dvh w-full overflow-auto"
+          className={`${outfit.className} bg-background text-foreground h-dvh w-full overflow-auto selection:bg-blue-100 dark:selection:bg-blue-900`}
         >
           <ErrorBoundary>
             <ThemeProviders>
               <EnsureSupabaseUser />
+              <NavigationWrapper />
               {children}
             </ThemeProviders>
           </ErrorBoundary>
@@ -68,4 +77,3 @@ export default function RootLayout({
     </ClerkProvider>
   );
 }
-

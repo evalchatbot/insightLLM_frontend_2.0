@@ -4,8 +4,9 @@ export function ThemeProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider 
       attribute="class" 
-      forcedTheme="dark"
+      defaultTheme="light"
       enableSystem={false}
+      storageKey="insight-llm-theme"
     >
     {children}
     </ThemeProvider>

@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 // Dynamically import the heavy editor to avoid bundling on /app route
 const EditorShell = dynamic(() => import("./EditorShell"), {
   ssr: false,
-  loading: () => <div className="w-full h-32 bg-gray-100 animate-pulse rounded" />,
+  loading: () => null, // No loading flash - render nothing until ready
 });
 // Keep some optional imports commented for future reference
 // import { FormatOutput } from "@/utils/shadow";
@@ -213,18 +213,18 @@ const ChatProvider: React.FC<{
   };
   return (
     <>
-      <div className="w-full h-fit flex items-start gap-3 group relative">
+      <div className="w-full h-fit flex items-start gap-2 sm:gap-3 group relative">
         <Image
           src={imgInfo.imgSrc}
           alt={imgInfo.imgAlt}
-          width={35}
-          height={35}
-          className="rounded-full cursor-pointer"
+          width={32}
+          height={32}
+          className="rounded-full cursor-pointer w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0"
         />
         <textarea
-          className={`prompt-area pt-1 text-base border-2 resize-none rounded-md bg-transparent outline-none ${promptModify
-            ? " max-h-none w-full !p-3 focus:border-accentBlue/70  border-accentGray "
-            : " max-h-40 border-transparent"
+          className={`prompt-area pt-1 text-sm sm:text-base border-2 resize-none rounded-md bg-transparent outline-none touch-manipulation ${promptModify
+            ? " max-h-none w-full !p-2 sm:!p-3 focus:border-accentBlue/70  border-accentGray "
+            : " max-h-32 sm:max-h-40 border-transparent"
             } px-1 w-fit `}
           readOnly={!promptModify}
           onChange={(e) => setInitialPrompt(e.target.value)}
@@ -236,7 +236,7 @@ const ChatProvider: React.FC<{
             onClick={() => setPromptModify(!promptModify)}
             rounded="full"
             variant="v1"
-            className="text-xl p-[6px] opacity-80 hidden group-hover:block"
+            className="text-lg sm:text-xl p-2 sm:p-[6px] opacity-80 sm:hidden sm:group-hover:block min-w-[40px] min-h-[40px] touch-manipulation active:scale-95"
             asIcon
           >
             <MdOutlineModeEditOutline />
@@ -244,7 +244,7 @@ const ChatProvider: React.FC<{
         </ReactTooltip>
       </div>
       {promptModify && (
-        <div className="flex item-center gap-2 p-10 pt-2">
+        <div className="flex item-center gap-2 sm:gap-3 p-4 sm:p-6 md:p-10 pt-2">
           {" "}
           <DevButton
             onClick={() => {
@@ -254,7 +254,7 @@ const ChatProvider: React.FC<{
             }}
             rounded="full"
             variant="v3"
-            className="text-accentBlue px-4"
+            className="text-accentBlue px-4 sm:px-5 py-2 sm:py-2.5 min-h-[44px] touch-manipulation active:scale-95 text-sm sm:text-base"
           >
             Cancel
           </DevButton>
@@ -262,7 +262,7 @@ const ChatProvider: React.FC<{
             onClick={handleToSetPrompt}
             disabled={userPrompt === initialPrompt}
             rounded="full"
-            className={`text-accentBlue !bg-accentBlue/30 px-4 ${userPrompt === initialPrompt && " opacity-60 "
+            className={`text-accentBlue !bg-accentBlue/30 px-4 sm:px-5 py-2 sm:py-2.5 min-h-[44px] touch-manipulation active:scale-95 text-sm sm:text-base ${userPrompt === initialPrompt && " opacity-60 "
               }`}
           >
             Update
@@ -270,18 +270,18 @@ const ChatProvider: React.FC<{
         </div>
       )}
        {imgName &&
-        <div className="w-full mt-3 overflow-hidden ">
-          <div className="p-4 w-fit max-w-full bg-card rounded-md flex items-start gap-2">
-            <MdOutlineImage className="text-4xl" />
-            <p className="text-lg truncate"> {imgName}</p></div>
+        <div className="w-full mt-2 sm:mt-3 overflow-hidden ">
+          <div className="p-3 sm:p-4 w-fit max-w-full bg-card rounded-md flex items-start gap-2">
+            <MdOutlineImage className="text-2xl sm:text-3xl md:text-4xl" />
+            <p className="text-base sm:text-lg truncate"> {imgName}</p></div>
         </div>
       }
-      <div className="w-full flex justify-end h-16 items-center">
+      <div className="w-full flex justify-end h-12 sm:h-14 md:h-16 items-center">
         <TextToSpeech handleTxtToSpeech={handleTxtToSpeech} />
       </div>
      
-      <div className="flex md:flex-row flex-col w-full items-start gap-4">
-        <FaBrain className="text-4xl text-[#4E82EE] transition-all duration-500" />
+      <div className="flex md:flex-row flex-col w-full items-start gap-3 sm:gap-4">
+        <FaBrain className="text-3xl sm:text-4xl text-emerald-600 dark:text-emerald-400 transition-all duration-500 flex-shrink-0" />
         <EditorShell
           initialResponse={initialResponse}
           selectedNode={selectedNode}

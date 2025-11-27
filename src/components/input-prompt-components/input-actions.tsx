@@ -25,25 +25,23 @@ const InputActions = ({
       className={`flex justify-end items-center`}
     >
       {currChat.userPrompt && msgLoader ? (
-        <ReactTooltip tipData="Stop response">
+          <ReactTooltip tipData="Stop response">
           <DevButton
             onClick={handleCancel}
-            className="!bg-accentBlue/50 p-3"
+            className="!bg-accentBlue/50 p-3 sm:p-3 min-w-[44px] min-h-[44px] touch-manipulation active:scale-95"
             rounded="full"
             asIcon
           >
-            <GoSquareFill className="text-xl text-black dark:text-white" />
+            <GoSquareFill className="text-lg sm:text-xl text-black dark:text-white" />
           </DevButton>
-        </ReactTooltip>
-
-      )
+        </ReactTooltip>      )
         : (<>
           
 
           <ReactTooltip tipData="Upload photo">
 
             <DevButton
-              className="p-3 relative md:!hidden !flex"
+              className="p-3 relative md:!hidden !flex min-w-[44px] min-h-[44px] touch-manipulation active:scale-95"
               rounded="full"
               variant="v3"
               asIcon
@@ -52,11 +50,11 @@ const InputActions = ({
                 type="file"
                 id="file-input"
                 capture="environment"
-                className="absolute inset-0 z-10 opacity-0 cursor-pointer"
+                className="absolute inset-0 z-10 opacity-0 cursor-pointer touch-manipulation"
                 onChange={handleImageUpload}
                 accept="image/*"
               />
-              <SlCamera className="text-2xl text-black dark:text-white" />
+              <SlCamera className="text-xl sm:text-2xl text-black dark:text-white" />
             </DevButton>
           </ReactTooltip>
 
@@ -70,8 +68,8 @@ const InputActions = ({
               type="submit"
               rounded="full"
               variant="v3"
-              className={`overflow-hidden transform origin-right p-2 ${currChat.userPrompt && !msgLoader
-                ? "*:w-8 *:scale-100 pointer-events-auto  ml-2"
+              className={`overflow-hidden transform origin-right p-2.5 sm:p-2 min-w-[44px] min-h-[44px] touch-manipulation active:scale-95 ${currChat.userPrompt && !msgLoader
+                ? "*:w-7 sm:*:w-8 *:scale-100 pointer-events-auto  ml-2"
                 : "*:w-0 *:scale-0 pointer-events-none"
                 }`}
             >

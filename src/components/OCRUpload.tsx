@@ -5,10 +5,10 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useUser } from "@clerk/nextjs"
 import { annotateDocument, type OCRResult } from "@/utils/ocr-api"
-import { AiOutlineFileText } from "react-icons/ai"
+import { Upload } from "lucide-react"
 import insightZustand from "@/utils/insight-zustand"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
@@ -26,6 +26,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   const { user } = useUser()
   const { setToast } = insightZustand()
   const [file, setFile] = useState<File | null>(null)
+  const [exam, setExam] = useState("")
   const [subject, setSubject] = useState("")
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loadingSubjects, setLoadingSubjects] = useState(true)
@@ -50,13 +51,8 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
         const data = await response.json()
         setSubjects(data.subjects || [])
 
-        // Set first subject as default if available
-        if (data.subjects && data.subjects.length > 0) {
-          setSubject(data.subjects[0].id)
-        }
       } catch (err) {
         console.error("Failed to fetch subjects:", err)
-        // Fallback to empty array - user will see error in UI
         setSubjects([])
       } finally {
         setLoadingSubjects(false)
@@ -84,17 +80,14 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     }
   }
 
-  const handleSubjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSubject(e.target.value)
-    setError(null)
-    setResults(null)
-    setAnnotatedPdfBlob(null)
-  }
-
   const handleEvaluate = async () => {
     if (!file || !user) return
+    if (!exam) {
+      setError("Please select an exam")
+      return
+    }
     if (!subject) {
-      setError("Please select a subject before evaluating")
+      setError("Please select a subject")
       return
     }
     setLoading(true)
@@ -145,21 +138,16 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
       console.error("Evaluation failed:", err)
       const errorMessage = err instanceof Error ? err.message : "Evaluation failed"
 
-      // Check if this is a limit exceeded error - show in toast beautifully
-      if (errorMessage.includes("limit reached") || 
-          errorMessage.includes("limit exceeded") || 
-          errorMessage.includes("Monthly token limit")) {
-        // Show limit exceeded message in toast (beautiful display)
+      if (errorMessage.includes("limit reached") ||
+        errorMessage.includes("limit exceeded") ||
+        errorMessage.includes("Monthly token limit")) {
         setToast(errorMessage)
-        // Also set local error for component display
         setError(errorMessage)
-        // Trigger status refresh if user was downgraded
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('refreshProStatus'))
           localStorage.setItem('proStatusRefresh', Date.now().toString())
         }
       } else {
-        // Provide more detailed error messages for other errors
         if (errorMessage.includes("503")) {
           const msg = "OCR service is temporarily unavailable. Please try again later."
           setError(msg)
@@ -218,142 +206,144 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 md:p-6">
-      <Card className="rounded-3xl border border-border/60 bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/50 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-foreground text-xl">Upload and analyze</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Securely upload a PDF and get AI-driven insights. No design dependencies added.
-          </CardDescription>
-        </CardHeader>
+    <Card className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden">
+      <CardContent className="p-8 space-y-6">
+        {!user && (
+          <Alert variant="default" className="border-border bg-secondary/50">
+            <AlertTitle className="font-medium text-foreground">Sign in required</AlertTitle>
+            <AlertDescription className="text-muted-foreground">
+              Please sign in to use the OCR analysis feature.
+            </AlertDescription>
+          </Alert>
+        )}
 
-        <CardContent className="space-y-6">
-          {!user && (
-            <Alert variant="default" className="border-border bg-secondary/50">
-              <AlertTitle className="font-medium text-foreground">Sign in required</AlertTitle>
-              <AlertDescription className="text-muted-foreground">
-                Please sign in to use the OCR analysis feature.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Subject Selection */}
-          <div className="space-y-2">
-            <label htmlFor="ocr-subject" className="block text-sm font-medium text-foreground">
-              Subject
-            </label>
-            <select
-              id="ocr-subject"
-              value={subject}
-              onChange={handleSubjectChange}
-              disabled={loadingSubjects || subjects.length === 0}
-              className="w-full rounded-2xl border border-border/70 bg-background/70 p-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loadingSubjects && <option value="">Loading subjects...</option>}
-              {!loadingSubjects && subjects.length === 0 && <option value="">No subjects available</option>}
-              {!loadingSubjects && subjects.length > 0 && subjects.map((subj) => (
-                <option key={subj.id} value={subj.id}>
-                  {subj.display_name}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-muted-foreground">
-              {loadingSubjects
-                ? "Loading available subjects..."
-                : subjects.length > 0
-                  ? `${subjects.length} subjects available from rubric folders. Add/rename folders to update list.`
-                  : "No subjects found. Please check rubric folders."}
-            </p>
+        {/* Exam Selection */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Select Exam</label>
+            <span className="text-xs text-red-500 font-medium cursor-pointer hover:underline">Document Guidelines</span>
           </div>
+          <select
+            value={exam}
+            onChange={(e) => setExam(e.target.value)}
+            className="w-full p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#2E5C55]/20 dark:focus:ring-[#4ade80]/20 transition-all"
+          >
+            <option value="">Choose your exam</option>
+            <option value="CSS">CSS (Central Superior Services)</option>
+            <option value="PMS">PMS (Provincial Management Service)</option>
+          </select>
+        </div>
 
-          {/* File Upload */}
-          <div className="space-y-3">
-            <div
-              className="group rounded-2xl border border-dashed border-border/70 p-6 md:p-8 transition-colors hover:bg-accent/30"
-              aria-label="PDF file upload"
-            >
-              <div className="flex items-center gap-4">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-background/70 text-foreground/80 ring-1 ring-border/60 transition-transform group-hover:scale-105">
-                  <AiOutlineFileText className="h-6 w-6" />
-                </span>
-                <div className="flex-1">
-                  <p className="text-sm md:text-base text-foreground font-medium">Upload PDF Document</p>
-                  <p className="text-xs text-muted-foreground">Max size 10MB. Only .pdf files are supported.</p>
-                </div>
-                <label className="inline-flex cursor-pointer items-center justify-center whitespace-nowrap rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:opacity-95 disabled:opacity-50">
-                  Choose PDF
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleFileChange}
-                    className="sr-only"
-                    aria-label="Choose PDF"
-                  />
-                </label>
+        {/* Subject Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Select Subject</label>
+          <select
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            disabled={loadingSubjects || !exam}
+            className="w-full p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#2E5C55]/20 dark:focus:ring-[#4ade80]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="">{exam ? "Select a subject" : "Select an exam first"}</option>
+            {!loadingSubjects && subjects.length > 0 && subjects.map((subj) => (
+              <option key={subj.id} value={subj.id}>
+                {subj.display_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* File Upload */}
+        <div className="space-y-2">
+          <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Upload Your Answer (PDF)</label>
+          <div className="relative">
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              disabled={loading}
+            />
+            <div className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-all duration-200 ${file
+                ? "border-[#2E5C55] bg-[#2E5C55]/5 dark:border-[#4ade80] dark:bg-[#4ade80]/5"
+                : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              }`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${file ? "bg-[#2E5C55] text-white dark:bg-[#4ade80] dark:text-black" : "bg-[#2E5C55]/10 text-[#2E5C55] dark:bg-[#4ade80]/10 dark:text-[#4ade80]"
+                }`}>
+                <Upload className="w-6 h-6" />
               </div>
 
-              {file && (
-                <div className="mt-4 rounded-xl border border-border/60 bg-card/70 px-3 py-2 text-sm text-muted-foreground">
-                  Selected: <span className="text-foreground">{file.name}</span>{" "}
-                  <span className="text-foreground/70">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+              {file ? (
+                <div className="text-center">
+                  <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">{file.name}</p>
+                  <p className="text-xs text-zinc-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">Drag and drop</p>
+                  <p className="text-xs text-zinc-500 mb-4">or click to browse (Max 10MB)</p>
+                  <span className="inline-block px-4 py-2 border border-[#2E5C55] text-[#2E5C55] dark:border-[#4ade80] dark:text-[#4ade80] rounded-lg text-sm font-medium">
+                    Choose File
+                  </span>
                 </div>
               )}
             </div>
           </div>
+        </div>
 
-          {/* Actions */}
-          <div className="flex justify-center">
-            <Button onClick={handleEvaluate} disabled={!file || !user || !subject || loading} className="w-full md:w-auto px-8">
-              {loading ? "Evaluating..." : "Evaluate"}
-            </Button>
-          </div>
+        {/* Actions */}
+        <Button
+          onClick={handleEvaluate}
+          disabled={!file || !user || !subject || !exam || loading}
+          className="w-full py-6 text-lg font-bold bg-[#6B8E8E] hover:bg-[#5A7A7A] text-white rounded-xl shadow-lg shadow-[#6B8E8E]/20 transition-all hover:scale-[1.02]"
+        >
+          {loading ? "Evaluating..." : "Analyze"}
+        </Button>
 
-          {/* Progress Indicator */}
-          {loading && (
-            <div className="space-y-3 rounded-2xl border border-border/60 bg-card/60 p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">{loadingStage}</span>
-                <span className="text-sm text-muted-foreground">{progress}%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full bg-primary transition-all duration-300 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                This may take 30-60 seconds depending on document length and complexity.
-              </p>
+        {/* Progress Indicator */}
+        {loading && (
+          <div className="space-y-3 rounded-2xl border border-border/60 bg-card/60 p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">{loadingStage}</span>
+              <span className="text-sm text-muted-foreground">{progress}%</span>
             </div>
-          )}
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full bg-[#2E5C55] dark:bg-[#4ade80] transition-all duration-300 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This may take 30-60 seconds depending on document length and complexity.
+            </p>
+          </div>
+        )}
 
-          {/* Error */}
-          {error && (
-            <Alert variant="destructive" className="border-destructive/40">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+        {/* Error */}
+        {error && (
+          <Alert variant="destructive" className="border-destructive/40">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          {/* Report Ready */}
-          {annotatedPdfBlob && (
-            <Alert className="border-border bg-secondary/40">
-              <AlertTitle className="text-foreground">Evaluation Report Ready</AlertTitle>
-              <AlertDescription className="flex flex-col gap-3">
-                <span className="text-muted-foreground">Your detailed evaluation report is ready for download. The report includes scores, detailed feedback, issues found, and a model answer outline.</span>
-                <div className="flex flex-col gap-2 md:flex-row">
-                  <Button onClick={downloadAnnotatedPDF} className="w-full md:w-auto">
-                    Download Report
-                  </Button>
-                  <Button onClick={resetEvaluation} variant="outline" className="w-full md:w-auto">
-                    Evaluate Another Question
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        {/* Report Ready */}
+        {annotatedPdfBlob && (
+          <Alert className="border-[#2E5C55]/20 bg-[#2E5C55]/5 dark:border-[#4ade80]/20 dark:bg-[#4ade80]/5">
+            <AlertTitle className="text-[#2E5C55] dark:text-[#4ade80] font-bold">Evaluation Report Ready</AlertTitle>
+            <AlertDescription className="flex flex-col gap-3">
+              <span className="text-zinc-600 dark:text-zinc-400">Your detailed evaluation report is ready for download.</span>
+              <div className="flex flex-col gap-2 md:flex-row">
+                <Button onClick={downloadAnnotatedPDF} className="w-full md:w-auto bg-[#2E5C55] hover:bg-[#244a44] text-white">
+                  Download Report
+                </Button>
+                <Button onClick={resetEvaluation} variant="outline" className="w-full md:w-auto">
+                  Evaluate Another Question
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
   )
 }

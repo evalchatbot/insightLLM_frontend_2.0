@@ -32,6 +32,19 @@ export default function EnsureSupabaseUser() {
           sessionStorage.setItem(cacheKey, "1");
         }
         onceRef.current = uid;
+
+        // After ensuring user row exists, trigger a lightweight status check
+        // This will create an initial usage_free row if missing (0-token status check)
+        try {
+          await fetch('/api/pro/status', {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-cache'
+          });
+        } catch (e) {
+          // Non-fatal: profile UI can fetch later as well
+          console.warn('ensure-user: pro status priming failed (will retry later)', e);
+        }
       } catch (e) {
         console.warn("ensure-user request error", e);
       }

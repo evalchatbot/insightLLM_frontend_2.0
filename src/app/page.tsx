@@ -5,7 +5,7 @@ import { useUser, SignInButton } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Check, Zap, Brain, Users, FileText, CheckCircle2, MessageSquare } from "lucide-react";
+import { Check, Zap, Brain, Users, FileText, CheckCircle2, MessageSquare, Mail, Phone, X, ChevronDown } from "lucide-react";
 import RotatingImages from "@/components/landing-components/RotatingImages";
 import FAQ from "@/components/landing-components/FAQ";
 import ProAccessModal from "@/components/header-components/pro-access-modal";
@@ -16,6 +16,10 @@ export default function LandingPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [showProModal, setShowProModal] = useState(false);
+    const [showContactModal, setShowContactModal] = useState(false);
+    const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+    const [hoverFeature, setHoverFeature] = useState<number | null>(null);
+    const [hoverPlan, setHoverPlan] = useState<number | null>(null);
     const [mounted, setMounted] = useState(false);
     const [showAuthNotice, setShowAuthNotice] = useState(false);
 
@@ -154,12 +158,19 @@ export default function LandingPage() {
                         </p>
                     </motion.div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+                        onMouseLeave={() => setHoverFeature(null)}
+                    >
                         {/* Card 1 */}
                         <motion.div
                             {...fadeInUp}
                             transition={{ delay: 0.1 }}
-                            className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                            onClick={() => router.push('/app/ocr')}
+                            onMouseEnter={() => setHoverFeature(0)}
+                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all duration-300 cursor-pointer hover:border-[#2E5C55] dark:hover:border-[#4ade80]
+                                ${hoverFeature === 0 ? 'relative z-10 -translate-y-1 shadow-xl' : ''}
+                                ${hoverFeature !== null && hoverFeature !== 0 ? 'blur-[2px] opacity-60' : ''}`}
                         >
                             <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center mb-6">
                                 <FileText className="w-6 h-6 text-[#2E5C55] dark:text-[#4ade80]" />
@@ -174,7 +185,11 @@ export default function LandingPage() {
                         <motion.div
                             {...fadeInUp}
                             transition={{ delay: 0.2 }}
-                            className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                            onClick={() => router.push('/app/quiz')}
+                            onMouseEnter={() => setHoverFeature(1)}
+                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all duration-300 cursor-pointer hover:border-[#2E5C55] dark:hover:border-[#4ade80]
+                                ${hoverFeature === 1 ? 'relative z-10 -translate-y-1 shadow-xl' : ''}
+                                ${hoverFeature !== null && hoverFeature !== 1 ? 'blur-[2px] opacity-60' : ''}`}
                         >
                             <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center mb-6">
                                 <Brain className="w-6 h-6 text-[#2E5C55] dark:text-[#4ade80]" />
@@ -189,7 +204,11 @@ export default function LandingPage() {
                         <motion.div
                             {...fadeInUp}
                             transition={{ delay: 0.3 }}
-                            className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group"
+                            onClick={() => router.push('/app')}
+                            onMouseEnter={() => setHoverFeature(2)}
+                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all duration-300 relative overflow-hidden group cursor-pointer hover:border-[#2E5C55] dark:hover:border-[#4ade80]
+                                ${hoverFeature === 2 ? 'relative z-10 -translate-y-1 shadow-xl' : ''}
+                                ${hoverFeature !== null && hoverFeature !== 2 ? 'blur-[2px] opacity-60' : ''}`}
                         >
                             <div className="absolute top-3 right-3 bg-[#B91C1C] text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
                                 Coming Soon
@@ -207,7 +226,10 @@ export default function LandingPage() {
                         <motion.div
                             {...fadeInUp}
                             transition={{ delay: 0.4 }}
-                            className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group"
+                            onMouseEnter={() => setHoverFeature(3)}
+                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all duration-300 relative overflow-hidden group
+                                ${hoverFeature === 3 ? 'relative z-10 -translate-y-1 shadow-xl' : ''}
+                                ${hoverFeature !== null && hoverFeature !== 3 ? 'blur-[2px] opacity-60' : ''}`}
                         >
                             <div className="absolute top-3 right-3 bg-[#B91C1C] text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
                                 Coming Soon
@@ -234,12 +256,18 @@ export default function LandingPage() {
                         <h2 className="text-3xl md:text-4xl font-bold text-foreground">CHOOSE YOUR PLAN</h2>
                     </motion.div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <div
+                        className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto"
+                        onMouseLeave={() => setHoverPlan(null)}
+                    >
                         {/* Free Plan */}
                         <motion.div
                             {...fadeInUp}
                             transition={{ delay: 0.2 }}
-                            className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 flex flex-col bg-card text-card-foreground hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
+                            onMouseEnter={() => setHoverPlan(0)}
+                            className={`border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 flex flex-col bg-card text-card-foreground transition-colors
+                                ${hoverPlan === 0 ? 'relative z-10 -translate-y-1 shadow-xl' : 'hover:border-zinc-400 dark:hover:border-zinc-600'}
+                                ${hoverPlan !== null && hoverPlan !== 0 ? 'blur-[2px] opacity-60' : ''}`}
                         >
                             <div className="text-center mb-8">
                                 <h3 className="text-2xl font-bold mb-2">Free</h3>
@@ -271,7 +299,10 @@ export default function LandingPage() {
                         <motion.div
                             {...fadeInUp}
                             transition={{ delay: 0.4 }}
-                            className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 flex flex-col relative shadow-xl bg-card text-card-foreground scale-105 z-10"
+                            onMouseEnter={() => setHoverPlan(1)}
+                            className={`border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 flex flex-col relative bg-card text-card-foreground z-10 transition-colors
+                                ${hoverPlan === 1 ? 'relative z-20 -translate-y-1 shadow-2xl scale-105' : 'shadow-xl scale-105'}
+                                ${hoverPlan !== null && hoverPlan !== 1 ? 'blur-[2px] opacity-60' : ''}`}
                         >
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#2E5C55] text-white px-4 py-1 rounded-full text-sm font-bold">
                                 MOST POPULAR
@@ -333,10 +364,30 @@ export default function LandingPage() {
 
                     <div className="space-y-4">
                         {[
-                            { q: "How accurate is the AI evaluation?", a: "Our AI is trained on thousands of CSS/PMS papers and rubrics, providing highly accurate, consistent, and actionable feedback that aligns with examiner standards." },
-                            { q: "Can I upload handwritten essays?", a: "Yes! Our advanced OCR technology can read and analyze handwritten documents with high precision." },
-                            { q: "Is my data secure?", a: "Absolutely. We use enterprise-grade encryption and never share your personal data or uploaded documents with third parties." },
-                            { q: "Can I cancel my subscription?", a: "Yes, you can cancel your Pro subscription at any time. You'll keep access until the end of your billing period." }
+                            { 
+                                q: "How quickly can I get feedback on my papers?", 
+                                a: "Our AI evaluation system provides instant feedback within seconds of submission. Once you upload your answer script, the system analyzes it against our comprehensive rubrics and generates detailed feedback including scores, strengths, weaknesses, and specific improvement suggestions. No waiting period required - you can evaluate multiple papers back-to-back and track your progress in real-time." 
+                            },
+                            { 
+                                q: "How accurate is the AI scoring system?", 
+                                a: "Our AI has been trained on thousands of CSS/PMS papers evaluated by experienced examiners and achieves over 95% accuracy compared to human grading. The system uses advanced natural language processing and is continuously refined based on official rubrics and examiner feedback. It evaluates content quality, structure, relevance, critical analysis, and presentation - ensuring comprehensive and fair assessment that mirrors actual exam standards." 
+                            },
+                            { 
+                                q: "Can I track my progress over time?", 
+                                a: "Yes! Our platform provides comprehensive analytics and progress tracking features. You can view your performance trends across different subjects, track improvement in specific areas, compare scores over time, and identify your strengths and weaknesses. The dashboard displays visual graphs, subject-wise breakdowns, and personalized insights to help you understand your learning journey and focus on areas that need improvement." 
+                            },
+                            { 
+                                q: "What kind of suggestions will I receive?", 
+                                a: "You'll receive detailed, actionable feedback covering multiple dimensions of your answer. This includes content accuracy, argument structure, use of relevant examples, writing style, grammar and presentation, time management tips, and subject-specific improvements. Each suggestion is tailored to your specific answer and includes practical examples of how to enhance your response. The feedback is designed to help you understand not just what to improve, but exactly how to improve it." 
+                            },
+                            { 
+                                q: "When can I use the evaluation service?", 
+                                a: "Our platform is available 24/7, allowing you to practice and get evaluated at your convenience. Whether you prefer studying early morning or late night, you can submit your answers anytime and receive instant feedback. There's no scheduling required for AI evaluations - simply upload your paper whenever you're ready. This flexibility ensures you can maintain your study routine without any constraints." 
+                            },
+                            { 
+                                q: "Is this aligned with actual CSS exam requirements?", 
+                                a: "Absolutely! Our evaluation system is built specifically for CSS/PMS exams and follows the official syllabus, marking schemes, and examiner guidelines. The rubrics are developed in consultation with CSS experts and successful candidates. We regularly update our assessment criteria to reflect any changes in exam patterns or requirements, ensuring you're practicing exactly what will be expected in the actual examination." 
+                            }
                         ].map((faq, i) => (
                             <motion.div
                                 key={i}
@@ -346,17 +397,53 @@ export default function LandingPage() {
                                 transition={{ delay: i * 0.1 }}
                                 className="group"
                             >
-                                <div className="p-6 rounded-2xl bg-white/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 hover:border-blue-500/30 transition-all">
-                                    <h3 className="text-lg font-bold text-foreground mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                        {faq.q}
-                                    </h3>
-                                    <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                                        {faq.a}
-                                    </p>
+                                <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 overflow-hidden">
+                                    <button
+                                        onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                                        className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
+                                        aria-expanded={openFaqIndex === i}
+                                    >
+                                        <h3 className="text-lg font-bold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                            {faq.q}
+                                        </h3>
+                                        <ChevronDown className={`w-5 h-5 text-zinc-500 transition-transform ${openFaqIndex === i ? 'rotate-180 text-blue-600 dark:text-blue-400' : ''}`} />
+                                    </button>
+                                    {openFaqIndex === i && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            transition={{ duration: 0.25 }}
+                                            className="px-6 pb-6 -mt-2"
+                                        >
+                                            <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                                                {faq.a}
+                                            </p>
+                                        </motion.div>
+                                    )}
                                 </div>
                             </motion.div>
                         ))}
                     </div>
+                </div>
+            </section>
+
+            {/* Contact Support Section */}
+            <section className="py-16 px-6 bg-zinc-50 dark:bg-zinc-900/50">
+                <div className="max-w-4xl mx-auto text-center">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="space-y-4"
+                    >
+                        <h3 className="text-2xl font-bold text-foreground">Still have questions?</h3>
+                        <button
+                            onClick={() => setShowContactModal(true)}
+                            className="text-[#2E5C55] dark:text-[#4ade80] underline underline-offset-4 text-lg font-semibold hover:text-[#1F3A34] dark:hover:text-[#22c55e] transition-colors"
+                        >
+                            Contact our support team
+                        </button>
+                    </motion.div>
                 </div>
             </section>
 
@@ -368,6 +455,74 @@ export default function LandingPage() {
                     <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
                         <ProAccessModal onClose={() => setShowProModal(false)} />
                     </div>
+                </div>
+            )}
+
+            {/* Contact Support Modal */}
+            {showContactModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
+                    >
+                        <div className="p-8">
+                            <div className="flex items-start justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-foreground mb-2">Contact Support Team</h2>
+                                    <p className="text-zinc-600 dark:text-zinc-400">Get in touch with our support team. We're here to help!</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowContactModal(false)}
+                                    className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {/* Email */}
+                                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-white dark:bg-zinc-700 rounded-lg flex items-center justify-center shrink-0">
+                                            <Mail className="w-6 h-6 text-[#2E5C55] dark:text-[#4ade80]" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-foreground mb-1">Email</h3>
+                                            <a
+                                                href="mailto:support@rubrik.com"
+                                                className="text-[#2E5C55] dark:text-[#4ade80] hover:underline"
+                                            >
+                                                support@rubrik.com
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Phone */}
+                                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-white dark:bg-zinc-700 rounded-lg flex items-center justify-center shrink-0">
+                                            <Phone className="w-6 h-6 text-[#2E5C55] dark:text-[#4ade80]" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-foreground mb-1">Phone</h3>
+                                            <a
+                                                href="tel:+923001234567"
+                                                className="text-[#2E5C55] dark:text-[#4ade80] hover:underline"
+                                            >
+                                                +92 300 1234567
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-6 text-center">
+                                Available Monday - Friday, 9:00 AM - 6:00 PM (PST)
+                            </p>
+                        </div>
+                    </motion.div>
                 </div>
             )}
         </div>

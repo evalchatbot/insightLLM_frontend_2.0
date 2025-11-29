@@ -124,6 +124,36 @@ export async function annotateDocument(
   // Parse JSON response containing both PDF and metadata
   const data = await response.json();
 
+  // If backend provided precise token usage, record it server-side
+  const metaTokenUsage = data?.metadata?.token_usage;
+  if (metaTokenUsage && (metaTokenUsage.input_tokens || metaTokenUsage.output_tokens)) {
+    try {
+      const usageResponse = await fetch('/api/chat/usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input_tokens: Number(metaTokenUsage.input_tokens) || 0,
+          output_tokens: Number(metaTokenUsage.output_tokens) || 0,
+        })
+      });
+
+      // If usage route indicates downgrade or limit, surface minimally
+      if (!usageResponse.ok) {
+        const err = await usageResponse.json().catch(() => ({}));
+        console.warn('Failed to record OCR usage:', err);
+        if (usageResponse.status === 429) {
+          // Emit a refresh to update UI state if downgraded/limited
+          window.dispatchEvent(new CustomEvent('refreshProStatus'));
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('proStatusRefresh', Date.now().toString());
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Error calling /api/chat/usage for OCR:', err);
+    }
+  }
+
   // Decode base64 PDF to Blob
   const base64Data = data.pdf_base64;
   const binaryString = atob(base64Data);

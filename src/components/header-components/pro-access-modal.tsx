@@ -116,16 +116,16 @@ const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
         <div className="bg-muted/30 p-4 rounded-lg space-y-2">
           <p>Please send payment to:</p>
           <div className="space-y-1">
-            <p><span className="font-medium">Bank:</span> [Bank Name]</p>
-            <p><span className="font-medium">Account:</span> [Account Number]</p>
-            <p><span className="font-medium">Title:</span> [Account Title]</p>
+            <p><span className="font-medium">Bank:</span> Alfalah Bank</p>
+            <p><span className="font-medium">Account:</span> 50200012345678</p>
+            <p><span className="font-medium">Title:</span> Rubrik Education Pvt Ltd</p>
           </div>
         </div>
 
         <div className="space-y-1">
           <p>After payment:</p>
           <p>1. Share your transaction screenshot on WhatsApp</p>
-          <p className="font-medium">[Admin WhatsApp Number]</p>
+          <p className="font-medium">+92 3332296022</p>
           <p>2. Enter the provided access key below</p>
         </div>
       </div>

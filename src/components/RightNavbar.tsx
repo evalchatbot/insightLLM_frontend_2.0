@@ -81,13 +81,13 @@ const RightNavbar = () => {
                             <Link href="/" className="flex items-center gap-3 group" onClick={() => setIsOpen(false)}>
                                 <div className="relative w-10 h-10 transition-transform group-hover:scale-110 duration-300">
                                     <Image
-                                        src="/assets/gemini-logo.svg"
+                                        src="/assets/Rubrik logo.svg"
                                         alt="InsightLLM Logo"
                                         fill
                                         className="object-contain"
                                     />
                                 </div>
-                                <span className="font-bold text-2xl tracking-tight text-emerald-700 dark:text-emerald-400">
+                                <span className="font-bold text-2xl tracking-tight text-red-700 dark:text-red-500">
                                     rubrik.ai
                                 </span>
                             </Link>
@@ -98,26 +98,35 @@ const RightNavbar = () => {
                             {navLinks.map((link) => {
                                 const Icon = link.icon;
                                 const isActive = pathname === link.href || (link.href === '/app' && pathname?.startsWith('/app'));
-                                
+
+                                // Chatbot is disabled (Coming Soon)
+                                if (link.isActive) {
+                                    return (
+                                        <div
+                                            key={link.name}
+                                            className="flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium cursor-not-allowed opacity-50 text-zinc-400 dark:text-zinc-600 relative"
+                                        >
+                                            <Icon className="w-5 h-5" />
+                                            <span>{link.name}</span>
+                                            <span className="ml-auto text-red-500 text-[7px] font-bold uppercase tracking-wide">
+                                                Soon
+                                            </span>
+                                        </div>
+                                    );
+                                }
+
                                 return (
                                     <Link
                                         key={link.name}
                                         href={link.href}
                                         onClick={() => setIsOpen(false)}
-                                        className={`flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium transition-all duration-300 ${
-                                            isActive
+                                        className={`flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium transition-all duration-300 ${isActive
                                                 ? "bg-black dark:bg-white text-white dark:text-black shadow-lg"
                                                 : "text-zinc-600 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10 hover:text-black dark:hover:text-white"
-                                        }`}
+                                            }`}
                                     >
                                         <Icon className="w-5 h-5" />
                                         <span>{link.name}</span>
-                                        {link.isActive && (
-                                            <span className="ml-auto flex h-2 w-2">
-                                                <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-blue-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                                            </span>
-                                        )}
                                     </Link>
                                 );
                             })}
@@ -131,18 +140,16 @@ const RightNavbar = () => {
                                 <div className="flex bg-black/5 dark:bg-white/5 rounded-full p-1 gap-1">
                                     <button
                                         onClick={() => setTheme('light')}
-                                        className={`p-2 rounded-full transition-all ${
-                                            !isDark ? 'bg-white dark:bg-zinc-800 shadow-sm text-yellow-500' : 'text-zinc-400'
-                                        }`}
+                                        className={`p-2 rounded-full transition-all ${!isDark ? 'bg-white dark:bg-zinc-800 shadow-sm text-yellow-500' : 'text-zinc-400'
+                                            }`}
                                         aria-label="Light Mode"
                                     >
                                         <FaSun className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => setTheme('dark')}
-                                        className={`p-2 rounded-full transition-all ${
-                                            isDark ? 'bg-zinc-800 shadow-sm text-blue-400' : 'text-zinc-400'
-                                        }`}
+                                        className={`p-2 rounded-full transition-all ${isDark ? 'bg-zinc-800 shadow-sm text-blue-400' : 'text-zinc-400'
+                                            }`}
                                         aria-label="Dark Mode"
                                     >
                                         <FaMoon className="w-4 h-4" />

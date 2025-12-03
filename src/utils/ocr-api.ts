@@ -48,20 +48,12 @@ export async function annotateDocument(
     throw new Error("Subject selection is required");
   }
 
-  // Check usage limits BEFORE processing OCR
-  // Estimate tokens: OCR typically uses more tokens (estimate based on file size)
-  // Conservative estimate: assume 3000 input tokens and 5000 output tokens for OCR to prevent limit edge cases
-  const estimatedInputTokens = 3000;
-  const estimatedOutputTokens = 5000;
+  // Check OCR usage limit BEFORE processing (count-based, not token-based)
+  // OCR tracks number of PDFs generated, not tokens
   
   try {
-    const limitCheck = await fetch('/api/chat/check-limit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        input_tokens: estimatedInputTokens,
-        output_tokens: estimatedOutputTokens
-      })
+    const limitCheck = await fetch('/api/ocr/check-limit', {
+      method: 'POST'
     });
     
     if (limitCheck.status === 429) {
@@ -77,33 +69,60 @@ export async function annotateDocument(
         }
       }
       
-      throw new Error(errorData.message || "Monthly token limit exceeded. Please upgrade to Pro or wait for next month.");
+      throw new Error(errorData.message || "OCR limit reached. Please upgrade to Pro or wait for next month.");
     }
     
     // If check-limit returns non-200 status, block the request
     if (!limitCheck.ok) {
       const errorText = await limitCheck.text();
-      console.error('Failed to check usage limit for OCR:', limitCheck.status, errorText);
-      throw new Error("Unable to verify usage limits. Please try again or contact support.");
+      console.error('Failed to check OCR usage limit:', limitCheck.status, errorText);
+      throw new Error("Unable to verify OCR usage limits. Please try again or contact support.");
     }
     
     // Verify that can_proceed is true before proceeding
     try {
       const limitData = await limitCheck.json();
       if (!limitData.can_proceed) {
-        throw new Error(limitData.message || "Monthly token limit exceeded. Please upgrade to Pro or wait for next month.");
+        throw new Error(limitData.message || "OCR limit reached. Please upgrade to Pro or wait for next month.");
       }
     } catch (parseErr) {
       console.error('Failed to parse limit check response for OCR:', parseErr);
-      throw new Error("Unable to verify usage limits. Please try again.");
+      throw new Error("Unable to verify OCR usage limits. Please try again.");
     }
   } catch (err: any) {
-    // If it's a limit exceeded error, throw it
-    if (err.message?.includes('limit exceeded') || err.message?.includes('limit reached') || err.message?.includes('Unable to verify')) {
+    // If it's a limit error, throw it
+    if (err.message?.includes('limit') || err.message?.includes('Unable to verify')) {
       throw err;
     }
-    console.error('Failed to check usage limit for OCR:', err);
-    throw new Error("Unable to verify usage limits. Please try again or contact support.");
+    console.error('Failed to check OCR usage limit:', err);
+    throw new Error("Unable to verify OCR usage limits. Please try again or contact support.");
+  }
+
+  // ✅ RECORD OCR USAGE IMMEDIATELY - Count at pipeline start, not at PDF generation
+  // This ensures tokens are charged even if user leaves page mid-processing
+  try {
+    const usageResponse = await fetch('/api/ocr/record-usage', {
+      method: 'POST'
+    });
+
+    if (!usageResponse.ok) {
+      console.error('Failed to record OCR usage count at pipeline start');
+      throw new Error("Failed to record OCR usage. Please contact support.");
+    }
+
+    const usageData = await usageResponse.json();
+    
+    // Check if user was auto-downgraded from Pro to Free after hitting limit
+    if (usageData.downgraded || (usageData.was_pro && !usageData.is_pro)) {
+      // Trigger immediate refresh to update UI
+      window.dispatchEvent(new CustomEvent('refreshProStatus'));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('proStatusRefresh', Date.now().toString());
+      }
+    }
+  } catch (err) {
+    console.error('Error recording OCR usage at pipeline start:', err);
+    throw new Error("Failed to record OCR usage. Please try again.");
   }
 
   const formData = new FormData();
@@ -124,35 +143,8 @@ export async function annotateDocument(
   // Parse JSON response containing both PDF and metadata
   const data = await response.json();
 
-  // If backend provided precise token usage, record it server-side
-  const metaTokenUsage = data?.metadata?.token_usage;
-  if (metaTokenUsage && (metaTokenUsage.input_tokens || metaTokenUsage.output_tokens)) {
-    try {
-      const usageResponse = await fetch('/api/chat/usage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          input_tokens: Number(metaTokenUsage.input_tokens) || 0,
-          output_tokens: Number(metaTokenUsage.output_tokens) || 0,
-        })
-      });
-
-      // If usage route indicates downgrade or limit, surface minimally
-      if (!usageResponse.ok) {
-        const err = await usageResponse.json().catch(() => ({}));
-        console.warn('Failed to record OCR usage:', err);
-        if (usageResponse.status === 429) {
-          // Emit a refresh to update UI state if downgraded/limited
-          window.dispatchEvent(new CustomEvent('refreshProStatus'));
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('proStatusRefresh', Date.now().toString());
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('Error calling /api/chat/usage for OCR:', err);
-    }
-  }
+  // OCR usage already recorded at pipeline start (before backend processing)
+  // No need to record again here
 
   // Decode base64 PDF to Blob
   const base64Data = data.pdf_base64;
@@ -181,47 +173,6 @@ export async function annotateDocument(
       },
     };
 
-  // Extract token usage from backend response if available
-  const tokenUsage = data.metadata?.token_usage;
-  if (tokenUsage) {
-    // Record usage using actual token counts from backend
-    try {
-      const usageResponse = await fetch('/api/chat/usage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          input_tokens: tokenUsage.prompt_tokens || 0,
-          output_tokens: tokenUsage.completion_tokens || 0
-        })
-      });
-      
-      // Check if user was downgraded
-      if (usageResponse.status === 429) {
-        const errorData = await usageResponse.json();
-        if (errorData.downgraded || errorData.is_pro === false) {
-          // Trigger immediate refresh
-          window.dispatchEvent(new CustomEvent('refreshProStatus'));
-          // Also use storage event as backup
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('proStatusRefresh', Date.now().toString());
-          }
-        }
-      } else if (usageResponse.ok) {
-        const usageData = await usageResponse.json();
-        if (usageData.is_pro === false) {
-          // User was downgraded, refresh status
-          window.dispatchEvent(new CustomEvent('refreshProStatus'));
-          // Also use storage event as backup
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('proStatusRefresh', Date.now().toString());
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to track OCR usage:', err);
-    }
-  }
-
   return { pdfBlob, metadata };
 }
 
@@ -233,20 +184,12 @@ export async function analyzeDocument(file: File, subject: string): Promise<OCRR
     throw new Error("Subject selection is required");
   }
 
-  // Check usage limits BEFORE processing OCR
-  // Estimate tokens: OCR typically uses more tokens (estimate based on file size)
-  // Conservative estimate: assume 3000 input tokens and 5000 output tokens for OCR to prevent limit edge cases
-  const estimatedInputTokens = 3000;
-  const estimatedOutputTokens = 5000;
+  // Check OCR usage limit BEFORE processing (count-based, not token-based)
+  // OCR tracks number of PDFs generated, not tokens
   
   try {
-    const limitCheck = await fetch('/api/chat/check-limit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        input_tokens: estimatedInputTokens,
-        output_tokens: estimatedOutputTokens
-      })
+    const limitCheck = await fetch('/api/ocr/check-limit', {
+      method: 'POST'
     });
     
     if (limitCheck.status === 429) {
@@ -262,33 +205,60 @@ export async function analyzeDocument(file: File, subject: string): Promise<OCRR
         }
       }
       
-      throw new Error(errorData.message || "Monthly token limit exceeded. Please upgrade to Pro or wait for next month.");
+      throw new Error(errorData.message || "OCR limit reached. Please upgrade to Pro or wait for next month.");
     }
     
     // If check-limit returns non-200 status, block the request
     if (!limitCheck.ok) {
       const errorText = await limitCheck.text();
-      console.error('Failed to check usage limit for OCR:', limitCheck.status, errorText);
-      throw new Error("Unable to verify usage limits. Please try again or contact support.");
+      console.error('Failed to check OCR usage limit:', limitCheck.status, errorText);
+      throw new Error("Unable to verify OCR usage limits. Please try again or contact support.");
     }
     
     // Verify that can_proceed is true before proceeding
     try {
       const limitData = await limitCheck.json();
       if (!limitData.can_proceed) {
-        throw new Error(limitData.message || "Monthly token limit exceeded. Please upgrade to Pro or wait for next month.");
+        throw new Error(limitData.message || "OCR limit reached. Please upgrade to Pro or wait for next month.");
       }
     } catch (parseErr) {
       console.error('Failed to parse limit check response for OCR:', parseErr);
       throw new Error("Unable to verify usage limits. Please try again.");
     }
   } catch (err: any) {
-    // If it's a limit exceeded error, throw it
-    if (err.message?.includes('limit exceeded') || err.message?.includes('limit reached') || err.message?.includes('Unable to verify')) {
+    // If it's a limit error, throw it
+    if (err.message?.includes('limit') || err.message?.includes('Unable to verify')) {
       throw err;
     }
-    console.error('Failed to check usage limit for OCR:', err);
-    throw new Error("Unable to verify usage limits. Please try again or contact support.");
+    console.error('Failed to check OCR usage limit:', err);
+    throw new Error("Unable to verify OCR usage limits. Please try again or contact support.");
+  }
+
+  // ✅ RECORD OCR USAGE IMMEDIATELY - Count at pipeline start, not at completion
+  // This ensures tokens are charged even if user leaves page mid-processing
+  try {
+    const usageResponse = await fetch('/api/ocr/record-usage', {
+      method: 'POST'
+    });
+
+    if (!usageResponse.ok) {
+      console.error('Failed to record OCR usage count at pipeline start');
+      throw new Error("Failed to record OCR usage. Please contact support.");
+    }
+
+    const usageData = await usageResponse.json();
+    
+    // Check if user was auto-downgraded from Pro to Free after hitting limit
+    if (usageData.downgraded || (usageData.was_pro && !usageData.is_pro)) {
+      // Trigger immediate refresh to update UI
+      window.dispatchEvent(new CustomEvent('refreshProStatus'));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('proStatusRefresh', Date.now().toString());
+      }
+    }
+  } catch (err) {
+    console.error('Error recording OCR usage at pipeline start:', err);
+    throw new Error("Failed to record OCR usage. Please try again.");
   }
 
   const formData = new FormData();
@@ -307,46 +277,8 @@ export async function analyzeDocument(file: File, subject: string): Promise<OCRR
 
   const data = await response.json();
   
-  // Extract token usage from backend response if available
-  const tokenUsage = data.token_usage;
-  if (tokenUsage) {
-    // Record usage using actual token counts from backend
-    try {
-      const usageResponse = await fetch('/api/chat/usage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          input_tokens: tokenUsage.prompt_tokens || 0,
-          output_tokens: tokenUsage.completion_tokens || 0
-        })
-      });
-      
-      // Check if user was downgraded
-      if (usageResponse.status === 429) {
-        const errorData = await usageResponse.json();
-        if (errorData.downgraded || errorData.is_pro === false) {
-          // Trigger immediate refresh
-          window.dispatchEvent(new CustomEvent('refreshProStatus'));
-          // Also use storage event as backup
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('proStatusRefresh', Date.now().toString());
-          }
-        }
-      } else if (usageResponse.ok) {
-        const usageData = await usageResponse.json();
-        if (usageData.is_pro === false) {
-          // User was downgraded, refresh status
-          window.dispatchEvent(new CustomEvent('refreshProStatus'));
-          // Also use storage event as backup
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('proStatusRefresh', Date.now().toString());
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to track OCR usage:', err);
-    }
-  }
+  // OCR usage already recorded at pipeline start (before backend processing)
+  // No need to record again here
 
   return data;
 }

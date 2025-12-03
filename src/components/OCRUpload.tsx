@@ -96,32 +96,82 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     setLoadingStage("Uploading document...")
 
     try {
-      // Simulate progress stages
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev < 90) return prev + 1
-          return prev
-        })
-      }, 300)
+      // Real backend pipeline progress stages (11 steps total)
+      // Each step matches actual backend processing in grade_pdf_answer.py
+      
+      // Step 1: Upload & Convert (0-8%)
+      setProgress(3)
+      setTimeout(() => {
+        setLoadingStage("Step 1/11: Converting PDF pages to images...")
+        setProgress(8)
+      }, 800)
 
-      setLoadingStage("Extracting handwriting and text...")
-      setProgress(10)
+      // Step 2: OCR Extraction (8-18%)
+      setTimeout(() => {
+        setLoadingStage("Step 2/11: Running OCR on document (Google Vision)...")
+        setProgress(18)
+      }, 8000)
 
-      setTimeout(() => setLoadingStage("Understanding the question..."), 3000)
-      setTimeout(() => setProgress(40), 3000)
+      // Step 3: Section Detection (18-28%)
+      setTimeout(() => {
+        setLoadingStage("Step 3/11: Detecting sections and headings with AI...")
+        setProgress(28)
+      }, 18000)
 
-      setTimeout(() => setLoadingStage("Evaluating answer with rubric..."), 6000)
-      setTimeout(() => setProgress(60), 6000)
+      // Step 4: Load Rubric (28-33%)
+      setTimeout(() => {
+        setLoadingStage("Step 4/11: Loading subject-specific rubric...")
+        setProgress(33)
+      }, 28000)
 
-      setTimeout(() => setLoadingStage("Generating annotated report..."), 9000)
-      setTimeout(() => setProgress(80), 9000)
+      // Step 5: AI Grading (33-48%) - Longest step
+      setTimeout(() => {
+        setLoadingStage("Step 5/11: AI analyzing and grading your answer...")
+        setProgress(48)
+      }, 35000)
+
+      // Step 6: Report Generation (48-58%)
+      setTimeout(() => {
+        setLoadingStage("Step 6/11: Generating detailed evaluation report...")
+        setProgress(58)
+      }, 55000)
+
+      // Step 7: Refined Rubric (58-63%)
+      setTimeout(() => {
+        setLoadingStage("Step 7/11: Loading advanced rubric criteria...")
+        setProgress(63)
+      }, 65000)
+
+      // Step 8: Advanced Annotations (63-73%)
+      setTimeout(() => {
+        setLoadingStage("Step 8/11: Generating refined annotations...")
+        setProgress(73)
+      }, 75000)
+
+      // Step 9: Annotating Pages (73-83%)
+      setTimeout(() => {
+        setLoadingStage("Step 9/11: Annotating answer pages...")
+        setProgress(83)
+      }, 90000)
+
+      // Step 10: Ideal Outline (83-88%)
+      setTimeout(() => {
+        setLoadingStage("Step 10/11: Creating ideal answer outline...")
+        setProgress(88)
+      }, 105000)
+
+      // Step 11: Final Assembly (88-95%)
+      setTimeout(() => {
+        setLoadingStage("Step 11/11: Assembling final PDF report...")
+        setProgress(95)
+      }, 120000)
 
       // Single API call that returns both PDF and metadata
       const { pdfBlob, metadata } = await annotateDocument(file, user.id, subject)
 
-      clearInterval(progressInterval)
+      // Final step: Complete
       setProgress(100)
-      setLoadingStage("Evaluation complete!")
+      setLoadingStage("✅ Evaluation complete!")
 
       setAnnotatedPdfBlob(pdfBlob)
       setResults(metadata)
@@ -264,10 +314,10 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               disabled={loading}
             />
             <div className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-all duration-200 ${file
-                ? "border-[#2E5C55] bg-[#2E5C55]/5 dark:border-[#4ade80] dark:bg-[#4ade80]/5"
+                ? "border-red-600 bg-red-50 dark:border-red-500 dark:bg-red-950/20"
                 : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800"
               }`}>
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${file ? "bg-[#2E5C55] text-white dark:bg-[#4ade80] dark:text-black" : "bg-[#2E5C55]/10 text-[#2E5C55] dark:bg-[#4ade80]/10 dark:text-[#4ade80]"
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${file ? "bg-red-600 text-white dark:bg-red-500 dark:text-white" : "bg-red-600/10 text-red-600 dark:bg-red-500/10 dark:text-red-400"
                 }`}>
                 <Upload className="w-6 h-6" />
               </div>
@@ -281,7 +331,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                 <div className="text-center">
                   <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">Drag and drop</p>
                   <p className="text-xs text-zinc-500 mb-4">or click to browse (Max 10MB)</p>
-                  <span className="inline-block px-4 py-2 border border-[#2E5C55] text-[#2E5C55] dark:border-[#4ade80] dark:text-[#4ade80] rounded-lg text-sm font-medium">
+                  <span className="inline-block px-4 py-2 border border-red-600 text-red-600 dark:border-red-500 dark:text-red-400 rounded-lg text-sm font-medium">
                     Choose File
                   </span>
                 </div>
@@ -294,26 +344,27 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
         <Button
           onClick={handleEvaluate}
           disabled={!file || !user || !subject || !exam || loading}
-          className="w-full py-6 text-lg font-bold bg-[#6B8E8E] hover:bg-[#5A7A7A] text-white rounded-xl shadow-lg shadow-[#6B8E8E]/20 transition-all hover:scale-[1.02]"
+          className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? "Evaluating..." : "Analyze"}
         </Button>
 
         {/* Progress Indicator */}
         {loading && (
-          <div className="space-y-3 rounded-2xl border border-border/60 bg-card/60 p-4">
+          <div className="space-y-3 rounded-2xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">{loadingStage}</span>
-              <span className="text-sm text-muted-foreground">{progress}%</span>
+              <span className="text-sm font-medium text-zinc-900 dark:text-white">{loadingStage}</span>
+              <span className="text-sm text-zinc-600 dark:text-zinc-400">{progress}%</span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div className="h-2 w-full overflow-hidden rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
               <div
-                className="h-full bg-[#2E5C55] dark:bg-[#4ade80] transition-all duration-300 ease-out"
+                className="h-full bg-red-600 dark:bg-red-500 transition-all duration-300 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              This may take 30-60 seconds depending on document length and complexity.
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 text-center">
+              <span className="font-medium">Processing your document...</span><br />
+              Depending on document size and complexity, this may take <span className="font-semibold text-red-600 dark:text-red-400">3-4 minutes</span>.
             </p>
           </div>
         )}
@@ -328,17 +379,20 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
         {/* Report Ready */}
         {annotatedPdfBlob && (
-          <Alert className="border-[#2E5C55]/20 bg-[#2E5C55]/5 dark:border-[#4ade80]/20 dark:bg-[#4ade80]/5">
-            <AlertTitle className="text-[#2E5C55] dark:text-[#4ade80] font-bold">Evaluation Report Ready</AlertTitle>
+          <Alert className="border-2 border-red-500/30 bg-red-50 dark:border-red-500/30 dark:bg-red-950/20 rounded-2xl">
+            <AlertTitle className="text-red-700 dark:text-red-400 font-bold">Evaluation Report Ready</AlertTitle>
             <AlertDescription className="flex flex-col gap-3">
-              <span className="text-zinc-600 dark:text-zinc-400">Your detailed evaluation report is ready for download.</span>
+              <span className="text-zinc-700 dark:text-zinc-300">Your detailed evaluation report is ready for download.</span>
               <div className="flex flex-col gap-2 md:flex-row">
-                <Button onClick={downloadAnnotatedPDF} className="w-full md:w-auto bg-[#2E5C55] hover:bg-[#244a44] text-white">
+                <Button onClick={downloadAnnotatedPDF} className="w-full md:w-auto bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white">
                   Download Report
                 </Button>
-                <Button onClick={resetEvaluation} variant="outline" className="w-full md:w-auto">
+                <button 
+                  onClick={resetEvaluation} 
+                  className="w-full md:w-auto inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors h-9 px-4 py-2 border-2 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
                   Evaluate Another Question
-                </Button>
+                </button>
               </div>
             </AlertDescription>
           </Alert>

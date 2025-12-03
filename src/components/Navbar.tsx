@@ -49,22 +49,22 @@ const Navbar = () => {
         >
             {/* Blur overlay only above navbar */}
             <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white/95 to-transparent dark:from-black/95 backdrop-blur-lg -z-10 pointer-events-none" />
-                <div className={`max-w-7xl mx-auto px-6 transition-all duration-500 ${isScrolled ? "px-4" : "px-6"
-                    }`}>
-                    {/* ALWAYS TRANSLUCENT BACKGROUND */}
-                    <div className="relative rounded-full px-6 py-3 flex items-center justify-between transition-all duration-300 bg-white/90 dark:bg-black/90 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-lg shadow-black/5">
+            <div className={`max-w-7xl mx-auto px-6 transition-all duration-500 ${isScrolled ? "px-4" : "px-6"
+                }`}>
+                {/* ALWAYS TRANSLUCENT BACKGROUND */}
+                <div className="relative rounded-full px-6 py-3 flex items-center justify-between transition-all duration-300 bg-white/90 dark:bg-black/90 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-lg shadow-black/5">
 
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-3 group z-10">
                         <div className="relative w-8 h-8 transition-transform group-hover:scale-110 duration-300">
                             <Image
-                                src="/assets/gemini-logo.svg"
+                                src="/assets/Rubrik logo.svg"
                                 alt="InsightLLM Logo"
                                 fill
                                 className="object-contain"
                             />
                         </div>
-                        <span className="font-bold text-xl tracking-tight text-emerald-700 dark:text-emerald-400">
+                        <span className="font-bold text-xl tracking-tight text-red-700 dark:text-red-500">
                             rubrik.ai
                         </span>
                     </Link>
@@ -72,22 +72,30 @@ const Navbar = () => {
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-1 p-1.5 rounded-full absolute left-1/2 -translate-x-1/2">
                         {navLinks.map((link) => (
-                            <Link
-                                key={link.name}
-                                href={link.href}
-                                className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${pathname === link.href
-                                    ? "text-white bg-black dark:bg-white dark:text-black shadow-md"
-                                    : "text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
-                                    }`}
-                            >
-                                {link.name}
-                                {link.isSpecial && (
-                                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+                            link.isSpecial ? (
+                                // Chatbot - Disabled (Coming Soon)
+                                <div
+                                    key={link.name}
+                                    className="relative px-5 py-2 rounded-full text-sm font-medium cursor-not-allowed opacity-50 text-zinc-400 dark:text-zinc-600"
+                                    title="Coming Soon"
+                                >
+                                    {link.name}
+                                    <span className="absolute -top-0.5 -right-0.5 text-red-500 text-[7px] font-bold uppercase tracking-wider">
+                                        Soon
                                     </span>
-                                )}
-                            </Link>
+                                </div>
+                            ) : (
+                                <Link
+                                    key={link.name}
+                                    href={link.href}
+                                    className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${pathname === link.href
+                                        ? "text-white bg-black dark:bg-white dark:text-black shadow-md"
+                                        : "text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
+                                        }`}
+                                >
+                                    {link.name}
+                                </Link>
+                            )
                         ))}
                     </nav>
 
@@ -126,10 +134,10 @@ const Navbar = () => {
                     >
                         {isMobileMenuOpen ? <X /> : <Menu />}
                     </button>
-                    </div>
                 </div>
+            </div>
 
-                {/* Mobile Menu */}
+            {/* Mobile Menu */}
             <AnimatePresence>
                 {isMobileMenuOpen && (
                     <motion.div
@@ -140,18 +148,30 @@ const Navbar = () => {
                     >
                         <div className="bg-white/90 dark:bg-black/90 backdrop-blur-2xl rounded-3xl border border-black/5 dark:border-white/10 shadow-2xl p-4 space-y-2 overflow-visible">
                             {navLinks.map((link) => (
-                                <Link
-                                    key={link.name}
-                                    href={link.href}
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                    className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${pathname === link.href
-                                        ? "bg-black/5 dark:bg-white/10 text-black dark:text-white"
-                                        : "text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5"
-                                        }`}
-                                >
-                                    {link.name}
-                                    {link.isSpecial && <Sparkles className="w-4 h-4 text-blue-500" />}
-                                </Link>
+                                link.isSpecial ? (
+                                    // Chatbot - Disabled (Coming Soon)
+                                    <div
+                                        key={link.name}
+                                        className="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium cursor-not-allowed opacity-50 text-zinc-400 dark:text-zinc-600"
+                                    >
+                                        {link.name}
+                                        <span className="text-red-500 text-[7px] font-bold uppercase tracking-wide">
+                                            Soon
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <Link
+                                        key={link.name}
+                                        href={link.href}
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${pathname === link.href
+                                            ? "bg-black/5 dark:bg-white/10 text-black dark:text-white"
+                                            : "text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5"
+                                            }`}
+                                    >
+                                        {link.name}
+                                    </Link>
+                                )
                             ))}
 
                             <div className="h-px bg-black/5 dark:bg-white/5 my-2" />

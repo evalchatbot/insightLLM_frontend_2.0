@@ -18,11 +18,11 @@ export default function LoadingState() {
                         repeat: Infinity,
                         ease: "easeInOut",
                     }}
-                    className="absolute inset-0 bg-emerald-600 dark:bg-emerald-400 rounded-full blur-xl opacity-20"
+                    className="absolute inset-0 bg-red-600 dark:bg-red-500 rounded-full blur-xl opacity-20"
                 />
                 <div className="relative z-10 w-full h-full">
                     <Image
-                        src="/assets/gemini-logo.svg"
+                        src="/assets/Rubrik logo.svg"
                         alt="Loading..."
                         fill
                         className="object-contain"
@@ -31,7 +31,7 @@ export default function LoadingState() {
             </div>
 
             <div className="flex flex-col items-center gap-2">
-                <h3 className="text-lg font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">
+                <h3 className="text-lg font-bold text-red-700 dark:text-red-500 tracking-tight">
                     rubrik.ai
                 </h3>
                 <div className="flex gap-1">
@@ -47,7 +47,7 @@ export default function LoadingState() {
                                 delay: i * 0.1,
                                 ease: "easeInOut",
                             }}
-                            className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400"
+                            className="w-2 h-2 rounded-full bg-red-600 dark:bg-red-500"
                         />
                     ))}
                 </div>

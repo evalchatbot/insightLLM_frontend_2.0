@@ -88,9 +88,9 @@ export default function LandingPage() {
                         transition={{ duration: 0.8 }}
                         className="space-y-6 text-center lg:text-left pt-10 lg:pt-0"
                     >
-                        <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-foreground leading-[1.1] uppercase">
+                        <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-zinc-900 dark:text-white leading-[1.1] uppercase">
                             EVALUATION MATTERS! <br />
-                            <span className="font-serif italic font-light text-zinc-600 dark:text-zinc-400 capitalize tracking-normal normal-case block mt-1 text-3xl md:text-5xl">
+                            <span className="font-serif italic font-light text-zinc-600 dark:text-zinc-300 capitalize tracking-normal normal-case block mt-1 text-3xl md:text-5xl">
                                 Craft your answers to perfection
                             </span>
                         </h1>
@@ -109,7 +109,7 @@ export default function LandingPage() {
                                     transition={{ delay: 0.2 + (i * 0.1) }}
                                     className="flex items-center gap-3 justify-center lg:justify-start"
                                 >
-                                    <Check className="w-5 h-5 text-zinc-900 dark:text-zinc-100" />
+                                    <Check className="w-5 h-5 text-red-600 dark:text-red-400" />
                                     <span className="text-base md:text-lg text-zinc-700 dark:text-zinc-300">{item}</span>
                                 </motion.div>
                             ))}
@@ -118,14 +118,14 @@ export default function LandingPage() {
                         <div className="pt-6">
                             {!user ? (
                                 <SignInButton mode="modal">
-                                    <button className={`px-8 py-3 rounded-full bg-[#B91C1C] text-white text-lg font-bold hover:bg-[#991b1b] transition-all hover:scale-105 shadow-lg shadow-red-900/20 ${showAuthNotice ? 'ring-2 ring-blue-500 ring-offset-2 animate-pulse' : ''}`}>
+                                    <button className={`px-8 py-3 rounded-full bg-red-600 text-white text-lg font-bold hover:bg-red-700 transition-all hover:scale-105 shadow-lg shadow-red-900/30 ${showAuthNotice ? 'ring-2 ring-blue-500 ring-offset-2 animate-pulse' : ''}`}>
                                         Sign Up Now
                                     </button>
                                 </SignInButton>
                             ) : (
                                 <button
                                     disabled
-                                    className="px-8 py-3 rounded-full bg-green-600 text-white text-lg font-bold cursor-default shadow-lg shadow-green-900/20 flex items-center gap-2 mx-auto lg:mx-0"
+                                    className="px-8 py-3 rounded-full bg-red-600 text-white text-lg font-bold cursor-default shadow-lg shadow-red-900/30 flex items-center gap-2 mx-auto lg:mx-0"
                                 >
                                     <CheckCircle2 className="w-5 h-5" />
                                     Welcome, {user.firstName || "User"}!
@@ -152,8 +152,8 @@ export default function LandingPage() {
                         {...fadeInUp}
                         className="text-center mb-16 space-y-4"
                     >
-                        <h2 className="text-3xl md:text-4xl font-bold text-[#2E5C55] dark:text-[#4ade80]">EVALUATION BUILT TO PERFECTION</h2>
-                        <p className="text-xl text-zinc-600 dark:text-zinc-400 italic font-serif">
+                        <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white">EVALUATION BUILT TO PERFECTION</h2>
+                        <p className="text-xl text-zinc-600 dark:text-zinc-300 italic font-serif">
                             More than a mentor, the first Self-learning platform for competitive exams.
                         </p>
                     </motion.div>
@@ -168,15 +168,15 @@ export default function LandingPage() {
                             transition={{ delay: 0.1 }}
                             onClick={() => router.push('/app/ocr')}
                             onMouseEnter={() => setHoverFeature(0)}
-                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all duration-300 cursor-pointer hover:border-[#2E5C55] dark:hover:border-[#4ade80]
+                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 transition-all duration-300 cursor-pointer hover:border-red-500 dark:hover:border-red-400
                                 ${hoverFeature === 0 ? 'relative z-10 -translate-y-1 shadow-xl' : ''}
                                 ${hoverFeature !== null && hoverFeature !== 0 ? 'blur-[2px] opacity-60' : ''}`}
                         >
-                            <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center mb-6">
-                                <FileText className="w-6 h-6 text-[#2E5C55] dark:text-[#4ade80]" />
+                            <div className="w-12 h-12 bg-red-100 dark:bg-red-500/20 rounded-lg flex items-center justify-center mb-6">
+                                <FileText className="w-6 h-6 text-red-600 dark:text-red-400" />
                             </div>
-                            <h3 className="text-lg font-bold mb-3 text-foreground">AI-Powered Evaluations</h3>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                            <h3 className="text-lg font-bold mb-3 text-zinc-900 dark:text-white">AI-Powered Evaluations</h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
                                 Get instant, comprehensive feedback on answers of all subjects with our advanced AI evaluation system.
                             </p>
                         </motion.div>
@@ -187,15 +187,15 @@ export default function LandingPage() {
                             transition={{ delay: 0.2 }}
                             onClick={() => router.push('/app/quiz')}
                             onMouseEnter={() => setHoverFeature(1)}
-                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all duration-300 cursor-pointer hover:border-[#2E5C55] dark:hover:border-[#4ade80]
+                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 transition-all duration-300 cursor-pointer hover:border-red-500 dark:hover:border-red-400
                                 ${hoverFeature === 1 ? 'relative z-10 -translate-y-1 shadow-xl' : ''}
                                 ${hoverFeature !== null && hoverFeature !== 1 ? 'blur-[2px] opacity-60' : ''}`}
                         >
-                            <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center mb-6">
-                                <Brain className="w-6 h-6 text-[#2E5C55] dark:text-[#4ade80]" />
+                            <div className="w-12 h-12 bg-red-100 dark:bg-red-500/20 rounded-lg flex items-center justify-center mb-6">
+                                <Brain className="w-6 h-6 text-red-600 dark:text-red-400" />
                             </div>
-                            <h3 className="text-lg font-bold mb-3 text-foreground">Smart MCQ Practice</h3>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                            <h3 className="text-lg font-bold mb-3 text-zinc-900 dark:text-white">Smart MCQ Practice</h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
                                 Access thousands of multiple-choice questions tailored to Competitive exam patterns.
                             </p>
                         </motion.div>
@@ -204,20 +204,19 @@ export default function LandingPage() {
                         <motion.div
                             {...fadeInUp}
                             transition={{ delay: 0.3 }}
-                            onClick={() => router.push('/app')}
                             onMouseEnter={() => setHoverFeature(2)}
-                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all duration-300 relative overflow-hidden group cursor-pointer hover:border-[#2E5C55] dark:hover:border-[#4ade80]
-                                ${hoverFeature === 2 ? 'relative z-10 -translate-y-1 shadow-xl' : ''}
+                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 transition-all duration-300 relative overflow-hidden group cursor-not-allowed opacity-75
+                                ${hoverFeature === 2 ? 'relative z-10' : ''}
                                 ${hoverFeature !== null && hoverFeature !== 2 ? 'blur-[2px] opacity-60' : ''}`}
                         >
-                            <div className="absolute top-3 right-3 bg-[#B91C1C] text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
+                            <div className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
                                 Coming Soon
                             </div>
-                            <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <MessageSquare className="w-6 h-6 text-[#2E5C55] dark:text-[#4ade80]" />
+                            <div className="w-12 h-12 bg-red-100 dark:bg-red-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <MessageSquare className="w-6 h-6 text-red-600 dark:text-red-400" />
                             </div>
-                            <h3 className="text-lg font-bold mb-3 text-foreground">AI Chatbot Mentor</h3>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                            <h3 className="text-lg font-bold mb-3 text-zinc-900 dark:text-white">AI Chatbot Mentor</h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
                                 24/7 instant guidance and doubt clearance from our specialized AI mentor trained on exam curriculum.
                             </p>
                         </motion.div>
@@ -227,18 +226,18 @@ export default function LandingPage() {
                             {...fadeInUp}
                             transition={{ delay: 0.4 }}
                             onMouseEnter={() => setHoverFeature(3)}
-                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all duration-300 relative overflow-hidden group
+                            className={`bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 transition-all duration-300 relative overflow-hidden group
                                 ${hoverFeature === 3 ? 'relative z-10 -translate-y-1 shadow-xl' : ''}
                                 ${hoverFeature !== null && hoverFeature !== 3 ? 'blur-[2px] opacity-60' : ''}`}
                         >
-                            <div className="absolute top-3 right-3 bg-[#B91C1C] text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
+                            <div className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
                                 Coming Soon
                             </div>
-                            <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <Users className="w-6 h-6 text-[#2E5C55] dark:text-[#4ade80]" />
+                            <div className="w-12 h-12 bg-red-100 dark:bg-red-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <Users className="w-6 h-6 text-red-600 dark:text-red-400" />
                             </div>
-                            <h3 className="text-lg font-bold mb-3 text-foreground">Expert Mentor Meetings</h3>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                            <h3 className="text-lg font-bold mb-3 text-zinc-900 dark:text-white">Expert Mentor Meetings</h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
                                 Schedule one-on-one sessions with experienced CSS mentors for personalized guidance.
                             </p>
                         </motion.div>
@@ -247,13 +246,13 @@ export default function LandingPage() {
             </section>
 
             {/* Pricing Section */}
-            <section className="py-24 px-6 bg-background" id="pricing">
+            <section className="py-24 px-6 bg-zinc-50 dark:bg-zinc-900/50" id="pricing">
                 <div className="max-w-7xl mx-auto">
                     <motion.div
                         {...fadeInUp}
                         className="text-center mb-16"
                     >
-                        <h2 className="text-3xl md:text-4xl font-bold text-foreground">CHOOSE YOUR PLAN</h2>
+                        <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white">CHOOSE YOUR PLAN</h2>
                     </motion.div>
 
                     <div
@@ -265,14 +264,14 @@ export default function LandingPage() {
                             {...fadeInUp}
                             transition={{ delay: 0.2 }}
                             onMouseEnter={() => setHoverPlan(0)}
-                            className={`border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 flex flex-col bg-card text-card-foreground transition-colors
+                            className={`border border-zinc-200 dark:border-zinc-700 rounded-2xl p-8 flex flex-col bg-white dark:bg-zinc-900 transition-all
                                 ${hoverPlan === 0 ? 'relative z-10 -translate-y-1 shadow-xl' : 'hover:border-zinc-400 dark:hover:border-zinc-600'}
                                 ${hoverPlan !== null && hoverPlan !== 0 ? 'blur-[2px] opacity-60' : ''}`}
                         >
                             <div className="text-center mb-8">
-                                <h3 className="text-2xl font-bold mb-2">Free</h3>
-                                <div className="text-4xl font-bold mb-2">Rs.0</div>
-                                <p className="text-muted-foreground">Perfect for getting started with CSS preparation</p>
+                                <h3 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">Free</h3>
+                                <div className="text-4xl font-bold mb-2 text-zinc-900 dark:text-white">Rs.0</div>
+                                <p className="text-zinc-600 dark:text-zinc-300">Perfect for getting started with CSS preparation</p>
                             </div>
                             <ul className="space-y-4 mb-8 flex-1">
                                 {[
@@ -281,15 +280,15 @@ export default function LandingPage() {
                                     "Basic progress tracking",
                                     "Community forum access"
                                 ].map((feature, i) => (
-                                    <li key={i} className="flex items-start gap-3 text-muted-foreground">
-                                        <Check className="w-5 h-5 text-zinc-400 shrink-0" />
-                                        <span>{feature}</span>
+                                    <li key={i} className="flex items-start gap-3">
+                                        <Check className="w-5 h-5 text-zinc-400 dark:text-zinc-500 shrink-0" />
+                                        <span className="text-zinc-600 dark:text-zinc-300">{feature}</span>
                                     </li>
                                 ))}
                             </ul>
                             <button
-                                onClick={() => !user ? document.querySelector<HTMLElement>('.cl-signInButton')?.click() : router.push('/app')}
-                                className="w-full py-3 rounded-lg border border-zinc-300 dark:border-zinc-700 text-foreground font-bold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                onClick={() => !user && document.querySelector<HTMLElement>('.cl-signInButton')?.click()}
+                                className="w-full py-3 rounded-lg border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white font-bold hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
                             >
                                 Get Started Free
                             </button>
@@ -300,19 +299,19 @@ export default function LandingPage() {
                             {...fadeInUp}
                             transition={{ delay: 0.4 }}
                             onMouseEnter={() => setHoverPlan(1)}
-                            className={`border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 flex flex-col relative bg-card text-card-foreground z-10 transition-colors
+                            className={`border border-zinc-200 dark:border-zinc-700 rounded-2xl p-8 flex flex-col relative bg-white dark:bg-zinc-900 z-10 transition-all
                                 ${hoverPlan === 1 ? 'relative z-20 -translate-y-1 shadow-2xl scale-105' : 'shadow-xl scale-105'}
                                 ${hoverPlan !== null && hoverPlan !== 1 ? 'blur-[2px] opacity-60' : ''}`}
                         >
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#2E5C55] text-white px-4 py-1 rounded-full text-sm font-bold">
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-600 text-white px-4 py-1 rounded-full text-sm font-bold">
                                 MOST POPULAR
                             </div>
                             <div className="text-center mb-8">
-                                <h3 className="text-2xl font-bold mb-2">Pro</h3>
-                                <div className="text-4xl font-bold mb-2">
-                                    Rs.3,999<span className="text-lg text-muted-foreground font-normal">/month</span>
+                                <h3 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">Pro</h3>
+                                <div className="text-4xl font-bold mb-2 text-zinc-900 dark:text-white">
+                                    Rs.3,999<span className="text-lg text-zinc-600 dark:text-zinc-300 font-normal">/month</span>
                                 </div>
-                                <p className="text-muted-foreground">Ultimate preparation package for top performers</p>
+                                <p className="text-zinc-600 dark:text-zinc-300">Ultimate preparation package for top performers</p>
                             </div>
                             <ul className="space-y-4 mb-8 flex-1">
                                 {[
@@ -328,15 +327,15 @@ export default function LandingPage() {
                                     "Exclusive webinars & masterclasses",
                                     "Performance comparison with toppers"
                                 ].map((feature, i) => (
-                                    <li key={i} className="flex items-start gap-3 text-muted-foreground">
-                                        <Check className="w-5 h-5 text-[#2E5C55] dark:text-[#4ade80] shrink-0" />
-                                        <span>{feature}</span>
+                                    <li key={i} className="flex items-start gap-3">
+                                        <Check className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
+                                        <span className="text-zinc-600 dark:text-zinc-300">{feature}</span>
                                     </li>
                                 ))}
                             </ul>
                             <button
                                 onClick={handleStartPro}
-                                className="w-full py-3 rounded-lg bg-[#1F2937] dark:bg-white text-white dark:text-black font-bold hover:bg-black dark:hover:bg-zinc-200 transition-colors"
+                                className="w-full py-3 rounded-lg bg-red-600 dark:bg-red-500 text-white font-bold hover:bg-red-700 dark:hover:bg-red-600 transition-colors shadow-lg shadow-red-900/30"
                             >
                                 Start Pro Plan
                             </button>
@@ -346,7 +345,7 @@ export default function LandingPage() {
             </section>
 
             {/* FAQ Section */}
-            <section className="py-24 px-6 relative z-10">
+            <section className="py-24 px-6 bg-white dark:bg-zinc-950 relative z-10">
                 <div className="max-w-4xl mx-auto">
                     <motion.div
                         className="text-center mb-16"
@@ -354,10 +353,10 @@ export default function LandingPage() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                     >
-                        <h2 className="text-3xl md:text-5xl font-black text-foreground mb-6 uppercase tracking-tight">
+                        <h2 className="text-3xl md:text-5xl font-black text-zinc-900 dark:text-white mb-6 uppercase tracking-tight">
                             Frequently Asked Questions
                         </h2>
-                        <p className="text-xl text-zinc-600 dark:text-zinc-400">
+                        <p className="text-xl text-zinc-600 dark:text-zinc-300">
                             Everything you need to know about InsightLLM
                         </p>
                     </motion.div>
@@ -403,10 +402,10 @@ export default function LandingPage() {
                                         className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
                                         aria-expanded={openFaqIndex === i}
                                     >
-                                        <h3 className="text-lg font-bold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                        <h3 className="text-lg font-bold text-zinc-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
                                             {faq.q}
                                         </h3>
-                                        <ChevronDown className={`w-5 h-5 text-zinc-500 transition-transform ${openFaqIndex === i ? 'rotate-180 text-blue-600 dark:text-blue-400' : ''}`} />
+                                        <ChevronDown className={`w-5 h-5 text-zinc-500 dark:text-zinc-400 transition-transform ${openFaqIndex === i ? 'rotate-180 text-red-600 dark:text-red-400' : ''}`} />
                                     </button>
                                     {openFaqIndex === i && (
                                         <motion.div
@@ -415,7 +414,7 @@ export default function LandingPage() {
                                             transition={{ duration: 0.25 }}
                                             className="px-6 pb-6 -mt-2"
                                         >
-                                            <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                                            <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
                                                 {faq.a}
                                             </p>
                                         </motion.div>
@@ -436,10 +435,10 @@ export default function LandingPage() {
                         viewport={{ once: true }}
                         className="space-y-4"
                     >
-                        <h3 className="text-2xl font-bold text-foreground">Still have questions?</h3>
+                        <h3 className="text-2xl font-bold text-zinc-900 dark:text-white">Still have questions?</h3>
                         <button
                             onClick={() => setShowContactModal(true)}
-                            className="text-[#2E5C55] dark:text-[#4ade80] underline underline-offset-4 text-lg font-semibold hover:text-[#1F3A34] dark:hover:text-[#22c55e] transition-colors"
+                            className="text-red-600 dark:text-red-400 underline underline-offset-4 text-lg font-semibold hover:text-red-700 dark:hover:text-red-300 transition-colors"
                         >
                             Contact our support team
                         </button>
@@ -469,8 +468,8 @@ export default function LandingPage() {
                         <div className="p-8">
                             <div className="flex items-start justify-between mb-6">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-foreground mb-2">Contact Support Team</h2>
-                                    <p className="text-zinc-600 dark:text-zinc-400">Get in touch with our support team. We're here to help!</p>
+                                    <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Contact Support Team</h2>
+                                    <p className="text-zinc-600 dark:text-zinc-300">Get in touch with our support team. We're here to help!</p>
                                 </div>
                                 <button
                                     onClick={() => setShowContactModal(false)}
@@ -485,13 +484,13 @@ export default function LandingPage() {
                                 <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-white dark:bg-zinc-700 rounded-lg flex items-center justify-center shrink-0">
-                                            <Mail className="w-6 h-6 text-[#2E5C55] dark:text-[#4ade80]" />
+                                            <Mail className="w-6 h-6 text-red-600 dark:text-red-400" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-foreground mb-1">Email</h3>
+                                            <h3 className="font-semibold text-zinc-900 dark:text-white mb-1">Email</h3>
                                             <a
                                                 href="mailto:support@rubrik.com"
-                                                className="text-[#2E5C55] dark:text-[#4ade80] hover:underline"
+                                                className="text-red-600 dark:text-red-400 hover:underline"
                                             >
                                                 support@rubrik.com
                                             </a>
@@ -503,13 +502,13 @@ export default function LandingPage() {
                                 <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-white dark:bg-zinc-700 rounded-lg flex items-center justify-center shrink-0">
-                                            <Phone className="w-6 h-6 text-[#2E5C55] dark:text-[#4ade80]" />
+                                            <Phone className="w-6 h-6 text-red-600 dark:text-red-400" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-foreground mb-1">Phone</h3>
+                                            <h3 className="font-semibold text-zinc-900 dark:text-white mb-1">Phone</h3>
                                             <a
                                                 href="tel:+923001234567"
-                                                className="text-[#2E5C55] dark:text-[#4ade80] hover:underline"
+                                                className="text-red-600 dark:text-red-400 hover:underline"
                                             >
                                                 +92 300 1234567
                                             </a>
@@ -518,7 +517,7 @@ export default function LandingPage() {
                                 </div>
                             </div>
 
-                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-6 text-center">
+                            <p className="text-sm text-zinc-500 dark:text-zinc-300 mt-6 text-center">
                                 Available Monday - Friday, 9:00 AM - 6:00 PM (PST)
                             </p>
                         </div>

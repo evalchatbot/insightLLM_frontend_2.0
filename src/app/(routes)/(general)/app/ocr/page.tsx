@@ -152,7 +152,7 @@ export default function OCRPage() {
         <section className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 dark:bg-gradient-to-br dark:from-red-950/40 dark:via-black dark:to-red-900/30 py-12 px-6 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-10 dark:opacity-30">
             <div className="absolute top-10 left-10 w-64 h-64 bg-red-400 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute bottom-10 right-10 w-80 h-80 bg-red-300 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}} />
+            <div className="absolute bottom-10 right-10 w-80 h-80 bg-red-300 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/20 rounded-full blur-3xl" />
           </div>
 
@@ -189,11 +189,7 @@ export default function OCRPage() {
           </div>
 
           {/* Links - Centered */}
-          <div className="flex items-center justify-center gap-6 text-sm font-medium">
-            <a href="#" className="text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">Privacy</a>
-            <a href="#" className="text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">Terms</a>
-            <a href="#" className="text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">Contact</a>
-          </div>
+          {/* Links - Centered - Removed */}
 
           {/* Copyright */}
           <p className="text-sm text-zinc-600 dark:text-zinc-400">© 2025 RUBRIK. All rights reserved.</p>

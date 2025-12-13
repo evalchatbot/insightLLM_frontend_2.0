@@ -371,104 +371,104 @@ export default function QuizPage() {
                 animation-delay: 4s;
               }
             `}</style>
-            </div>
+          </div>
 
-            {/* CTA Section - Full Width */}
-            <motion.section
-              initial={{ opacity: 0, x: -100 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="mb-20 w-full"
+          {/* CTA Section - Full Width */}
+          <motion.section
+            initial={{ opacity: 0, x: -100 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="mb-20 w-full"
+          >
+            <div className="relative bg-gradient-to-br from-red-600 via-red-700 to-red-800 dark:from-red-700 dark:via-red-800 dark:to-zinc-900 p-12 md:p-14 overflow-hidden"
             >
-              <div className="relative bg-gradient-to-br from-red-600 via-red-700 to-red-800 dark:from-red-700 dark:via-red-800 dark:to-zinc-900 p-12 md:p-14 overflow-hidden"
-              >
-                {/* Animated stars background */}
-                <div className="absolute inset-0 overflow-hidden">
-                  {[...Array(30)].map((_, i) => (
-                    <div
-                      key={`star-${i}`}
-                      className="absolute w-1 h-1 bg-white/40 rounded-full"
-                      style={{
-                        left: `${Math.random() * 100}%`,
-                        top: `${Math.random() * 100}%`,
-                        animation: `twinkle ${Math.random() * 3 + 2}s ease-in-out infinite ${Math.random() * 2}s`
-                      }}
-                    />
-                  ))}
-                </div>
-
-                <div className="relative z-10 text-center">
-                  <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                    READY TO START PRACTICING?
-                  </h2>
-                  <p className="text-red-100 dark:text-red-100 text-base md:text-lg mb-8 max-w-2xl mx-auto">
-                    Click below to configure your practice session and begin mastering competitive exam MCQs
-                  </p>
-                  <motion.button
-                    onClick={() => setViewMode('config')}
-                    className="inline-flex items-center gap-3 bg-white hover:bg-red-50 text-red-900 font-bold px-8 py-3.5 rounded-xl transition-all duration-300 shadow-2xl hover:scale-105"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <FiStar className="text-lg" />
-                    <span className="text-base">Start Practice Session</span>
-                  </motion.button>
-                </div>
+              {/* Animated stars background */}
+              <div className="absolute inset-0 overflow-hidden">
+                {[...Array(30)].map((_, i) => (
+                  <div
+                    key={`star-${i}`}
+                    className="absolute w-1 h-1 bg-white/40 rounded-full"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `${Math.random() * 100}%`,
+                      animation: `twinkle ${Math.random() * 3 + 2}s ease-in-out infinite ${Math.random() * 2}s`
+                    }}
+                  />
+                ))}
               </div>
-            </motion.section>
 
-            {/* Features Section */}
-            <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">
-              <section className="mb-20">
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6 }}
-                  className="text-center mb-12"
+              <div className="relative z-10 text-center">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                  READY TO START PRACTICING?
+                </h2>
+                <p className="text-red-100 dark:text-red-100 text-base md:text-lg mb-8 max-w-2xl mx-auto">
+                  Click below to configure your practice session and begin mastering competitive exam MCQs
+                </p>
+                <motion.button
+                  onClick={() => setViewMode('config')}
+                  className="inline-flex items-center gap-3 bg-white hover:bg-red-50 text-red-900 font-bold px-8 py-3.5 rounded-xl transition-all duration-300 shadow-2xl hover:scale-105"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <h2 className="text-3xl md:text-4xl font-bold text-red-700 dark:text-red-400 mb-3">
-                    COMPREHENSIVE PRACTICE FEATURES
-                  </h2>
-                  <p className="text-zinc-600 dark:text-zinc-400 text-base md:text-lg">
-                    Everything you need to excel in competitive exams
-                  </p>
-                </motion.div>
+                  <FiStar className="text-lg" />
+                  <span className="text-base">Start Practice Session</span>
+                </motion.button>
+              </div>
+            </div>
+          </motion.section>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 max-w-4xl mx-auto">
-                  {[
-                    { icon: FiBook, title: "20000+ curated MCQs across all subjects of Competitive Exams" },
-                    { icon: FiCheckCircle, title: "Detailed explanations for every answer" },
-                    { icon: FiTarget, title: "Subject-wise and topic-wise categorization" },
-                    { icon: FiClock, title: "Timed and untimed practice modes" },
-                    { icon: FiTrendingUp, title: "Performance tracking and analytics" },
-                    { icon: FiAward, title: "Difficulty level progression" },
-                    { icon: FiBookmark, title: "Bookmark questions for revision" },
-                    { icon: FiTarget, title: "Mock test simulations" }
-                  ].map((feature, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, x: -50 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.5, delay: idx * 0.1 }}
-                      className="flex items-start gap-3 md:gap-4 bg-white dark:bg-zinc-900 p-4 md:p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-red-500/50 dark:hover:border-red-500/50 transition-all hover:shadow-lg"
-                    >
-                      <div className="flex-shrink-0 w-10 h-10 md:w-11 md:h-11 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-                        <feature.icon className="w-5 h-5 md:w-6 md:h-6 text-red-600 dark:text-red-400" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm md:text-base text-zinc-900 dark:text-zinc-100 font-medium">
-                          {feature.title}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
+          {/* Features Section */}
+          <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">
+            <section className="mb-20">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="text-center mb-12"
+              >
+                <h2 className="text-3xl md:text-4xl font-bold text-red-700 dark:text-red-400 mb-3">
+                  COMPREHENSIVE PRACTICE FEATURES
+                </h2>
+                <p className="text-zinc-600 dark:text-zinc-400 text-base md:text-lg">
+                  Everything you need to excel in competitive exams
+                </p>
+              </motion.div>
 
-              <style jsx>{`
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 max-w-4xl mx-auto">
+                {[
+                  { icon: FiBook, title: "20000+ curated MCQs across all subjects of Competitive Exams" },
+                  { icon: FiCheckCircle, title: "Detailed explanations for every answer" },
+                  { icon: FiTarget, title: "Subject-wise and topic-wise categorization" },
+                  { icon: FiClock, title: "Timed and untimed practice modes" },
+                  { icon: FiTrendingUp, title: "Performance tracking and analytics" },
+                  { icon: FiAward, title: "Difficulty level progression" },
+                  { icon: FiBookmark, title: "Bookmark questions for revision" },
+                  { icon: FiTarget, title: "Mock test simulations" }
+                ].map((feature, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -50 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: idx * 0.1 }}
+                    className="flex items-start gap-3 md:gap-4 bg-white dark:bg-zinc-900 p-4 md:p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-red-500/50 dark:hover:border-red-500/50 transition-all hover:shadow-lg"
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 md:w-11 md:h-11 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                      <feature.icon className="w-5 h-5 md:w-6 md:h-6 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm md:text-base text-zinc-900 dark:text-zinc-100 font-medium">
+                        {feature.title}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </section>
+
+            <style jsx>{`
                 @keyframes twinkle {
                   0%, 100% {
                     opacity: 0;
@@ -480,7 +480,7 @@ export default function QuizPage() {
                   }
                 }
               `}</style>
-            </div>
+          </div>
         </main>
 
         <footer className="py-6 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
@@ -494,17 +494,7 @@ export default function QuizPage() {
             </div>
 
             {/* Links - Centered */}
-            <div className="flex items-center justify-center gap-6 text-sm font-medium">
-              <a href="#" className="text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                Privacy
-              </a>
-              <a href="#" className="text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                Terms
-              </a>
-              <a href="#" className="text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                Contact
-              </a>
-            </div>
+            {/* Links - Centered - Removed */}
 
             {/* Copyright */}
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -990,7 +980,7 @@ export default function QuizPage() {
                     const isAnswered = answers[mcq.id];
                     const isCurrent = idx === currentQuestionIndex;
                     const isBookmarked = bookmarkedQuestions.has(mcq.id);
-                    
+
                     return (
                       <motion.button
                         key={mcq.id}
@@ -998,13 +988,12 @@ export default function QuizPage() {
                           setCurrentQuestionIndex(idx);
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className={`relative w-8 h-8 rounded-md font-semibold text-xs transition-all flex-shrink-0 ${
-                          isCurrent
+                        className={`relative w-8 h-8 rounded-md font-semibold text-xs transition-all flex-shrink-0 ${isCurrent
                             ? 'bg-red-600 text-white ring-2 ring-red-400'
                             : isAnswered
-                            ? 'bg-green-500 text-white hover:bg-green-600'
-                            : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
-                        }`}
+                              ? 'bg-green-500 text-white hover:bg-green-600'
+                              : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
+                          }`}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                       >
@@ -1124,25 +1113,23 @@ export default function QuizPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.03 }}
-                      className={`p-4 rounded-xl border ${
-                        isCorrectAns
+                      className={`p-4 rounded-xl border ${isCorrectAns
                           ? 'bg-green-50 dark:bg-green-950/20 border-green-500/40'
                           : isWrongAns
-                          ? 'bg-red-50 dark:bg-red-950/20 border-red-500/40'
-                          : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-300 dark:border-zinc-700'
-                      }`}
+                            ? 'bg-red-50 dark:bg-red-950/20 border-red-500/40'
+                            : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-300 dark:border-zinc-700'
+                        }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm text-white ${
-                          isCorrectAns
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm text-white ${isCorrectAns
                             ? 'bg-green-600'
                             : isWrongAns
-                            ? 'bg-red-600'
-                            : 'bg-zinc-500'
-                        }`}>
+                              ? 'bg-red-600'
+                              : 'bg-zinc-500'
+                          }`}>
                           {idx + 1}
                         </div>
-                        
+
                         <div className="flex-1">
                           <h4 className="text-base font-semibold text-zinc-900 dark:text-white mb-3 leading-relaxed">
                             {mcq.question}

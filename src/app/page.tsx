@@ -22,6 +22,33 @@ export default function LandingPage() {
     const [hoverPlan, setHoverPlan] = useState<number | null>(null);
     const [mounted, setMounted] = useState(false);
     const [showAuthNotice, setShowAuthNotice] = useState(false);
+    const [isPro, setIsPro] = useState(false);
+
+    useEffect(() => {
+        const checkProStatus = async () => {
+            if (!user) return;
+            try {
+                const res = await fetch('/api/pro/status', { method: 'GET', cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.isPro) {
+                        setIsPro(true);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to check pro status", error);
+            }
+        };
+
+        if (user) {
+            checkProStatus();
+        }
+
+        // Listen for pro status updates
+        const handleRefresh = () => checkProStatus();
+        window.addEventListener('refreshProStatus', handleRefresh);
+        return () => window.removeEventListener('refreshProStatus', handleRefresh);
+    }, [user]);
 
     useEffect(() => {
         setMounted(true);
@@ -334,10 +361,28 @@ export default function LandingPage() {
                                 ))}
                             </ul>
                             <button
-                                onClick={handleStartPro}
-                                className="w-full py-3 rounded-lg bg-red-600 dark:bg-red-500 text-white font-bold hover:bg-red-700 dark:hover:bg-red-600 transition-colors shadow-lg shadow-red-900/30"
+                                onClick={isPro ? undefined : handleStartPro}
+                                disabled={isPro}
+                                className={`w-full py-3 rounded-xl font-bold transition-all shadow-lg relative overflow-hidden group ${isPro
+                                    ? "bg-gradient-to-r from-[#7f1d1d] via-[#dc2626] to-[#7f1d1d] text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] cursor-default border border-red-500/50"
+                                    : "bg-red-600 dark:bg-red-500 text-white hover:bg-red-700 dark:hover:bg-red-600 shadow-red-900/30"
+                                    }`}
+                                style={isPro ? { backgroundSize: "200% auto", animation: "shine 3s linear infinite" } : {}}
                             >
-                                Start Pro Plan
+                                {isPro ? (
+                                    <span className="flex items-center justify-center gap-2 relative z-10 text-white drop-shadow-md">
+                                        <Zap className="w-5 h-5 fill-current animate-pulse text-white" />
+                                        <span className="tracking-widest font-black text-sm uppercase">Rubrik Pro Active</span>
+                                    </span>
+                                ) : "Start Pro Plan"}
+
+                                <style jsx>{`
+                                    @keyframes shine {
+                                        to {
+                                            background-position: 200% center;
+                                        }
+                                    }
+                                `}</style>
                             </button>
                         </motion.div>
                     </div>
@@ -363,29 +408,29 @@ export default function LandingPage() {
 
                     <div className="space-y-4">
                         {[
-                            { 
-                                q: "How quickly can I get feedback on my papers?", 
-                                a: "Our AI evaluation system provides instant feedback within seconds of submission. Once you upload your answer script, the system analyzes it against our comprehensive rubrics and generates detailed feedback including scores, strengths, weaknesses, and specific improvement suggestions. No waiting period required - you can evaluate multiple papers back-to-back and track your progress in real-time." 
+                            {
+                                q: "How quickly can I get feedback on my papers?",
+                                a: "Our AI evaluation system provides instant feedback within seconds of submission. Once you upload your answer script, the system analyzes it against our comprehensive rubrics and generates detailed feedback including scores, strengths, weaknesses, and specific improvement suggestions. No waiting period required - you can evaluate multiple papers back-to-back and track your progress in real-time."
                             },
-                            { 
-                                q: "How accurate is the AI scoring system?", 
-                                a: "Our AI has been trained on thousands of CSS/PMS papers evaluated by experienced examiners and achieves over 95% accuracy compared to human grading. The system uses advanced natural language processing and is continuously refined based on official rubrics and examiner feedback. It evaluates content quality, structure, relevance, critical analysis, and presentation - ensuring comprehensive and fair assessment that mirrors actual exam standards." 
+                            {
+                                q: "How accurate is the AI scoring system?",
+                                a: "Our AI has been trained on thousands of CSS/PMS papers evaluated by experienced examiners and achieves over 95% accuracy compared to human grading. The system uses advanced natural language processing and is continuously refined based on official rubrics and examiner feedback. It evaluates content quality, structure, relevance, critical analysis, and presentation - ensuring comprehensive and fair assessment that mirrors actual exam standards."
                             },
-                            { 
-                                q: "Can I track my progress over time?", 
-                                a: "Yes! Our platform provides comprehensive analytics and progress tracking features. You can view your performance trends across different subjects, track improvement in specific areas, compare scores over time, and identify your strengths and weaknesses. The dashboard displays visual graphs, subject-wise breakdowns, and personalized insights to help you understand your learning journey and focus on areas that need improvement." 
+                            {
+                                q: "Can I track my progress over time?",
+                                a: "Yes! Our platform provides comprehensive analytics and progress tracking features. You can view your performance trends across different subjects, track improvement in specific areas, compare scores over time, and identify your strengths and weaknesses. The dashboard displays visual graphs, subject-wise breakdowns, and personalized insights to help you understand your learning journey and focus on areas that need improvement."
                             },
-                            { 
-                                q: "What kind of suggestions will I receive?", 
-                                a: "You'll receive detailed, actionable feedback covering multiple dimensions of your answer. This includes content accuracy, argument structure, use of relevant examples, writing style, grammar and presentation, time management tips, and subject-specific improvements. Each suggestion is tailored to your specific answer and includes practical examples of how to enhance your response. The feedback is designed to help you understand not just what to improve, but exactly how to improve it." 
+                            {
+                                q: "What kind of suggestions will I receive?",
+                                a: "You'll receive detailed, actionable feedback covering multiple dimensions of your answer. This includes content accuracy, argument structure, use of relevant examples, writing style, grammar and presentation, time management tips, and subject-specific improvements. Each suggestion is tailored to your specific answer and includes practical examples of how to enhance your response. The feedback is designed to help you understand not just what to improve, but exactly how to improve it."
                             },
-                            { 
-                                q: "When can I use the evaluation service?", 
-                                a: "Our platform is available 24/7, allowing you to practice and get evaluated at your convenience. Whether you prefer studying early morning or late night, you can submit your answers anytime and receive instant feedback. There's no scheduling required for AI evaluations - simply upload your paper whenever you're ready. This flexibility ensures you can maintain your study routine without any constraints." 
+                            {
+                                q: "When can I use the evaluation service?",
+                                a: "Our platform is available 24/7, allowing you to practice and get evaluated at your convenience. Whether you prefer studying early morning or late night, you can submit your answers anytime and receive instant feedback. There's no scheduling required for AI evaluations - simply upload your paper whenever you're ready. This flexibility ensures you can maintain your study routine without any constraints."
                             },
-                            { 
-                                q: "Is this aligned with actual CSS exam requirements?", 
-                                a: "Absolutely! Our evaluation system is built specifically for CSS/PMS exams and follows the official syllabus, marking schemes, and examiner guidelines. The rubrics are developed in consultation with CSS experts and successful candidates. We regularly update our assessment criteria to reflect any changes in exam patterns or requirements, ensuring you're practicing exactly what will be expected in the actual examination." 
+                            {
+                                q: "Is this aligned with actual CSS exam requirements?",
+                                a: "Absolutely! Our evaluation system is built specifically for CSS/PMS exams and follows the official syllabus, marking schemes, and examiner guidelines. The rubrics are developed in consultation with CSS experts and successful candidates. We regularly update our assessment criteria to reflect any changes in exam patterns or requirements, ensuring you're practicing exactly what will be expected in the actual examination."
                             }
                         ].map((faq, i) => (
                             <motion.div
@@ -489,10 +534,10 @@ export default function LandingPage() {
                                         <div>
                                             <h3 className="font-semibold text-zinc-900 dark:text-white mb-1">Email</h3>
                                             <a
-                                                href="mailto:support@rubrik.com"
+                                                href="mailto:contact.rubrik@gmail.com"
                                                 className="text-red-600 dark:text-red-400 hover:underline"
                                             >
-                                                support@rubrik.com
+                                                contact.rubrik@gmail.com
                                             </a>
                                         </div>
                                     </div>
@@ -507,10 +552,10 @@ export default function LandingPage() {
                                         <div>
                                             <h3 className="font-semibold text-zinc-900 dark:text-white mb-1">Phone</h3>
                                             <a
-                                                href="tel:+923001234567"
+                                                href="tel:+923332296022"
                                                 className="text-red-600 dark:text-red-400 hover:underline"
                                             >
-                                                +92 300 1234567
+                                                +92 333 2296022
                                             </a>
                                         </div>
                                     </div>

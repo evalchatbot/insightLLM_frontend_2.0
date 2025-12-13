@@ -28,18 +28,6 @@ const Footer = () => {
                     </span>
                 </div>
 
-                {/* Links - Centered */}
-                <div className="flex items-center justify-center gap-6 text-sm font-medium md:absolute md:left-1/2 md:-translate-x-1/2">
-                    <Link href="#" className="text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                        Privacy
-                    </Link>
-                    <Link href="#" className="text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                        Terms
-                    </Link>
-                    <Link href="#" className="text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                        Contact
-                    </Link>
-                </div>
 
                 {/* Copyright */}
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">

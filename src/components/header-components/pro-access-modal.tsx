@@ -31,15 +31,15 @@ const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
 
   const handleVerifyKey = async () => {
     if (!key.trim()) return;
-    
+
     setLoading(true);
     setErrorMessage("");
     setSuccessMessage("");
-    
+
     try {
       const response = await fetch("/api/pro/verify-key", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ key })
@@ -49,7 +49,7 @@ const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
       if (response.status === 503) {
         const data = await response.json();
         // For transient errors, show a message that suggests retrying
-        const message = data?.retry 
+        const message = data?.retry
           ? "Temporary authentication issue. Please try again in a moment."
           : data.message || "Service temporarily unavailable. Please try again.";
         setErrorMessage(message);
@@ -58,13 +58,13 @@ const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         const message = "🎉 Pro access activated successfully!";
         setSuccessMessage(message);
         setShowConfetti(true);
         setToast(message);
-        
+
         // Wait for confetti animation before closing
         setTimeout(() => {
           setShowConfetti(false);
@@ -107,18 +107,19 @@ const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
-      
+
       <h3 className="text-xl font-semibold mb-4">Get Pro Access</h3>
-      
+
       <div className="space-y-4 text-sm text-muted-foreground">
         <p className="font-medium text-foreground">Payment Instructions:</p>
-        
+
         <div className="bg-muted/30 p-4 rounded-lg space-y-2">
           <p>Please send payment to:</p>
           <div className="space-y-1">
             <p><span className="font-medium">Bank:</span> Alfalah Bank</p>
-            <p><span className="font-medium">Account:</span> 50200012345678</p>
-            <p><span className="font-medium">Title:</span> Rubrik Education Pvt Ltd</p>
+            <p><span className="font-medium">Account:</span> 83581009212063</p>
+            <p><span className="font-medium">IBAN:</span> PK83ALFH8358001009812063</p>
+            <p><span className="font-medium">Title:</span> Hamza Tahir Ghaury</p>
           </div>
         </div>
 
@@ -148,7 +149,7 @@ const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
             {loading ? 'Activating...' : 'Activate'}
           </DevButton>
         </div>
-        
+
         {/* Success Message */}
         {successMessage && (
           <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
@@ -160,7 +161,7 @@ const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
             </p>
           </div>
         )}
-        
+
         {/* Error Message */}
         {errorMessage && (
           <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -170,7 +171,7 @@ const ProAccessModal = ({ onClose, onSuccess }: ProAccessModalProps) => {
           </div>
         )}
       </div>
-      
+
       {/* Celebration confetti */}
       {showConfetti && (
         <Confetti

@@ -37,6 +37,89 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   const [results, setResults] = useState<OCRResult | null>(null)
   const [annotatedPdfBlob, setAnnotatedPdfBlob] = useState<Blob | null>(null)
 
+  // Document Guidelines Modal State
+  const [showGuidelines, setShowGuidelines] = useState(false)
+
+  // Subject Mapping & Grouping Logic
+  const getDisplayName = (originalName: string) => {
+    const mapping: Record<string, string> = {
+      "CLAW": "Constitutional Law",
+      "European": "European History",
+      "I Law": "International Law",
+      "IR": "International Relations",
+      "Mass Comm": "Mass Communication",
+      "Pak Affairs": "Pakistan Affairs",
+      "Political Science Rubric": "Political Science",
+      "Islamic studies": "Islamic Studies"
+    }
+    return mapping[originalName] || originalName
+  }
+
+  const renderSubjectOptions = () => {
+    if (loadingSubjects) return null
+    if (subjects.length === 0) return null
+
+    // Transform subjects with new names
+    const transformedSubjects = subjects.map(s => ({
+      ...s,
+      display_name: getDisplayName(s.display_name)
+    }))
+
+    if (exam === "PMS") {
+      const compulsoryNames = ["Pakistan Affairs", "Islamic Studies"]
+      const compulsory = transformedSubjects.filter(s => compulsoryNames.includes(s.display_name))
+
+      const optionalNames = [
+        "Business Administration",
+        "Public Administration",
+        "Political Science",
+        "Mass Communication",
+        "Sociology",
+        "Psychology",
+        "Philosophy"
+      ]
+
+      const optional = transformedSubjects.filter(s => optionalNames.includes(s.display_name))
+
+      return (
+        <>
+          <option value="">Select a subject</option>
+          <optgroup label="COMPULSORY SUBJECTS">
+            {compulsory.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
+          </optgroup>
+          <optgroup label="OPTIONAL SUBJECTS">
+            {optional.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
+          </optgroup>
+        </>
+      )
+    } else if (exam === "CSS") {
+      const compulsoryNames = ["Current Affairs", "Pakistan Affairs", "Islamic Studies"]
+      const compulsory = transformedSubjects.filter(s => compulsoryNames.includes(s.display_name))
+      const optional = transformedSubjects.filter(s => !compulsoryNames.includes(s.display_name))
+
+      return (
+        <>
+          <option value="">Select a subject</option>
+          <optgroup label="COMPULSORY SUBJECTS">
+            {compulsory.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
+          </optgroup>
+          <optgroup label="OPTIONAL SUBJECTS">
+            {optional.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
+          </optgroup>
+        </>
+      )
+    }
+
+    return (
+      <>
+        <option value="">Select a subject</option>
+        {transformedSubjects.map(s => (
+          <option key={s.id} value={s.id}>{s.display_name}</option>
+        ))}
+      </>
+    )
+  }
+
   // Fetch available subjects on component mount
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -98,7 +181,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     try {
       // Real backend pipeline progress stages (11 steps total)
       // Each step matches actual backend processing in grade_pdf_answer.py
-      
+
       // Step 1: Upload & Convert (0-8%)
       setProgress(3)
       setTimeout(() => {
@@ -255,149 +338,226 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     }
   }
 
+
+
+
+
+
   return (
-    <Card className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden">
-      <CardContent className="p-8 space-y-6">
-        {!user && (
-          <Alert variant="default" className="border-border bg-secondary/50">
-            <AlertTitle className="font-medium text-foreground">Sign in required</AlertTitle>
-            <AlertDescription className="text-muted-foreground">
-              Please sign in to use the OCR analysis feature.
-            </AlertDescription>
-          </Alert>
-        )}
+    <>
+      <Card className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden">
+        <CardContent className="p-8 space-y-6">
+          {!user && (
+            <Alert variant="default" className="border-border bg-secondary/50">
+              <AlertTitle className="font-medium text-foreground">Sign in required</AlertTitle>
+              <AlertDescription className="text-muted-foreground">
+                Please sign in to use the OCR analysis feature.
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {/* Exam Selection */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Select Exam</label>
-            <span className="text-xs text-red-500 font-medium cursor-pointer hover:underline">Document Guidelines</span>
+          {/* Exam Selection */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Select Exam</label>
+              <button
+                onClick={() => setShowGuidelines(true)}
+                className="text-xs text-red-600 font-medium cursor-pointer hover:underline"
+              >
+                Document Guidelines
+              </button>
+            </div>
+            <select
+              value={exam}
+              onChange={(e) => setExam(e.target.value)}
+              className="w-full p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#2E5C55]/20 dark:focus:ring-[#4ade80]/20 transition-all"
+            >
+              <option value="">Choose your exam</option>
+              <option value="CSS">CSS (Central Superior Services)</option>
+              <option value="PMS">PMS (Provincial Management Service)</option>
+            </select>
           </div>
-          <select
-            value={exam}
-            onChange={(e) => setExam(e.target.value)}
-            className="w-full p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#2E5C55]/20 dark:focus:ring-[#4ade80]/20 transition-all"
-          >
-            <option value="">Choose your exam</option>
-            <option value="CSS">CSS (Central Superior Services)</option>
-            <option value="PMS">PMS (Provincial Management Service)</option>
-          </select>
-        </div>
 
-        {/* Subject Selection */}
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Select Subject</label>
-          <select
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            disabled={loadingSubjects || !exam}
-            className="w-full p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#2E5C55]/20 dark:focus:ring-[#4ade80]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <option value="">{exam ? "Select a subject" : "Select an exam first"}</option>
-            {!loadingSubjects && subjects.length > 0 && subjects.map((subj) => (
-              <option key={subj.id} value={subj.id}>
-                {subj.display_name}
-              </option>
-            ))}
-          </select>
-        </div>
+          {/* Subject Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Select Subject</label>
+            <select
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              disabled={loadingSubjects || !exam}
+              className="w-full p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#2E5C55]/20 dark:focus:ring-[#4ade80]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exam ? renderSubjectOptions() : <option value="">Select an exam first</option>}
+            </select>
+          </div>
 
-        {/* File Upload */}
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Upload Your Answer (PDF)</label>
-          <div className="relative">
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={handleFileChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-              disabled={loading}
-            />
-            <div className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-all duration-200 ${file
+          {/* File Upload */}
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Upload Your Answer (PDF)</label>
+            <div className="relative">
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handleFileChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                disabled={loading}
+              />
+              <div className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-all duration-200 ${file
                 ? "border-red-600 bg-red-50 dark:border-red-500 dark:bg-red-950/20"
                 : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-              }`}>
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${file ? "bg-red-600 text-white dark:bg-red-500 dark:text-white" : "bg-red-600/10 text-red-600 dark:bg-red-500/10 dark:text-red-400"
                 }`}>
-                <Upload className="w-6 h-6" />
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${file ? "bg-red-600 text-white dark:bg-red-500 dark:text-white" : "bg-red-600/10 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                  }`}>
+                  <Upload className="w-6 h-6" />
+                </div>
+
+                {file ? (
+                  <div className="text-center">
+                    <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">{file.name}</p>
+                    <p className="text-xs text-zinc-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">Drag and drop</p>
+                    <p className="text-xs text-zinc-500 mb-4">or click to browse (Max 10MB)</p>
+                    <span className="inline-block px-4 py-2 border border-red-600 text-red-600 dark:border-red-500 dark:text-red-400 rounded-lg text-sm font-medium">
+                      Choose File
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <Button
+            onClick={handleEvaluate}
+            disabled={!file || !user || !subject || !exam || loading}
+            className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? "Evaluating..." : "Analyze"}
+          </Button>
+
+          {/* Progress Indicator */}
+          {loading && (
+            <div className="space-y-3 rounded-2xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-zinc-900 dark:text-white">{loadingStage}</span>
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">{progress}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
+                <div
+                  className="h-full bg-red-600 dark:bg-red-500 transition-all duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 text-center">
+                <span className="font-medium">Processing your document...</span><br />
+                Depending on document size and complexity, this may take <span className="font-semibold text-red-600 dark:text-red-400">3-4 minutes</span>.
+              </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <Alert variant="destructive" className="border-destructive/40">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Report Ready */}
+          {annotatedPdfBlob && (
+            <Alert className="border-2 border-red-500/30 bg-red-50 dark:border-red-500/30 dark:bg-red-950/20 rounded-2xl">
+              <AlertTitle className="text-red-700 dark:text-red-400 font-bold">Evaluation Report Ready</AlertTitle>
+              <AlertDescription className="flex flex-col gap-3">
+                <span className="text-zinc-700 dark:text-zinc-300">Your detailed evaluation report is ready for download.</span>
+                <div className="flex flex-col gap-2 md:flex-row">
+                  <Button onClick={downloadAnnotatedPDF} className="w-full md:w-auto bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white">
+                    Download Report
+                  </Button>
+                  <button
+                    onClick={resetEvaluation}
+                    className="w-full md:w-auto inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors h-9 px-4 py-2 border-2 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    Evaluate Another Question
+                  </button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Document Guidelines Modal */}
+      {showGuidelines && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pt-36 pb-10 bg-black/60 backdrop-blur-sm">
+          <div className="relative max-w-lg w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col shadow-black/20 max-h-full">
+            <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center sticky top-0 bg-white dark:bg-zinc-900 z-10 shrink-0">
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Document Guidelines</h3>
+              <button
+                onClick={() => setShowGuidelines(false)}
+                className="p-2 text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white rounded-full transition-colors"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+              </button>
+            </div>
+
+            <div className="p-8 space-y-8 overflow-y-auto">
+              <p className="text-zinc-600 dark:text-zinc-400">
+                Follow these guidelines to ensure optimal scanning quality and accurate evaluation results.
+              </p>
+
+              <div>
+                <h4 className="text-lg font-bold mb-3 flex items-center gap-2 text-zinc-900 dark:text-red-400">
+                  <span className="w-1 h-6 bg-red-600 rounded-full"></span>
+                  Document Structure
+                </h4>
+                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-300 pl-4 list-disc marker:text-red-500">
+                  <li>Begin your response by writing the question statement at the top</li>
+                  <li>Start the response with the Introduction heading</li>
+                  <li>Number every heading and subheading</li>
+                  <li>Leave proper margins on all sides</li>
+                  <li>Do not upload checked, marked, or annotated papers</li>
+                </ul>
               </div>
 
-              {file ? (
-                <div className="text-center">
-                  <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">{file.name}</p>
-                  <p className="text-xs text-zinc-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">Drag and drop</p>
-                  <p className="text-xs text-zinc-500 mb-4">or click to browse (Max 10MB)</p>
-                  <span className="inline-block px-4 py-2 border border-red-600 text-red-600 dark:border-red-500 dark:text-red-400 rounded-lg text-sm font-medium">
-                    Choose File
-                  </span>
-                </div>
-              )}
+              <div>
+                <h4 className="text-lg font-bold mb-3 flex items-center gap-2 text-zinc-900 dark:text-red-400">
+                  <span className="w-1 h-6 bg-red-600 rounded-full"></span>
+                  Scanning Quality
+                </h4>
+                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-300 pl-4 list-disc marker:text-red-500">
+                  <li>Scan documents at high resolution</li>
+                  <li>Ensure good lighting with no shadows on the page</li>
+                  <li>Keep pages flat and aligned during scanning</li>
+                  <li>Use black or blue ink for better text recognition</li>
+                  <li>Avoid crumpled or damaged pages</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-lg font-bold mb-3 flex items-center gap-2 text-zinc-900 dark:text-red-400">
+                  <span className="w-1 h-6 bg-red-600 rounded-full"></span>
+                  Best Practices
+                </h4>
+                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-300 pl-4 list-disc marker:text-red-500">
+                  <li>Write legibly with consistent spacing between words</li>
+                  <li>Avoid excessive strike-throughs or corrections</li>
+                  <li>Save as PDF format (not images) for best results</li>
+                  <li>Keep file size under 10MB for faster processing</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex justify-end">
+              <Button onClick={() => setShowGuidelines(false)} className="bg-red-600 hover:bg-red-700 text-white">
+                Understood
+              </Button>
             </div>
           </div>
         </div>
-
-        {/* Actions */}
-        <Button
-          onClick={handleEvaluate}
-          disabled={!file || !user || !subject || !exam || loading}
-          className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {loading ? "Evaluating..." : "Analyze"}
-        </Button>
-
-        {/* Progress Indicator */}
-        {loading && (
-          <div className="space-y-3 rounded-2xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-zinc-900 dark:text-white">{loadingStage}</span>
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">{progress}%</span>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
-              <div
-                className="h-full bg-red-600 dark:bg-red-500 transition-all duration-300 ease-out"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400 text-center">
-              <span className="font-medium">Processing your document...</span><br />
-              Depending on document size and complexity, this may take <span className="font-semibold text-red-600 dark:text-red-400">3-4 minutes</span>.
-            </p>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <Alert variant="destructive" className="border-destructive/40">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Report Ready */}
-        {annotatedPdfBlob && (
-          <Alert className="border-2 border-red-500/30 bg-red-50 dark:border-red-500/30 dark:bg-red-950/20 rounded-2xl">
-            <AlertTitle className="text-red-700 dark:text-red-400 font-bold">Evaluation Report Ready</AlertTitle>
-            <AlertDescription className="flex flex-col gap-3">
-              <span className="text-zinc-700 dark:text-zinc-300">Your detailed evaluation report is ready for download.</span>
-              <div className="flex flex-col gap-2 md:flex-row">
-                <Button onClick={downloadAnnotatedPDF} className="w-full md:w-auto bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white">
-                  Download Report
-                </Button>
-                <button 
-                  onClick={resetEvaluation} 
-                  className="w-full md:w-auto inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors h-9 px-4 py-2 border-2 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                >
-                  Evaluate Another Question
-                </button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </>
   )
 }

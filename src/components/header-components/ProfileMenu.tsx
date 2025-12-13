@@ -49,8 +49,8 @@ export default function ProfileMenu() {
   }, [user]);
 
   useEffect(() => {
-    if (open) fetchStatus();
-  }, [open, fetchStatus]);
+    if (user) fetchStatus();
+  }, [user, fetchStatus]);
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -90,29 +90,29 @@ export default function ProfileMenu() {
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-80 rounded-xl bg-white/95 dark:bg-black/95 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-2xl p-4 z-[200]">
+        <div className="absolute top-full left-0 md:left-auto md:right-0 mt-2 w-72 sm:w-80 rounded-xl bg-white/95 dark:bg-black/95 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-2xl p-4 z-[200]">
           <div className="flex items-center gap-3 mb-3">
             <div className="relative w-10 h-10 rounded-full overflow-hidden border border-white/20">
               <Image src={user.imageUrl} alt={user.firstName || 'User'} fill className="object-cover" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{user.firstName} {user.lastName}</p>
-              <p className="text-xs text-muted-foreground truncate">{user.primaryEmailAddress?.emailAddress}</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">{user.firstName} {user.lastName}</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{user.primaryEmailAddress?.emailAddress}</p>
             </div>
             {/* Pro/Free badge removed */}
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
               <span>Status</span>
-              <span className="font-medium">{status?.isPro ? 'Pro' : 'Free'}</span>
+              <span className="font-medium text-zinc-900 dark:text-zinc-100">{status?.isPro ? 'Pro' : 'Free'}</span>
             </div>
             {/* Usage row removed */}
           </div>
 
           <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
             <SignOutButton>
-              <button className="px-3 py-1.5 text-xs rounded-md bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">Sign out</button>
+              <button className="px-3 py-1.5 text-xs rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors">Sign out</button>
             </SignOutButton>
             {/* Upgrade entrypoint removed; accessible via landing page CTA */}
           </div>

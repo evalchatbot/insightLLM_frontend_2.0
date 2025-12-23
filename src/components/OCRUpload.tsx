@@ -124,19 +124,63 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
+        // Check localStorage cache first
+        const cachedSubjects = localStorage.getItem('ocr_subjects')
+        const cacheTimestamp = localStorage.getItem('ocr_subjects_timestamp')
+        const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+        if (cachedSubjects && cacheTimestamp) {
+          const age = Date.now() - parseInt(cacheTimestamp)
+          if (age < CACHE_DURATION) {
+            console.log('[OCR] Using cached subjects')
+            setSubjects(JSON.parse(cachedSubjects))
+            setLoadingSubjects(false)
+            return
+          }
+        }
+
         const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
-        const response = await fetch(`${apiUrl}/api/ocr/subjects`)
+        console.log(`[OCR] Fetching subjects from: ${apiUrl}/api/ocr/subjects`)
+        console.log(`[OCR] Environment check - NEXT_PUBLIC_API_BASE_URL:`, process.env.NEXT_PUBLIC_API_BASE_URL || "NOT SET (using default)")
+        
+        const response = await fetch(`${apiUrl}/api/ocr/subjects`, {
+          headers: {
+            'Accept': 'application/json',
+          },
+          cache: 'no-cache'
+        })
 
         if (!response.ok) {
-          throw new Error("Failed to load subjects")
+          const errorText = await response.text()
+          console.error(`[OCR] Failed to load subjects. Status: ${response.status}, Response:`, errorText)
+          throw new Error(`Failed to load subjects (${response.status})`)
         }
 
         const data = await response.json()
-        setSubjects(data.subjects || [])
+        console.log(`[OCR] Successfully loaded ${data.subjects?.length || 0} subjects`)
+        
+        if (data.subjects && data.subjects.length > 0) {
+          setSubjects(data.subjects)
+          // Cache the subjects
+          localStorage.setItem('ocr_subjects', JSON.stringify(data.subjects))
+          localStorage.setItem('ocr_subjects_timestamp', Date.now().toString())
+        } else {
+          console.warn('[OCR] No subjects returned from API')
+        }
 
       } catch (err) {
-        console.error("Failed to fetch subjects:", err)
-        setSubjects([])
+        console.error("[OCR] Failed to fetch subjects:", err)
+        console.error("[OCR] API URL was:", process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000 (default)")
+        console.error("[OCR] Make sure NEXT_PUBLIC_API_BASE_URL is set in your deployment environment variables")
+        
+        // Try to use cached data even if expired
+        const cachedSubjects = localStorage.getItem('ocr_subjects')
+        if (cachedSubjects) {
+          console.log('[OCR] Using expired cache as fallback')
+          setSubjects(JSON.parse(cachedSubjects))
+        } else {
+          setSubjects([])
+        }
       } finally {
         setLoadingSubjects(false)
       }

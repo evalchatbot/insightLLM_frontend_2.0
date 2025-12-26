@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import { FaMoon, FaSun } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, MessageSquare, Sparkles } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import ProfileMenu from "./header-components/ProfileMenu";
 
 const Navbar = () => {
@@ -18,7 +18,6 @@ const Navbar = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const pathname = usePathname();
-    const router = useRouter();
 
     useEffect(() => {
         setMounted(true);
@@ -101,6 +100,26 @@ const Navbar = () => {
 
                     {/* Right Actions */}
                     <div className="hidden md:flex items-center gap-3 z-10">
+                        {/* Renew Subscription Button - DISABLED: Renewal functionality is currently disabled */}
+                        {/* {isLoaded && user && (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        window.dispatchEvent(new CustomEvent('openProModal'));
+                                    }}
+                                    className="px-4 py-2 rounded-full bg-red-600 dark:bg-red-500 text-white text-sm font-bold hover:bg-red-700 dark:hover:bg-red-600 transition-all hover:scale-105 shadow-lg shadow-red-900/30 dark:shadow-red-900/20 flex items-center gap-2"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                        <path d="M21 3v5h-5"></path>
+                                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                                        <path d="M3 21v-5h5"></path>
+                                    </svg>
+                                    Renew
+                                </button>
+                            </div>
+                        )} */}
+
                         {/* Theme Toggle */}
                         <button
                             onClick={() => setTheme(isDark ? 'light' : 'dark')}
@@ -193,6 +212,26 @@ const Navbar = () => {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Renew Subscription Button - DISABLED: Renewal functionality is currently disabled */}
+                            {/* {isLoaded && user && (
+                                <div className="px-4 py-2">
+                                    <button
+                                        onClick={() => {
+                                            window.dispatchEvent(new CustomEvent('openProModal'));
+                                        }}
+                                        className="w-full px-4 py-2.5 rounded-full bg-red-600 dark:bg-red-500 text-white text-sm font-bold hover:bg-red-700 dark:hover:bg-red-600 transition-all hover:scale-105 shadow-lg shadow-red-900/30 dark:shadow-red-900/20 flex items-center justify-center gap-2"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                            <path d="M21 3v5h-5"></path>
+                                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                                            <path d="M3 21v-5h5"></path>
+                                        </svg>
+                                        Renew Subscription
+                                    </button>
+                                </div>
+                            )} */}
 
                             {/* User Profile / Login */}
                             {isLoaded && user ? (

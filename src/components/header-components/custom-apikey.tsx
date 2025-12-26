@@ -108,6 +108,19 @@ const CustomApiKey = ({ preloadedData }: { preloadedData?: any } = {}) => {
     if (user) checkProAccessAndUsage();
   }, [user, checkProAccessAndUsage]);
 
+  // Listen for custom event to open modal from header button
+  useEffect(() => {
+    const handleOpenModal = () => {
+      if (isSignedIn) {
+        setShowProModal(true);
+      } else {
+        setToast("Please sign in to access Pro features");
+      }
+    };
+    window.addEventListener('openProModal', handleOpenModal);
+    return () => window.removeEventListener('openProModal', handleOpenModal);
+  }, [isSignedIn, setToast]);
+
   // Listen for custom event to refresh pro status (triggered when downgrade detected)
   useEffect(() => {
     const handleRefreshProStatus = () => {
@@ -216,6 +229,34 @@ const CustomApiKey = ({ preloadedData }: { preloadedData?: any } = {}) => {
 
   return (
     <>
+      {/* Renew Button Test Panel - DISABLED: Renewal functionality is currently disabled */}
+      {/* <div className="fixed top-20 right-4 z-50 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-xl border-2 border-purple-500"> */}
+        <p className="text-xs text-gray-500 mb-2">TEST MODE - Renew Button</p>
+        <div className="space-y-2">
+          <button 
+            onClick={handleProButtonClick}
+            className="w-full py-2.5 px-4 bg-blue-100 hover:bg-blue-200 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 border border-blue-300 dark:border-blue-500/50 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <FaBrain className="text-blue-600 dark:text-blue-400" />
+            <span className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Pro Active</span>
+            <span className="text-xs text-blue-700 dark:text-blue-300">(30d)</span>
+          </button>
+          
+          <button
+            onClick={handleProButtonClick}
+            className="w-full py-2.5 px-4 rounded-full bg-red-600 dark:bg-red-500 text-white text-sm font-bold hover:bg-red-700 dark:hover:bg-red-600 transition-all hover:scale-105 shadow-lg shadow-red-900/30 dark:shadow-red-900/20 flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+              <path d="M21 3v5h-5"></path>
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+              <path d="M3 21v-5h5"></path>
+            </svg>
+            Renew Subscription
+          </button>
+        </div>
+      </div>
+
       <div className="w-full space-y-3">
         {/* Usage Display Removed as per user request */}
         {/* {proStatus.usage && proStatus.limits && (
@@ -239,15 +280,38 @@ const CustomApiKey = ({ preloadedData }: { preloadedData?: any } = {}) => {
           </div>
         )} */}
 
-        {/* Pro Status Button */}
+        {/* Pro Status Display */}
+        {/* Renew Button - DISABLED: Renewal functionality is currently disabled */}
         {proStatus.hasAccess ? (
-          <button className="w-full py-2.5 px-4 bg-blue-100 hover:bg-blue-200 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 border border-blue-300 dark:border-blue-500/50 rounded-lg transition-colors flex items-center justify-center gap-2">
-            <FaBrain className="text-blue-600 dark:text-blue-400" />
-            <span className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Pro Active</span>
-            {proStatus.daysLeft !== undefined && (
-              <span className="text-xs text-blue-700 dark:text-blue-300">({proStatus.daysLeft}d)</span>
-            )}
-          </button>
+          <div className="space-y-2">
+            {/* Pro Active Status Button */}
+            <button 
+              onClick={handleProButtonClick}
+              className="w-full py-2.5 px-4 bg-blue-100 hover:bg-blue-200 dark:bg-blue-600/20 dark:hover:bg-blue-600/30 border border-blue-300 dark:border-blue-500/50 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <FaBrain className="text-blue-600 dark:text-blue-400" />
+              <span className="font-semibold text-blue-900 dark:text-blue-100 text-sm">Pro Active</span>
+              {proStatus.daysLeft !== undefined ? (
+                <span className="text-xs text-blue-700 dark:text-blue-300">({proStatus.daysLeft}d)</span>
+              ) : (
+                <span className="text-xs text-blue-700 dark:text-blue-300">(30d)</span>
+              )}
+            </button>
+            
+            {/* Renew Subscription Button - DISABLED */}
+            {/* <button
+              onClick={handleProButtonClick}
+              className="w-full py-2.5 px-4 rounded-full bg-red-600 dark:bg-red-500 text-white text-sm font-bold hover:bg-red-700 dark:hover:bg-red-600 transition-all hover:scale-105 shadow-lg shadow-red-900/30 dark:shadow-red-900/20 flex items-center justify-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                <path d="M3 21v-5h5"></path>
+              </svg>
+              Renew Subscription
+            </button> */}
+          </div>
         ) : (
           <button
             onClick={handleProButtonClick}
@@ -259,14 +323,28 @@ const CustomApiKey = ({ preloadedData }: { preloadedData?: any } = {}) => {
         )}
       </div>
 
-      {showProModal && !proStatus.hasAccess && (
+      {/* ===================================================== */}
+      {/* STEP 5: Allow modal to open for both new activations and renewals */}
+      {/* ===================================================== */}
+      {/* Removed condition !proStatus.hasAccess - now modal can open for renewals too */}
+      {showProModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <ProAccessModal
             onClose={() => setShowProModal(false)}
             onSuccess={(data) => {
+              // =====================================================
+              // STEP 6: Handle success for both renewals and new activations
+              // =====================================================
               if (data?.end_date) {
-                const daysLeft = Math.max(0, Math.ceil((new Date(data.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
-                setProStatus({ hasAccess: true, daysLeft, endDate: data.end_date });
+                const endDate = data.end_date;
+                const daysLeft = Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+                
+                // Update pro status with new expiry date
+                setProStatus({ 
+                  hasAccess: true, 
+                  daysLeft, 
+                  endDate: endDate 
+                });
 
                 // Close modal and show confetti immediately
                 setShowProModal(false);
@@ -281,10 +359,14 @@ const CustomApiKey = ({ preloadedData }: { preloadedData?: any } = {}) => {
                   }, 5000);
                 }, 100);
 
-                // Refresh usage data
+                // Refresh usage data to get latest status
                 checkProAccessAndUsage();
               } else {
-                setProStatus({ hasAccess: false });
+                // Only set to false if it was a new activation that failed
+                // For renewals, keep the existing status
+                if (!proStatus.hasAccess) {
+                  setProStatus({ hasAccess: false });
+                }
                 setShowProModal(false);
               }
             }}

@@ -4,6 +4,13 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+// =====================================================
+// RENEWAL FUNCTIONALITY DISABLED
+// =====================================================
+// Maximum Expiry Cap constant removed - renewal is disabled
+// This will be re-enabled when renewal feature is activated
+// =====================================================
+
 // Initialize Supabase client with service role key for admin operations
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -116,38 +123,36 @@ export async function POST(req: Request) {
       .limit(1)
       .maybeSingle();
 
-    // If user has an active pro key (not expired), check if they've exceeded their limits
-    // If they've exceeded limits, allow them to activate a new key (which will reset usage)
+    // =====================================================
+    // RENEWAL FUNCTIONALITY DISABLED
+    // =====================================================
+    // NOTE: Subscription renewal feature is currently disabled.
+    // Users with active subscriptions are blocked from activating new keys.
+    // This feature will be enabled in the future.
+    // =====================================================
+    
+    // Block users with active subscriptions from activating new keys
     if (existingKey) {
-      // Check current usage status via record_usage (this will tell us if limits are exceeded)
-      const { data: usageData, error: usageError } = await supabase
+      // Check current usage status via record_usage
+      const { data: usageData } = await supabase
         .rpc('record_usage', {
           p_user_id: supabaseUserId,
           p_input_tokens: 0,
           p_output_tokens: 0
         });
-
-      // If record_usage returns success: false, user has exceeded limits
-      // In this case, allow them to activate a new key to reset their usage
-      if (usageData && !usageData.success) {
-        // User has exceeded limits - allow activation of new key
-        // The activate_pro_key function will reset their usage to 0
-      } else if (usageData && usageData.is_pro) {
+      
+      if (usageData && usageData.is_pro) {
         // User has active pro key and hasn't exceeded limits
-        // Don't allow activation of another key
+        // Don't allow activation of another key (renewal disabled)
         return NextResponse.json(
-          { success: false, message: "You already have an active pro access. Your current pro subscription is still active." },
+          { 
+            success: false, 
+            message: "You already have an active pro access. Subscription renewal is currently disabled. Please wait until your current subscription expires before activating a new key." 
+          },
           { status: 400 }
         );
-      } else {
-        // User has active key but is_pro is false (might be a data inconsistency)
-        // Allow activation to fix the state
       }
-    } else if (expiredKey) {
-      // User has an expired pro key - allow activation of new key
-      // This will give them a fresh start with the new subscription
     }
-    // If user has no keys at all (neither active nor expired), allow activation (this is the normal case)
 
     // Check if key exists and is unused
     const { data: keyData, error: keyError } = await supabase
@@ -177,7 +182,18 @@ export async function POST(req: Request) {
       );
     }
 
-    // Activate the pro key (this will also create usage_pro row)
+    // =====================================================
+    // RENEWAL FUNCTIONALITY DISABLED
+    // =====================================================
+    // Maximum Expiry Cap validation removed - renewal is disabled
+    // =====================================================
+
+    // =====================================================
+    // Activate the pro key via database function
+    // =====================================================
+    // NOTE: Renewal functionality is disabled.
+    // The activate_pro_key function still supports renewals in the database,
+    // but the API blocks users with active subscriptions from reaching this point.
     const { data: activationResult, error: txnError } = await supabase.rpc('activate_pro_key', {
       key_id: keyData.id,
       user_identifier: supabaseUserId
@@ -188,16 +204,34 @@ export async function POST(req: Request) {
       throw txnError;
     }
 
+    // =====================================================
+    // CHANGE: Improved error handling
+    // =====================================================
+    // BEFORE: Threw error (500 status)
+    // AFTER: Returns proper HTTP response (400 status) with error message
+    // Why: Better error handling, proper HTTP status codes
     if (!activationResult || !activationResult.success) {
       console.error("Activation failed:", activationResult?.message || "Unknown error");
-      throw new Error(activationResult?.message || "Failed to activate key");
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: activationResult?.message || "Failed to activate key" 
+        },
+        { status: 400 }
+      );
     }
 
+    // =====================================================
+    // RENEWAL FUNCTIONALITY DISABLED
+    // =====================================================
+    // Only new activations are allowed (renewals are blocked above)
+    // Return activation information (backward compatible format)
     return NextResponse.json({
       success: true,
       message: "Pro access activated successfully!",
-      expiryDate: keyData.expiry_date,
-      durationDays: keyData.duration_days
+      isRenewal: false,
+      expiryDate: activationResult?.expiry_date || keyData.expiry_date,
+      durationDays: activationResult?.duration_days || keyData.duration_days
     });
 
   } catch (error: any) {

@@ -2,10 +2,20 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useUser } from "@clerk/nextjs"
-import { annotateDocument, type OCRResult } from "@/utils/ocr-api"
-import { Upload } from "lucide-react"
+import { 
+  annotateDocument, 
+  type OCRResult,
+  submitOCRJob,
+  getJobStatus,
+  getProgress,
+  cancelJob,
+  getJobResult,
+  type JobStatus,
+  type ProgressData
+} from "@/utils/ocr-api"
+import { Upload, X } from "lucide-react"
 import insightZustand from "@/utils/insight-zustand"
 
 import { Card, CardContent } from "@/components/ui/card"
@@ -36,9 +46,17 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<OCRResult | null>(null)
   const [annotatedPdfBlob, setAnnotatedPdfBlob] = useState<Blob | null>(null)
+  const [jobId, setJobId] = useState<string | null>(null)
+  const [requestId, setRequestId] = useState<string | null>(null)
+  const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
+  const [progressData, setProgressData] = useState<ProgressData | null>(null)
 
   // Document Guidelines Modal State
   const [showGuidelines, setShowGuidelines] = useState(false)
+
+  // Refs for polling intervals
+  const statusPollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const progressPollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Subject Mapping & Grouping Logic
   const getDisplayName = (originalName: string) => {
@@ -207,6 +225,50 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     }
   }
 
+  // Cleanup polling intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (statusPollIntervalRef.current) {
+        clearInterval(statusPollIntervalRef.current)
+      }
+      if (progressPollIntervalRef.current) {
+        clearInterval(progressPollIntervalRef.current)
+      }
+    }
+  }, [])
+
+  const stopPolling = () => {
+    if (statusPollIntervalRef.current) {
+      clearInterval(statusPollIntervalRef.current)
+      statusPollIntervalRef.current = null
+    }
+    if (progressPollIntervalRef.current) {
+      clearInterval(progressPollIntervalRef.current)
+      progressPollIntervalRef.current = null
+    }
+  }
+
+  const handleCancel = async () => {
+    if (!jobId) return
+    
+    try {
+      await cancelJob(jobId)
+      stopPolling()
+      setLoading(false)
+      setLoadingStage("")
+      setProgress(0)
+      setError("Job cancelled by user")
+      setJobId(null)
+      setRequestId(null)
+      setJobStatus(null)
+    } catch (err) {
+      console.error("Failed to cancel job:", err)
+      const errorMessage = err instanceof Error ? err.message : "Failed to cancel job"
+      setError(errorMessage)
+      setToast(errorMessage)
+    }
+  }
+
   const handleEvaluate = async () => {
     if (!file || !user) return
     if (!exam) {
@@ -217,102 +279,133 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
       setError("Please select a subject")
       return
     }
+    
     setLoading(true)
     setError(null)
     setProgress(0)
-    setLoadingStage("Uploading document...")
+    setLoadingStage("Submitting job...")
+    setJobId(null)
+    setRequestId(null)
+    setJobStatus(null)
 
     try {
-      // Real backend pipeline progress stages (11 steps total)
-      // Each step matches actual backend processing in grade_pdf_answer.py
+      // Submit job for background processing
+      const { jobId: newJobId, requestId: newRequestId } = await submitOCRJob(
+        file,
+        user.id,
+        subject
+      )
 
-      // Step 1: Upload & Convert (0-8%)
-      setProgress(3)
-      setTimeout(() => {
-        setLoadingStage("Step 1/11: Converting PDF pages to images...")
-        setProgress(8)
-      }, 800)
+      setJobId(newJobId)
+      setRequestId(newRequestId)
+      setLoadingStage("Job submitted. Processing started...")
+      setProgress(5)
 
-      // Step 2: OCR Extraction (8-18%)
-      setTimeout(() => {
-        setLoadingStage("Step 2/11: Running OCR on document (Google Vision)...")
-        setProgress(18)
-      }, 8000)
+      // Poll job status
+      const pollStatus = async () => {
+        try {
+          const status = await getJobStatus(newJobId)
+          if (!status) {
+            stopPolling()
+            setError("Job not found")
+            setLoading(false)
+            return
+          }
 
-      // Step 3: Section Detection (18-28%)
-      setTimeout(() => {
-        setLoadingStage("Step 3/11: Detecting sections and headings with AI...")
-        setProgress(28)
-      }, 18000)
+          setJobStatus(status)
 
-      // Step 4: Load Rubric (28-33%)
-      setTimeout(() => {
-        setLoadingStage("Step 4/11: Loading subject-specific rubric...")
-        setProgress(33)
-      }, 28000)
+          if (status.status === "completed") {
+            stopPolling()
+            setProgress(100)
+            setLoadingStage("✅ Evaluation complete! Retrieving results...")
 
-      // Step 5: AI Grading (33-48%) - Longest step
-      setTimeout(() => {
-        setLoadingStage("Step 5/11: AI analyzing and grading your answer...")
-        setProgress(48)
-      }, 35000)
+            // Get results
+            try {
+              const { pdfBlob, metadata } = await getJobResult(newJobId)
+              setAnnotatedPdfBlob(pdfBlob)
+              setResults(metadata)
+              onResults?.(metadata)
+              const url = URL.createObjectURL(pdfBlob)
+              onAnnotatedPDF?.(url)
+              setLoadingStage("✅ Evaluation complete!")
+              
+              setTimeout(() => {
+                setLoadingStage("")
+                setProgress(0)
+              }, 2000)
+            } catch (err) {
+              console.error("Failed to get job result:", err)
+              const errorMessage = err instanceof Error ? err.message : "Failed to retrieve results"
+              setError(errorMessage)
+              setToast(errorMessage)
+            } finally {
+              setLoading(false)
+            }
+          } else if (status.status === "failed") {
+            stopPolling()
+            setLoading(false)
+            setError(status.error || "Job failed")
+            setToast(status.error || "Job failed")
+          } else if (status.status === "cancelled") {
+            stopPolling()
+            setLoading(false)
+            setError("Job was cancelled")
+          }
+        } catch (err) {
+          console.error("Failed to poll job status:", err)
+          // Continue polling despite errors
+        }
+      }
 
-      // Step 6: Report Generation (48-58%)
-      setTimeout(() => {
-        setLoadingStage("Step 6/11: Generating detailed evaluation report...")
-        setProgress(58)
-      }, 55000)
+      // Poll progress
+      const pollProgress = async () => {
+        if (!newRequestId) return
+        
+        try {
+          const progressData = await getProgress(newRequestId)
+          if (progressData) {
+            // Update progress state
+            setProgressData(progressData)
+            setProgress(Math.round(progressData.progress_percent))
+            
+            // Build loading stage message
+            let stageMessage = progressData.message || `Step ${progressData.step_number}/${progressData.total_steps}: ${progressData.step}`
+            
+            // Add page-level progress if available (during OCR step)
+            if (progressData.details?.pages_completed !== undefined && 
+                progressData.details?.total_pages !== undefined) {
+              const pagesCompleted = progressData.details.pages_completed
+              const totalPages = progressData.details.total_pages
+              stageMessage += ` (Page ${pagesCompleted} of ${totalPages})`
+            }
+            
+            setLoadingStage(stageMessage)
+            
+            // Stop polling progress when complete
+            if (progressData.progress_percent >= 100) {
+              if (progressPollIntervalRef.current) {
+                clearInterval(progressPollIntervalRef.current)
+                progressPollIntervalRef.current = null
+              }
+            }
+          }
+        } catch (err) {
+          // Silently fail progress polling
+          console.error("Failed to poll progress:", err)
+        }
+      }
 
-      // Step 7: Refined Rubric (58-63%)
-      setTimeout(() => {
-        setLoadingStage("Step 7/11: Loading advanced rubric criteria...")
-        setProgress(63)
-      }, 65000)
+      // Start polling
+      statusPollIntervalRef.current = setInterval(pollStatus, 2000) // Poll status every 2 seconds
+      progressPollIntervalRef.current = setInterval(pollProgress, 2000) // Poll progress every 2 seconds
 
-      // Step 8: Advanced Annotations (63-73%)
-      setTimeout(() => {
-        setLoadingStage("Step 8/11: Generating refined annotations...")
-        setProgress(73)
-      }, 75000)
+      // Initial poll
+      pollStatus()
+      pollProgress()
 
-      // Step 9: Annotating Pages (73-83%)
-      setTimeout(() => {
-        setLoadingStage("Step 9/11: Annotating answer pages...")
-        setProgress(83)
-      }, 90000)
-
-      // Step 10: Ideal Outline (83-88%)
-      setTimeout(() => {
-        setLoadingStage("Step 10/11: Creating ideal answer outline...")
-        setProgress(88)
-      }, 105000)
-
-      // Step 11: Final Assembly (88-95%)
-      setTimeout(() => {
-        setLoadingStage("Step 11/11: Assembling final PDF report...")
-        setProgress(95)
-      }, 120000)
-
-      // Single API call that returns both PDF and metadata
-      const { pdfBlob, metadata } = await annotateDocument(file, user.id, subject)
-
-      // Final step: Complete
-      setProgress(100)
-      setLoadingStage("✅ Evaluation complete!")
-
-      setAnnotatedPdfBlob(pdfBlob)
-      setResults(metadata)
-      onResults?.(metadata)
-      const url = URL.createObjectURL(pdfBlob)
-      onAnnotatedPDF?.(url)
-
-      // Reset progress after a brief moment
-      setTimeout(() => {
-        setLoadingStage("")
-        setProgress(0)
-      }, 1000)
     } catch (err) {
       console.error("Evaluation failed:", err)
+      stopPolling()
       const errorMessage = err instanceof Error ? err.message : "Evaluation failed"
 
       if (errorMessage.includes("limit reached") ||
@@ -347,7 +440,6 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
           setToast(msg)
         }
       }
-    } finally {
       setLoading(false)
       setLoadingStage("")
       setProgress(0)
@@ -368,6 +460,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   }
 
   const resetEvaluation = () => {
+    stopPolling()
     setFile(null)
     setResults(null)
     setAnnotatedPdfBlob(null)
@@ -375,6 +468,10 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     setLoading(false)
     setLoadingStage("")
     setProgress(0)
+    setJobId(null)
+    setRequestId(null)
+    setJobStatus(null)
+    setProgressData(null)
     // Reset file input
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     if (fileInput) {
@@ -487,7 +584,18 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             <div className="space-y-3 rounded-2xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-zinc-900 dark:text-white">{loadingStage}</span>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">{progress}%</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-zinc-600 dark:text-zinc-400">{progress}%</span>
+                  {jobId && (
+                    <button
+                      onClick={handleCancel}
+                      className="p-1 text-zinc-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      title="Cancel job"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
                 <div
@@ -495,10 +603,45 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 text-center">
-                <span className="font-medium">Processing your document...</span><br />
-                Depending on document size and complexity, this may take <span className="font-semibold text-red-600 dark:text-red-400">3-4 minutes</span>.
-              </p>
+              
+              {/* Progress Details */}
+              {progressData && (
+                <div className="space-y-1 text-xs text-zinc-600 dark:text-zinc-400">
+                  {progressData.details?.pages_completed !== undefined && 
+                   progressData.details?.total_pages !== undefined && (
+                    <div className="flex items-center justify-between">
+                      <span>OCR Progress:</span>
+                      <span className="font-medium">
+                        {progressData.details.pages_completed} / {progressData.details.total_pages} pages
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span>Current Step:</span>
+                    <span className="font-medium">
+                      {progressData.step_number} / {progressData.total_steps}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {jobStatus && jobStatus.status === "running" && (
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 text-center">
+                  <span className="font-medium">Processing in background...</span><br />
+                  {jobId && (
+                    <>
+                      Job ID: <span className="font-mono text-xs">{jobId}</span><br />
+                    </>
+                  )}
+                  You can close this page and check back later. The job will continue processing.
+                </p>
+              )}
+              {(!jobStatus || jobStatus.status === "pending") && (
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 text-center">
+                  <span className="font-medium">Starting processing...</span><br />
+                  Depending on document size and complexity, this may take <span className="font-semibold text-red-600 dark:text-red-400">3-4 minutes</span>.
+                </p>
+              )}
             </div>
           )}
 

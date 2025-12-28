@@ -5,6 +5,7 @@ import SidebarWrapper from "@/components/sidebar-components/sidebar-wrapper";
 import Header from "@/components/header-components/header";
 import InputPrompt from "@/components/input-prompt-components/input-prompt";
 import DevToast from "@/components/dev-components/dev-toast";
+// import RenewalNotificationBanner from "@/components/header-components/renewal-notification-banner"; // DISABLED: Renewal functionality is currently disabled
 import { SidebarProvider } from "@/context/SidebarContext";
 
 const GeneralLayout = ({ children }: { children: React.ReactNode }) => {
@@ -33,6 +34,7 @@ const GeneralLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <SidebarProvider>
+      {/* <RenewalNotificationBanner /> */} {/* DISABLED: Renewal functionality is currently disabled */}
       <main className={`h-dvh w-full flex overflow-hidden ${
         isChatPage 
           ? 'bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/30 dark:from-zinc-950 dark:via-emerald-950/20 dark:to-zinc-950' 

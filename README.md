@@ -9,6 +9,7 @@ An advanced AI-powered chat application built with Next.js, featuring enhanced f
 - [Features](#features)
 - [Technology Stack](#technology-stack)
 - [Getting Started](#getting-started)
+- [Documentation](#documentation)
 - [Usage](#usage)
 - [License](#license)
 
@@ -68,3 +69,21 @@ npm install
 
 # Start the development server
 npm run dev
+```
+
+## Documentation
+
+Comprehensive documentation for the frontend codebase is available in the [`docs/`](./docs/) directory:
+
+- **[📚 Documentation Index](./docs/README.md)** - Start here! Overview of all documentation
+- **[🏗️ Frontend Documentation](./docs/FRONTEND_DOCUMENTATION.md)** - Complete architecture and structure guide
+- **[🧩 Components Documentation](./docs/COMPONENTS_DOCUMENTATION.md)** - Detailed component reference
+- **[🔌 API Routes Documentation](./docs/API_ROUTES_DOCUMENTATION.md)** - API endpoints reference
+- **[🛠️ Utilities & Hooks](./docs/UTILITIES_AND_HOOKS.md)** - Utility functions and custom hooks
+- **[📝 Documentation Template](./docs/DOCUMENTATION_TEMPLATE.md)** - Guide for documenting future changes
+
+### Quick Links
+- New to the project? → Read [Frontend Documentation](./docs/FRONTEND_DOCUMENTATION.md)
+- Looking for a component? → Check [Components Documentation](./docs/COMPONENTS_DOCUMENTATION.md)
+- Need API info? → See [API Routes Documentation](./docs/API_ROUTES_DOCUMENTATION.md)
+- Making changes? → Follow [Documentation Template](./docs/DOCUMENTATION_TEMPLATE.md)

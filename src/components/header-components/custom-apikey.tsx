@@ -255,7 +255,6 @@ const CustomApiKey = ({ preloadedData }: { preloadedData?: any } = {}) => {
             Renew Subscription
           </button>
         </div>
-      </div>
 
       <div className="w-full space-y-3">
         {/* Usage Display Removed as per user request */}

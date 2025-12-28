@@ -336,7 +336,7 @@ export default function LandingPage() {
                             <div className="text-center mb-8">
                                 <h3 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">Pro</h3>
                                 <div className="text-4xl font-bold mb-2 text-zinc-900 dark:text-white">
-                                    Rs.3,999<span className="text-lg text-zinc-600 dark:text-zinc-300 font-normal">/month</span>
+                                    Rs.9,999<span className="text-lg text-zinc-600 dark:text-zinc-300 font-normal">/month</span>
                                 </div>
                                 <p className="text-zinc-600 dark:text-zinc-300">Ultimate preparation package for top performers</p>
                             </div>

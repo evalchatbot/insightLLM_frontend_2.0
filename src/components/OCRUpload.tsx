@@ -157,7 +157,11 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
           }
         }
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+        // Normalize API URL to fix malformed URLs (e.g., "http:localhost:127.0.0.1:8001" -> "http://localhost:127.0.0.1:8001")
+        let apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"
+        if (apiUrl.startsWith("http:") && !apiUrl.startsWith("http://") && !apiUrl.startsWith("https://")) {
+          apiUrl = apiUrl.replace(/^http:/, "http://")
+        }
         console.log(`[OCR] Fetching subjects from: ${apiUrl}/api/ocr/subjects`)
         console.log(`[OCR] Environment check - NEXT_PUBLIC_API_BASE_URL:`, process.env.NEXT_PUBLIC_API_BASE_URL || "NOT SET (using default)")
         

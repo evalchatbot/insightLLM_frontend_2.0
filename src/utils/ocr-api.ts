@@ -1,6 +1,14 @@
 "use client";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+// Normalize API URL to fix malformed URLs (e.g., "http:localhost:127.0.0.1:8001" -> "http://localhost:127.0.0.1:8001")
+function normalizeApiUrl(url: string): string {
+  if (url.startsWith("http:") && !url.startsWith("http://") && !url.startsWith("https://")) {
+    return url.replace(/^http:/, "http://");
+  }
+  return url;
+}
+
+const BACKEND_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000");
 
 export interface EvaluationDimension {
   label: string;

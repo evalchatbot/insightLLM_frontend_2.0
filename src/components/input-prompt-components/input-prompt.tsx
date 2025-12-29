@@ -139,7 +139,11 @@ const InputPrompt = () => {
       };
 
       // Determine backend URL with fallback to localhost if env not set
-      const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+      // Normalize URL to fix malformed URLs (e.g., "http:localhost:127.0.0.1:8001" -> "http://localhost:127.0.0.1:8001")
+      let BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+      if (BACKEND_URL.startsWith("http:") && !BACKEND_URL.startsWith("http://") && !BACKEND_URL.startsWith("https://")) {
+        BACKEND_URL = BACKEND_URL.replace(/^http:/, "http://");
+      }
 
       // Call the streaming endpoint
       const response = await fetch(`${BACKEND_URL}/chatbot/ask-stream`, {

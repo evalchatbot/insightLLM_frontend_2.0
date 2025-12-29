@@ -17,21 +17,21 @@ const Footer = () => {
                 <div className="flex items-center gap-3">
                     <div className="relative w-6 h-6">
                         <Image
-                            src="/assets/Rubrik logo.svg"
+                            src="/assets/Rubric logo.svg"
                             alt="InsightLLM Logo"
                             fill
                             className="object-contain"
                         />
                     </div>
                     <span className="font-bold text-xl tracking-tight text-red-600 dark:text-red-400">
-                        rubrik.ai
+                        rubric.ai
                     </span>
                 </div>
 
 
                 {/* Copyright */}
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    © 2025 RUBRIK. All rights reserved.
+                    © 2025 RUBRIC. All rights reserved.
                 </p>
             </div>
         </footer>

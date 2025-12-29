@@ -183,16 +183,16 @@ export default function OCRPage() {
           {/* Brand */}
           <div className="flex items-center gap-3">
             <div className="relative w-6 h-6">
-              <img src="/assets/Rubrik logo.svg" alt="InsightLLM Logo" className="object-contain w-full h-full" />
+              <img src="/assets/Rubric logo.svg" alt="InsightLLM Logo" className="object-contain w-full h-full" />
             </div>
-            <span className="font-bold text-xl tracking-tight text-red-600 dark:text-red-400">rubrik.ai</span>
+            <span className="font-bold text-xl tracking-tight text-red-600 dark:text-red-400">rubric.ai</span>
           </div>
 
           {/* Links - Centered */}
           {/* Links - Centered - Removed */}
 
           {/* Copyright */}
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">© 2025 RUBRIK. All rights reserved.</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">© 2025 RUBRIC. All rights reserved.</p>
         </div>
       </footer>
     </>

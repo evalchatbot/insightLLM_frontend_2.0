@@ -81,14 +81,14 @@ const RightNavbar = () => {
                             <Link href="/" className="flex items-center gap-3 group" onClick={() => setIsOpen(false)}>
                                 <div className="relative w-10 h-10 transition-transform group-hover:scale-110 duration-300">
                                     <Image
-                                        src="/assets/Rubrik logo.svg"
+                                        src="/assets/Rubric logo.svg"
                                         alt="InsightLLM Logo"
                                         fill
                                         className="object-contain"
                                     />
                                 </div>
                                 <span className="font-bold text-2xl tracking-tight text-red-700 dark:text-red-500">
-                                    rubrik.ai
+                                    rubric.ai
                                 </span>
                             </Link>
                         </div>

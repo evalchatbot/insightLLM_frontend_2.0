@@ -372,7 +372,7 @@ export default function LandingPage() {
                                 {isPro ? (
                                     <span className="flex items-center justify-center gap-2 relative z-10 text-white drop-shadow-md">
                                         <Zap className="w-5 h-5 fill-current animate-pulse text-white" />
-                                        <span className="tracking-widest font-black text-sm uppercase">Rubrik Pro Active</span>
+                                        <span className="tracking-widest font-black text-sm uppercase">Rubric Pro Active</span>
                                     </span>
                                 ) : "Start Pro Plan"}
 
@@ -534,10 +534,10 @@ export default function LandingPage() {
                                         <div>
                                             <h3 className="font-semibold text-zinc-900 dark:text-white mb-1">Email</h3>
                                             <a
-                                                href="mailto:contact.rubrik@gmail.com"
+                                                href="mailto:contact.rubric@gmail.com"
                                                 className="text-red-600 dark:text-red-400 hover:underline"
                                             >
-                                                contact.rubrik@gmail.com
+                                                contact.rubric@gmail.com
                                             </a>
                                         </div>
                                     </div>

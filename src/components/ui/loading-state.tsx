@@ -22,7 +22,7 @@ export default function LoadingState() {
                 />
                 <div className="relative z-10 w-full h-full">
                     <Image
-                        src="/assets/Rubrik logo.svg"
+                        src="/assets/Rubric logo.svg"
                         alt="Loading..."
                         fill
                         className="object-contain"
@@ -32,7 +32,7 @@ export default function LoadingState() {
 
             <div className="flex flex-col items-center gap-2">
                 <h3 className="text-lg font-bold text-red-700 dark:text-red-500 tracking-tight">
-                    rubrik.ai
+                    rubric.ai
                 </h3>
                 <div className="flex gap-1">
                     {[0, 1, 2].map((i) => (

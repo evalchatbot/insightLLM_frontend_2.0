@@ -25,7 +25,7 @@ export default function OCRPage() {
               <div className="flex flex-col items-center text-center w-full md:w-1/3 px-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
                 <div className="w-12 h-12 rounded-full bg-red-900 dark:bg-red-500 text-white dark:text-white flex items-center justify-center text-xl font-bold mb-6 shadow-lg ring-4 ring-white dark:ring-zinc-950 hover:scale-110 transition-transform duration-300">1</div>
                 <h3 className="font-serif text-xl mb-3 text-zinc-800 dark:text-zinc-100">Upload your answer</h3>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-[250px] mx-auto">Select your subject and upload your PDF essay (up to 10MB)</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-[250px] mx-auto">Select your subject and upload your PDF essay (up to 20MB)</p>
               </div>
 
               <div className="flex flex-col items-center text-center w-full md:w-1/3 px-4 mt-12 md:mt-0 animate-slide-up" style={{ animationDelay: '0.2s' }}>

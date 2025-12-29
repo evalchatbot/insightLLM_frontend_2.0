@@ -218,8 +218,8 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
         setError("Please select a PDF file")
         return
       }
-      if (selectedFile.size > 10 * 1024 * 1024) {
-        setError("File size must be less than 10MB")
+      if (selectedFile.size > 20 * 1024 * 1024) {
+        setError("File size must be less than 20MB")
         return
       }
       setFile(selectedFile)
@@ -427,7 +427,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
           setError(msg)
           setToast(msg)
         } else if (errorMessage.includes("413")) {
-          const msg = "File is too large. Please upload a PDF smaller than 10MB."
+          const msg = "File is too large. Please upload a PDF smaller than 20MB."
           setError(msg)
           setToast(msg)
         } else if (errorMessage.includes("timeout")) {
@@ -564,7 +564,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                 ) : (
                   <div className="text-center">
                     <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">Drag and drop</p>
-                    <p className="text-xs text-zinc-500 mb-4">or click to browse (Max 10MB)</p>
+                    <p className="text-xs text-zinc-500 mb-4">or click to browse (Max 20MB)</p>
                     <span className="inline-block px-4 py-2 border border-red-600 text-red-600 dark:border-red-500 dark:text-red-400 rounded-lg text-sm font-medium">
                       Choose File
                     </span>
@@ -736,7 +736,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                   <li>Write legibly with consistent spacing between words</li>
                   <li>Avoid excessive strike-throughs or corrections</li>
                   <li>Save as PDF format (not images) for best results</li>
-                  <li>Keep file size under 10MB for faster processing</li>
+                  <li>Keep file size under 20MB for faster processing</li>
                 </ul>
               </div>
             </div>

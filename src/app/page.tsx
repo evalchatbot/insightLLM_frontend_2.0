@@ -335,8 +335,25 @@ export default function LandingPage() {
                             </div>
                             <div className="text-center mb-8">
                                 <h3 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">Pro</h3>
-                                <div className="text-4xl font-bold mb-2 text-zinc-900 dark:text-white">
-                                    Rs.9,999<span className="text-lg text-zinc-600 dark:text-zinc-300 font-normal">/month</span>
+                                <div className="flex flex-col items-center gap-2 mb-2">
+                                    {/* Original Price with Strikethrough */}
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-2xl font-semibold text-zinc-400 dark:text-zinc-500 line-through">
+                                            Rs.9,999
+                                        </span>
+                                        <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold rounded-full">
+                                            50% OFF
+                                        </span>
+                                    </div>
+                                    {/* Discounted Price */}
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-2xl font-semibold text-zinc-900 dark:text-white">
+                                            Rs.5,000
+                                        </span>
+                                        <span className="text-lg text-zinc-600 dark:text-zinc-300 font-normal">
+                                            /month
+                                        </span>
+                                    </div>
                                 </div>
                                 <p className="text-zinc-600 dark:text-zinc-300">Ultimate preparation package for top performers</p>
                             </div>

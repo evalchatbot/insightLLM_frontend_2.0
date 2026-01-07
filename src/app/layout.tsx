@@ -7,7 +7,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import EnsureSupabaseUser from "@/components/EnsureSupabaseUser";
 import NavigationWrapper from "@/components/NavigationWrapper";
 import Footer from "@/components/Footer";
-import SignupIssueBanner from "@/components/header-components/signup-issue-banner";
+// import SignupIssueBanner from "@/components/header-components/signup-issue-banner"; // Kept for future use
 
 const outfit = Outfit({ subsets: ["latin"] });
 
@@ -69,7 +69,7 @@ export default function RootLayout({
           <ErrorBoundary>
             <ThemeProviders>
               <EnsureSupabaseUser />
-              <SignupIssueBanner />
+              {/* <SignupIssueBanner /> */}
               <NavigationWrapper />
               {children}
             </ThemeProviders>

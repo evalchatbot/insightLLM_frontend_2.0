@@ -17,6 +17,7 @@ const Navbar = () => {
     const [mounted, setMounted] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [bannerVisible, setBannerVisible] = useState(false);
     const pathname = usePathname();
 
     useEffect(() => {
@@ -27,6 +28,14 @@ const Navbar = () => {
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+
+    // Check if signup banner should be visible
+    useEffect(() => {
+        if (!mounted || !isLoaded) return;
+        // Banner is visible if user is not logged in and banner hasn't been dismissed
+        const isDismissed = localStorage.getItem('signup_issue_banner_dismissed') === 'true';
+        setBannerVisible(!user && !isDismissed);
+    }, [mounted, isLoaded, user]);
 
     if (!mounted) return null;
 
@@ -41,10 +50,10 @@ const Navbar = () => {
 
     return (
         <header
-            className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${isScrolled
+            className={`fixed inset-x-0 z-50 transition-all duration-500 ${isScrolled
                 ? "py-4"
                 : "py-6"
-                }`}
+                } ${bannerVisible ? "top-[60px]" : "top-0"}`}
         >
             {/* Blur overlay only above navbar */}
             <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white/95 to-transparent dark:from-black/95 backdrop-blur-lg -z-10 pointer-events-none" />

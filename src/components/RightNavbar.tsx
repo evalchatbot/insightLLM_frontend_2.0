@@ -16,21 +16,12 @@ const RightNavbar = () => {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
-    const [bannerVisible, setBannerVisible] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
 
     useEffect(() => {
         setMounted(true);
     }, []);
-
-    // Check if signup banner should be visible
-    useEffect(() => {
-        if (!mounted || !isLoaded) return;
-        // Banner is visible if user is not logged in and banner hasn't been dismissed
-        const isDismissed = localStorage.getItem('signup_issue_banner_dismissed') === 'true';
-        setBannerVisible(!user && !isDismissed);
-    }, [mounted, isLoaded, user]);
 
     if (!mounted) return null;
 
@@ -48,7 +39,7 @@ const RightNavbar = () => {
             {/* Hamburger Button - Fixed on right side */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`fixed right-6 z-[60] p-3 rounded-full bg-white/90 dark:bg-black/90 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-lg hover:scale-110 transition-all duration-300 ${bannerVisible ? "top-[76px]" : "top-6"}`}
+                className="fixed top-6 right-6 z-[60] p-3 rounded-full bg-white/90 dark:bg-black/90 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-lg hover:scale-110 transition-all duration-300"
                 aria-label="Toggle Navigation"
             >
                 {isOpen ? (

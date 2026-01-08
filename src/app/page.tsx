@@ -10,6 +10,7 @@ import RotatingImages from "@/components/landing-components/RotatingImages";
 import FAQ from "@/components/landing-components/FAQ";
 import ProAccessModal from "@/components/header-components/pro-access-modal";
 import Footer from "@/components/Footer";
+import UnderConstructionNotice from "@/components/UnderConstructionNotice";
 
 export default function LandingPage() {
     const { user, isLoaded } = useUser();
@@ -83,6 +84,7 @@ export default function LandingPage() {
 
     return (
         <div className="min-h-screen bg-white dark:bg-zinc-950 relative overflow-x-hidden">
+            <UnderConstructionNotice />
             {/* Auth required toast */}
             {showAuthNotice && (
                 <motion.div

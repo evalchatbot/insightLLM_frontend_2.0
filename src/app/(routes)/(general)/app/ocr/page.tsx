@@ -1,10 +1,12 @@
 ﻿"use client"
 import OCRUpload from "@/components/OCRUpload"
+import UnderConstructionNotice from "@/components/UnderConstructionNotice"
 import { Clock, Target, TrendingUp, CheckCircle2 } from "lucide-react"
 
 export default function OCRPage() {
   return (
     <>
+      <UnderConstructionNotice />
       <main className="min-h-screen relative pt-40 overflow-hidden bg-white dark:bg-zinc-950">
         {/* Background Grid Pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />

@@ -11,6 +11,7 @@ import FAQ from "@/components/landing-components/FAQ";
 import ProAccessModal from "@/components/header-components/pro-access-modal";
 import Footer from "@/components/Footer";
 import UnderConstructionNotice from "@/components/UnderConstructionNotice";
+import FeedbackWidget from "@/components/FeedbackWidget";
 
 export default function LandingPage() {
     const { user, isLoaded } = useUser();
@@ -588,6 +589,9 @@ export default function LandingPage() {
                     </motion.div>
                 </div>
             )}
+
+            {/* Feedback Widget */}
+            <FeedbackWidget pageName="homepage" />
         </div>
     );
 }

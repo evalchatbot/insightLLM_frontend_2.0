@@ -12,11 +12,16 @@ import {
   getProgress,
   cancelJob,
   getJobResult,
+  gradeEssay,
+  submitEssayJob,
+  getEssayJobStatus,
+  getEssayJobResult,
   type JobStatus,
   type ProgressData
 } from "@/utils/ocr-api"
 import { Upload, X } from "lucide-react"
 import insightZustand from "@/utils/insight-zustand"
+import FeedbackWidget from "@/components/FeedbackWidget"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -38,6 +43,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   const [file, setFile] = useState<File | null>(null)
   const [exam, setExam] = useState("")
   const [subject, setSubject] = useState("")
+  const [isEssay, setIsEssay] = useState(false)
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loadingSubjects, setLoadingSubjects] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -46,6 +52,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<OCRResult | null>(null)
   const [annotatedPdfBlob, setAnnotatedPdfBlob] = useState<Blob | null>(null)
+  const [annotatedPdfUrl, setAnnotatedPdfUrl] = useState<string | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
   const [requestId, setRequestId] = useState<string | null>(null)
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
@@ -73,6 +80,11 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     return mapping[originalName] || originalName
   }
 
+  const isEnglishEssaySubject = (subjectId: string): boolean => {
+    const selectedSubject = subjects.find(s => s.id === subjectId)
+    return selectedSubject?.display_name === "English Essay" || subjectId === "english_essay"
+  }
+
   const renderSubjectOptions = () => {
     if (loadingSubjects) return null
     if (subjects.length === 0) return null
@@ -83,9 +95,21 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
       display_name: getDisplayName(s.display_name)
     }))
 
+    const prioritizeEssay = (a: Subject, b: Subject) => {
+      if (a.display_name === "English Essay") return -1
+      if (b.display_name === "English Essay") return 1
+      return 0
+    }
+
     if (exam === "PMS") {
-      const compulsoryNames = ["Pakistan Affairs", "Islamic Studies"]
-      const compulsory = transformedSubjects.filter(s => compulsoryNames.includes(s.display_name))
+      const compulsoryNames = ["Pakistan Affairs", "Islamic Studies", "English Essay"]
+      const compulsory = transformedSubjects
+        .filter(s => compulsoryNames.includes(s.display_name))
+        .sort(prioritizeEssay)
+      // Add English Essay if not in subjects list and keep it at top
+      if (!compulsory.some(s => s.display_name === "English Essay")) {
+        compulsory.unshift({ id: "english_essay", display_name: "English Essay" })
+      }
 
       const optionalNames = [
         "Business Administration",
@@ -103,7 +127,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
         <>
           <option value="">Select a subject</option>
           <optgroup label="COMPULSORY SUBJECTS">
-            {compulsory.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
+            {compulsory.map(s => <option key={s.id} value={s.id} disabled={s.display_name === "English Essay"} style={s.display_name === "English Essay" ? { color: '#999', opacity: 0.6 } : {}}>{s.display_name}{s.display_name === "English Essay" ? " (Coming Soon)" : ""}</option>)}
           </optgroup>
           <optgroup label="OPTIONAL SUBJECTS">
             {optional.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
@@ -111,15 +135,21 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
         </>
       )
     } else if (exam === "CSS") {
-      const compulsoryNames = ["Current Affairs", "Pakistan Affairs", "Islamic Studies"]
-      const compulsory = transformedSubjects.filter(s => compulsoryNames.includes(s.display_name))
+      const compulsoryNames = ["Current Affairs", "Pakistan Affairs", "Islamic Studies", "English Essay"]
+      const compulsory = transformedSubjects
+        .filter(s => compulsoryNames.includes(s.display_name))
+        .sort(prioritizeEssay)
+      // Add English Essay if not in subjects list and keep it at top
+      if (!compulsory.some(s => s.display_name === "English Essay")) {
+        compulsory.unshift({ id: "english_essay", display_name: "English Essay" })
+      }
       const optional = transformedSubjects.filter(s => !compulsoryNames.includes(s.display_name))
 
       return (
         <>
           <option value="">Select a subject</option>
           <optgroup label="COMPULSORY SUBJECTS">
-            {compulsory.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
+            {compulsory.map(s => <option key={s.id} value={s.id} disabled={s.display_name === "English Essay"} style={s.display_name === "English Essay" ? { color: '#999', opacity: 0.6 } : {}}>{s.display_name}{s.display_name === "English Essay" ? " (Coming Soon)" : ""}</option>)}
           </optgroup>
           <optgroup label="OPTIONAL SUBJECTS">
             {optional.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
@@ -265,6 +295,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
       setJobId(null)
       setRequestId(null)
       setJobStatus(null)
+      setAnnotatedPdfUrl(null)
     } catch (err) {
       console.error("Failed to cancel job:", err)
       const errorMessage = err instanceof Error ? err.message : "Failed to cancel job"
@@ -275,6 +306,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
   const handleEvaluate = async () => {
     if (!file || !user) return
+
     if (!exam) {
       setError("Please select an exam")
       return
@@ -287,18 +319,24 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     setLoading(true)
     setError(null)
     setProgress(0)
-    setLoadingStage("Submitting job...")
+    setLoadingStage(isEssay ? "Starting Essay Evaluation..." : "Submitting job...")
     setJobId(null)
     setRequestId(null)
     setJobStatus(null)
 
+    let newJobId: string
+    let newRequestId: string
+
     try {
-      // Submit job for background processing
-      const { jobId: newJobId, requestId: newRequestId } = await submitOCRJob(
-        file,
-        user.id,
-        subject
-      )
+      if (isEssay) {
+           const resp = await submitEssayJob(file, user.id);
+           newJobId = resp.jobId
+           newRequestId = resp.requestId
+      } else {
+           const resp = await submitOCRJob(file, user.id, subject);
+           newJobId = resp.jobId
+           newRequestId = resp.requestId
+      }
 
       setJobId(newJobId)
       setRequestId(newRequestId)
@@ -308,29 +346,59 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
       // Poll job status
       const pollStatus = async () => {
         try {
-          const status = await getJobStatus(newJobId)
+          const status = isEssay 
+              ? await getEssayJobStatus(newJobId)
+              : await getJobStatus(newJobId)
+
           if (!status) {
-            stopPolling()
-            setError("Job not found")
-            setLoading(false)
-            return
+             return 
           }
 
-          setJobStatus(status)
+          // Ensure we get the status string
+          const currentStatus = status.status || status;
+          setJobStatus(currentStatus)
 
-          if (status.status === "completed") {
+          if (currentStatus === "completed") {
             stopPolling()
             setProgress(100)
             setLoadingStage("✅ Evaluation complete! Retrieving results...")
 
-            // Get results
             try {
-              const { pdfBlob, metadata } = await getJobResult(newJobId)
-              setAnnotatedPdfBlob(pdfBlob)
-              setResults(metadata)
-              onResults?.(metadata)
-              const url = URL.createObjectURL(pdfBlob)
-              onAnnotatedPDF?.(url)
+              if (isEssay) {
+                  const essayData = await getEssayJobResult(newJobId);
+                  
+                  // Set results for essay too (essayData.result contains the grading data)
+                  if (essayData.result) {
+                      setResults(essayData.result as OCRResult);
+                      onResults?.(essayData.result as OCRResult);
+                  }
+                  
+                    if (essayData.annotated_pdf_url) {
+                      const url = essayData.annotated_pdf_url;
+                      setAnnotatedPdfUrl(url)
+                      onAnnotatedPDF?.(url)
+                      
+                      try {
+                        const resp = await fetch(url, { credentials: "include" })
+                        if (!resp.ok) throw new Error(`PDF download failed: ${resp.status}`)
+                        const blob = await resp.blob()
+                        setAnnotatedPdfBlob(blob)
+                      } catch (e) {
+                        console.error("Blob fetch failed", e)
+                        setAnnotatedPdfBlob(null)
+                        setError("Annotated PDF is ready. Click Download Report to open it.")
+                      }
+                    }
+              } else {
+                  const { pdfBlob, metadata } = await getJobResult(newJobId)
+                  setAnnotatedPdfBlob(pdfBlob)
+                  setResults(metadata)
+                  onResults?.(metadata)
+                    const url = URL.createObjectURL(pdfBlob)
+                    setAnnotatedPdfUrl(url)
+                    onAnnotatedPDF?.(url)
+              }
+              
               setLoadingStage("✅ Evaluation complete!")
               
               setTimeout(() => {
@@ -345,19 +413,18 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             } finally {
               setLoading(false)
             }
-          } else if (status.status === "failed") {
+          } else if (currentStatus === "failed") {
             stopPolling()
             setLoading(false)
             setError(status.error || "Job failed")
             setToast(status.error || "Job failed")
-          } else if (status.status === "cancelled") {
+          } else if (currentStatus === "cancelled") {
             stopPolling()
             setLoading(false)
             setError("Job was cancelled")
           }
         } catch (err) {
           console.error("Failed to poll job status:", err)
-          // Continue polling despite errors
         }
       }
 
@@ -460,6 +527,11 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
+      return
+    }
+
+    if (annotatedPdfUrl) {
+      window.open(annotatedPdfUrl, "_blank")
     }
   }
 
@@ -468,6 +540,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     setFile(null)
     setResults(null)
     setAnnotatedPdfBlob(null)
+    setAnnotatedPdfUrl(null)
     setError(null)
     setLoading(false)
     setLoadingStage("")
@@ -528,7 +601,10 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Select Subject</label>
             <select
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              onChange={(e) => {
+                setSubject(e.target.value)
+                setIsEssay(isEnglishEssaySubject(e.target.value))
+              }}
               disabled={loadingSubjects || !exam}
               className="w-full p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#2E5C55]/20 dark:focus:ring-[#4ade80]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -577,7 +653,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
           {/* Actions */}
           <Button
             onClick={handleEvaluate}
-            disabled={!file || !user || !subject || !exam || loading}
+            disabled={!file || !user || loading || (!subject || !exam)}
             className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? "Evaluating..." : "Analyze"}
@@ -658,7 +734,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
           )}
 
           {/* Report Ready */}
-          {annotatedPdfBlob && (
+          {(annotatedPdfBlob || annotatedPdfUrl) && (
             <Alert className="border-2 border-red-500/30 bg-red-50 dark:border-red-500/30 dark:bg-red-950/20 rounded-2xl">
               <AlertTitle className="text-red-700 dark:text-red-400 font-bold">Evaluation Report Ready</AlertTitle>
               <AlertDescription className="flex flex-col gap-3">
@@ -673,6 +749,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                   >
                     Evaluate Another Question
                   </button>
+                  <FeedbackWidget pageName="ocr-evaluation-result" variant="button" />
                 </div>
               </AlertDescription>
             </Alert>

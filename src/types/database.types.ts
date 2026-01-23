@@ -173,6 +173,54 @@ export interface Database {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          id: string
+          user_id: string | null
+          user_email: string | null
+          page_url: string
+          feedback_type: 'bug' | 'feature' | 'improvement' | 'general'
+          subject: string
+          message: string
+          rating: number | null
+          user_agent: string | null
+          created_at: string
+          updated_at: string
+          status: 'pending' | 'reviewed' | 'resolved' | 'closed'
+          admin_notes: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          user_email?: string | null
+          page_url: string
+          feedback_type: 'bug' | 'feature' | 'improvement' | 'general'
+          subject: string
+          message: string
+          rating?: number | null
+          user_agent?: string | null
+          created_at?: string
+          updated_at?: string
+          status?: 'pending' | 'reviewed' | 'resolved' | 'closed'
+          admin_notes?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          user_email?: string | null
+          page_url?: string
+          feedback_type?: 'bug' | 'feature' | 'improvement' | 'general'
+          subject?: string
+          message?: string
+          rating?: number | null
+          user_agent?: string | null
+          created_at?: string
+          updated_at?: string
+          status?: 'pending' | 'reviewed' | 'resolved' | 'closed'
+          admin_notes?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {}
     Functions: {}
@@ -210,3 +258,7 @@ export type UsageFreeUpdate = Database['public']['Tables']['usage_free']['Update
 export type UsageProRow = Database['public']['Tables']['usage_pro']['Row']
 export type UsageProInsert = Database['public']['Tables']['usage_pro']['Insert']
 export type UsageProUpdate = Database['public']['Tables']['usage_pro']['Update']
+
+export type FeedbackRow = Database['public']['Tables']['feedback']['Row']
+export type FeedbackInsert = Database['public']['Tables']['feedback']['Insert']
+export type FeedbackUpdate = Database['public']['Tables']['feedback']['Update']

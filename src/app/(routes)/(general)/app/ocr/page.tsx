@@ -1,6 +1,7 @@
 ﻿"use client"
 import OCRUpload from "@/components/OCRUpload"
 import UnderConstructionNotice from "@/components/UnderConstructionNotice"
+import FeedbackWidget from "@/components/FeedbackWidget"
 import { Clock, Target, TrendingUp, CheckCircle2 } from "lucide-react"
 
 export default function OCRPage() {
@@ -197,6 +198,9 @@ export default function OCRPage() {
           <p className="text-sm text-zinc-600 dark:text-zinc-400">© 2025 RUBRIC. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Feedback Widget */}
+      <FeedbackWidget pageName="ocr-evaluation" />
     </>
   )
 }

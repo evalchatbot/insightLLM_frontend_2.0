@@ -536,8 +536,6 @@ export async function getJobResult(jobId: string): Promise<{ pdfBlob: Blob; meta
     throw err;
   }
 }
-// Reusing JobStatus from backend-aligned type
-export type { JobStatus } from "./ocr-api";
 
 export interface EssayResult {
   structure: any;

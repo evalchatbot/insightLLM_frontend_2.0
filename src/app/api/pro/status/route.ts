@@ -4,29 +4,41 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-// Initialize Supabase with service role key for admin operations
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL');
-}
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
-}
+// Initialize Supabase with service role key for admin operations.
+// IMPORTANT: Avoid throwing at module load time; this can surface as a 404/route load failure.
+// Instead, validate inside the handler and return a structured error response.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false
-    }
-  }
-);
+const supabase = supabaseUrl && supabaseServiceKey
+  ? createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      }
+    )
+  : null;
 
 export async function GET(req: Request) {
   try {
-  // Read auth from the incoming request — cast to any to satisfy type expectations
-  const { userId } = getAuth((req as any) as any);
+    // Ensure Supabase is configured
+    if (!supabaseUrl || !supabaseServiceKey || !supabase) {
+      console.error('Pro status route misconfigured: missing Supabase env vars');
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Server configuration error: Supabase environment variables are missing.',
+        },
+        { status: 500 }
+      );
+    }
+
+    // Read auth from the incoming request — cast to any to satisfy type expectations
+    const { userId } = getAuth((req as any) as any);
     if (!userId) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
 
     // Get Clerk user to extract email (clerkClient is async factory)

@@ -536,3 +536,109 @@ export async function getJobResult(jobId: string): Promise<{ pdfBlob: Blob; meta
     throw err;
   }
 }
+
+export interface EssayResult {
+  structure: any;
+  grading: any;
+  annotations: any[];
+  page_suggestions: any[];
+  annotation_errors: any[];
+}
+// Renaming to match usage but internal implementation changes to polling
+export async function gradeEssay(
+  file: File,
+  userId: string
+): Promise<{ pdfUrl: string; result: EssayResult }> {
+  // We'll mimic the submitOCRJob -> poll pattern inside this function to keep the caller simple
+  // OR we can expose the job info. But the UI (OCRUpload) is already set up to wait. 
+  // Wait, OCRUpload handles polling for OCR. We should reuse THAT logic if possible, 
+  // or wrap the polling here so the UI just awaits.
+  // Given OCRUpload has `pollStatus` logic inside `handleEvaluate`, it might be easier to adopt THAT 
+  // pattern for essays too, but OCRUpload is currently monolithic.
+  
+  // Actually, OCRUpload calls `submitOCRJob` then polls.
+  // We want `gradeEssay` to do the same or return a Job ID?
+  // The user wants "progress bar". OCRUpload has a progress bar.
+  
+  // Ideally, we implement `submitEssayJob` and let OCRUpload poll it.
+  // But to minimize frontend changes (risk of breaking layout), let's make `gradeEssay`
+  // do the polling internally and invoke a callback for progress if we can add one, 
+  // or just block (mocking progress). 
+  // BUT the user specifically asked for "progress bar should be shown".
+  // The easiest way is to use the existing polling infrastructure in OCRUpload.
+  
+  // So: I will EXPORT `submitEssayJob` and `getEssayJobResult`.
+  // And modify OCRUpload to use these when mode is essay.
+  
+  if (!userId) { throw new Error('User ID is required'); }
+  
+  // Check limits first
+  try {
+    const limitCheck = await fetch('/api/ocr/check-limit', { method: 'POST' });
+    if (!limitCheck.ok) throw new Error("Limit check failed");
+    const ld = await limitCheck.json();
+    if (!ld.can_proceed) throw new Error(ld.message);
+  } catch (e: any) { throw e; }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('user_id', userId);
+
+  // Submit
+  const subResp = await fetch(`${BACKEND_URL}/api/essay/submit`, { method: 'POST', body: formData });
+  if (!subResp.ok) throw new Error("Failed to submit essay job");
+  const { jobId, requestId } = await subResp.json();
+  
+  // Poll
+  let result = null;
+  while (!result) {
+    await new Promise(r => setTimeout(r, 2000));
+    const statusResp = await fetch(`${BACKEND_URL}/api/essay/status/${jobId}`);
+    if (statusResp.ok) {
+        const status = await statusResp.json();
+        if (status.status === 'completed') {
+             const resResp = await fetch(`${BACKEND_URL}/api/essay/result/${jobId}`);
+             if (resResp.ok) {
+                 const data = await resResp.json();
+                 // Record usage
+                 fetch('/api/ocr/record-usage', { method: 'POST' }).catch(console.error);
+                 return { pdfUrl: data.annotated_pdf_url, result: data.result };
+             }
+        } else if (status.status === 'failed') {
+            throw new Error(status.error || "Essay grading failed");
+        }
+    }
+  }
+  throw new Error("Unexpected loop exit");
+}
+
+// Better approach: Expose the separate steps so React component can show progress
+export async function submitEssayJob(file: File, userId: string) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('user_id', userId);
+  const res = await fetch(`${BACKEND_URL}/api/essay/submit`, { method: 'POST', body: formData });
+  if (!res.ok) throw new Error("Submission failed");
+  return await res.json(); // { jobId, requestId }
+}
+
+export async function getEssayJobStatus(jobId: string) {
+   const res = await fetch(`${BACKEND_URL}/api/essay/status/${jobId}`);
+   if (!res.ok) return null;
+   return await res.json();
+}
+
+export async function getEssayJobResult(jobId: string) {
+   const res = await fetch(`${BACKEND_URL}/api/essay/result/${jobId}`);
+   if (!res.ok) throw new Error("Failed to get result");
+   const data = await res.json();
+   
+   // If url is relative, prepend backend url
+   if (data.annotated_pdf_url && data.annotated_pdf_url.startsWith('/')) {
+       data.annotated_pdf_url = `${BACKEND_URL}${data.annotated_pdf_url}`;
+   }
+   
+   return data; // { result, annotated_pdf_url }
+}
+
+

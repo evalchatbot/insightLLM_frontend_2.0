@@ -127,7 +127,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
         <>
           <option value="">Select a subject</option>
           <optgroup label="COMPULSORY SUBJECTS">
-            {compulsory.map(s => <option key={s.id} value={s.id} disabled={s.display_name === "English Essay"} style={s.display_name === "English Essay" ? { color: '#999', opacity: 0.6 } : {}}>{s.display_name}{s.display_name === "English Essay" ? " (Coming Soon)" : ""}</option>)}
+            {compulsory.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
           </optgroup>
           <optgroup label="OPTIONAL SUBJECTS">
             {optional.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
@@ -149,7 +149,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
         <>
           <option value="">Select a subject</option>
           <optgroup label="COMPULSORY SUBJECTS">
-            {compulsory.map(s => <option key={s.id} value={s.id} disabled={s.display_name === "English Essay"} style={s.display_name === "English Essay" ? { color: '#999', opacity: 0.6 } : {}}>{s.display_name}{s.display_name === "English Essay" ? " (Coming Soon)" : ""}</option>)}
+            {compulsory.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
           </optgroup>
           <optgroup label="OPTIONAL SUBJECTS">
             {optional.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}

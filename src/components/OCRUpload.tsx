@@ -386,7 +386,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                       } catch (e) {
                         console.error("Blob fetch failed", e)
                         setAnnotatedPdfBlob(null)
-                        setError("Annotated PDF is ready. Click Download Report to open it.")
+                        // PDF is ready but blob fetch failed - user can still download via button
                       }
                     }
               } else {
@@ -651,13 +651,35 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
           </div>
 
           {/* Actions */}
-          <Button
-            onClick={handleEvaluate}
-            disabled={!file || !user || loading || (!subject || !exam)}
-            className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? "Evaluating..." : "Analyze"}
-          </Button>
+          {isEssay ? (
+            /* Essay Mode - Two Buttons */
+            <div className="space-y-3">
+              <Button
+                onClick={handleEvaluate}
+                disabled={!file || !user || loading || (!subject || !exam)}
+                className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loading ? "Evaluating..." : "Complete Essay Analysis"}
+              </Button>
+              
+              <Button
+                disabled={true}
+                className="w-full py-6 text-lg font-bold bg-zinc-400 dark:bg-zinc-600 text-white rounded-xl shadow-lg cursor-not-allowed opacity-60"
+                title="Coming soon - Outline-only analysis pipeline"
+              >
+                Outline Only (Coming Soon)
+              </Button>
+            </div>
+          ) : (
+            /* Regular Subject Mode - Single Button */
+            <Button
+              onClick={handleEvaluate}
+              disabled={!file || !user || loading || (!subject || !exam)}
+              className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? "Evaluating..." : "Analyze"}
+            </Button>
+          )}
 
           {/* Progress Indicator */}
           {loading && (

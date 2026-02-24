@@ -641,4 +641,62 @@ export async function getEssayJobResult(jobId: string) {
    return data; // { result, annotated_pdf_url }
 }
 
+// ============================================================================
+// OUTLINE-ONLY JOB FUNCTIONS
+// ============================================================================
 
+export async function submitOutlineJob(file: File, userId: string) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('user_id', userId);
+  formData.append('pipeline', 'outline');
+  const res = await fetch(`${BACKEND_URL}/api/outline/submit`, { method: 'POST', body: formData });
+  if (!res.ok) throw new Error("Outline submission failed");
+  return await res.json(); // { jobId, requestId }
+}
+
+export async function getOutlineJobStatus(jobId: string) {
+  const res = await fetch(`${BACKEND_URL}/api/outline/status/${jobId}`);
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+export async function getOutlineJobResult(jobId: string) {
+  const res = await fetch(`${BACKEND_URL}/api/outline/result/${jobId}`);
+  if (!res.ok) throw new Error("Failed to get outline result");
+  const data = await res.json();
+  if (data.annotated_pdf_url && data.annotated_pdf_url.startsWith('/')) {
+    data.annotated_pdf_url = `${BACKEND_URL}${data.annotated_pdf_url}`;
+  }
+  return data; // { result, annotated_pdf_url }
+}
+
+// ============================================================================
+// PRECIS JOB FUNCTIONS
+// ============================================================================
+
+export async function submitPrecisJob(file: File, userId: string) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('user_id', userId);
+  formData.append('pipeline', 'precis');
+  const res = await fetch(`${BACKEND_URL}/api/precis/submit`, { method: 'POST', body: formData });
+  if (!res.ok) throw new Error("Precis submission failed");
+  return await res.json(); // { jobId, requestId }
+}
+
+export async function getPrecisJobStatus(jobId: string) {
+  const res = await fetch(`${BACKEND_URL}/api/precis/status/${jobId}`);
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+export async function getPrecisJobResult(jobId: string) {
+  const res = await fetch(`${BACKEND_URL}/api/precis/result/${jobId}`);
+  if (!res.ok) throw new Error("Failed to get precis result");
+  const data = await res.json();
+  if (data.annotated_pdf_url && data.annotated_pdf_url.startsWith('/')) {
+    data.annotated_pdf_url = `${BACKEND_URL}${data.annotated_pdf_url}`;
+  }
+  return data; // { result, annotated_pdf_url }
+}

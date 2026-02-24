@@ -16,6 +16,12 @@ import {
   submitEssayJob,
   getEssayJobStatus,
   getEssayJobResult,
+  submitOutlineJob,
+  getOutlineJobStatus,
+  getOutlineJobResult,
+  submitPrecisJob,
+  getPrecisJobStatus,
+  getPrecisJobResult,
   type JobStatus,
   type ProgressData
 } from "@/utils/ocr-api"
@@ -44,6 +50,8 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   const [exam, setExam] = useState("")
   const [subject, setSubject] = useState("")
   const [isEssay, setIsEssay] = useState(false)
+  const [isPrecis, setIsPrecis] = useState(false)
+  const [isOutlineMode, setIsOutlineMode] = useState(false)
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loadingSubjects, setLoadingSubjects] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -85,6 +93,11 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     return selectedSubject?.display_name === "English Essay" || subjectId === "english_essay"
   }
 
+  const isPrecisSubject = (subjectId: string): boolean => {
+    const selectedSubject = subjects.find(s => s.id === subjectId)
+    return selectedSubject?.display_name === "English Precis" || subjectId === "english_precis"
+  }
+
   const renderSubjectOptions = () => {
     if (loadingSubjects) return null
     if (subjects.length === 0) return null
@@ -102,13 +115,17 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     }
 
     if (exam === "PMS") {
-      const compulsoryNames = ["Pakistan Affairs", "Islamic Studies", "English Essay"]
+      const compulsoryNames = ["Pakistan Affairs", "Islamic Studies", "English Essay", "English Precis"]
       const compulsory = transformedSubjects
         .filter(s => compulsoryNames.includes(s.display_name))
         .sort(prioritizeEssay)
       // Add English Essay if not in subjects list and keep it at top
       if (!compulsory.some(s => s.display_name === "English Essay")) {
         compulsory.unshift({ id: "english_essay", display_name: "English Essay" })
+      }
+      // Add English Precis if not in subjects list
+      if (!compulsory.some(s => s.display_name === "English Precis")) {
+        compulsory.push({ id: "english_precis", display_name: "English Precis" })
       }
 
       const optionalNames = [
@@ -135,13 +152,17 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
         </>
       )
     } else if (exam === "CSS") {
-      const compulsoryNames = ["Current Affairs", "Pakistan Affairs", "Islamic Studies", "English Essay"]
+      const compulsoryNames = ["Current Affairs", "Pakistan Affairs", "Islamic Studies", "English Essay", "English Precis"]
       const compulsory = transformedSubjects
         .filter(s => compulsoryNames.includes(s.display_name))
         .sort(prioritizeEssay)
       // Add English Essay if not in subjects list and keep it at top
       if (!compulsory.some(s => s.display_name === "English Essay")) {
         compulsory.unshift({ id: "english_essay", display_name: "English Essay" })
+      }
+      // Add English Precis if not in subjects list
+      if (!compulsory.some(s => s.display_name === "English Precis")) {
+        compulsory.push({ id: "english_precis", display_name: "English Precis" })
       }
       const optional = transformedSubjects.filter(s => !compulsoryNames.includes(s.display_name))
 
@@ -304,8 +325,26 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     }
   }
 
-  const handleEvaluate = async () => {
+  const handleEvaluate = async (requestedMode: "auto" | "essay" | "outline" | "precis" | "regular" = "auto") => {
     if (!file || !user) return
+
+    const currentIsEssay = isEnglishEssaySubject(subject)
+    const currentIsPrecis = isPrecisSubject(subject)
+
+    const selectedMode: "essay" | "outline" | "precis" | "regular" =
+      requestedMode === "auto"
+        ? (currentIsPrecis
+            ? "precis"
+            : currentIsEssay
+            ? (isOutlineMode ? "outline" : "essay")
+            : "regular")
+        : (requestedMode === "auto" ? "regular" : requestedMode)
+
+    const useOutline = selectedMode === "outline"
+    const useEssay = selectedMode === "essay"
+    const usePrecis = selectedMode === "precis"
+
+    setIsOutlineMode(useOutline)
 
     if (!exam) {
       setError("Please select an exam")
@@ -319,7 +358,12 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     setLoading(true)
     setError(null)
     setProgress(0)
-    setLoadingStage(isEssay ? "Starting Essay Evaluation..." : "Submitting job...")
+    setLoadingStage(
+      useOutline ? "Starting Outline Evaluation..." :
+      useEssay ? "Starting Essay Evaluation..." :
+      usePrecis ? "Starting Precis Evaluation..." :
+      "Submitting job..."
+    )
     setJobId(null)
     setRequestId(null)
     setJobStatus(null)
@@ -328,8 +372,16 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     let newRequestId: string
 
     try {
-      if (isEssay) {
+      if (useOutline) {
+           const resp = await submitOutlineJob(file, user.id);
+           newJobId = resp.jobId
+           newRequestId = resp.requestId
+         } else if (useEssay) {
            const resp = await submitEssayJob(file, user.id);
+           newJobId = resp.jobId
+           newRequestId = resp.requestId
+         } else if (usePrecis) {
+           const resp = await submitPrecisJob(file, user.id);
            newJobId = resp.jobId
            newRequestId = resp.requestId
       } else {
@@ -346,8 +398,12 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
       // Poll job status
       const pollStatus = async () => {
         try {
-          const status = isEssay 
+          const status = useOutline
+              ? await getOutlineJobStatus(newJobId)
+              : useEssay 
               ? await getEssayJobStatus(newJobId)
+              : usePrecis
+              ? await getPrecisJobStatus(newJobId)
               : await getJobStatus(newJobId)
 
           if (!status) {
@@ -364,17 +420,21 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             setLoadingStage("✅ Evaluation complete! Retrieving results...")
 
             try {
-              if (isEssay) {
-                  const essayData = await getEssayJobResult(newJobId);
+                if (useOutline || useEssay || usePrecis) {
+                  // All three pipeline types return the same { result, annotated_pdf_url } shape
+                  const pipelineData = useOutline
+                    ? await getOutlineJobResult(newJobId)
+                  : useEssay
+                    ? await getEssayJobResult(newJobId)
+                    : await getPrecisJobResult(newJobId);
                   
-                  // Set results for essay too (essayData.result contains the grading data)
-                  if (essayData.result) {
-                      setResults(essayData.result as OCRResult);
-                      onResults?.(essayData.result as OCRResult);
+                  if (pipelineData.result) {
+                      setResults(pipelineData.result as OCRResult);
+                      onResults?.(pipelineData.result as OCRResult);
                   }
                   
-                    if (essayData.annotated_pdf_url) {
-                      const url = essayData.annotated_pdf_url;
+                    if (pipelineData.annotated_pdf_url) {
+                      const url = pipelineData.annotated_pdf_url;
                       setAnnotatedPdfUrl(url)
                       onAnnotatedPDF?.(url)
                       
@@ -386,7 +446,6 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                       } catch (e) {
                         console.error("Blob fetch failed", e)
                         setAnnotatedPdfBlob(null)
-                        // PDF is ready but blob fetch failed - user can still download via button
                       }
                     }
               } else {
@@ -549,6 +608,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     setRequestId(null)
     setJobStatus(null)
     setProgressData(null)
+    setIsOutlineMode(false)
     // Reset file input
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     if (fileInput) {
@@ -604,6 +664,8 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               onChange={(e) => {
                 setSubject(e.target.value)
                 setIsEssay(isEnglishEssaySubject(e.target.value))
+                setIsPrecis(isPrecisSubject(e.target.value))
+                setIsOutlineMode(false)
               }}
               disabled={loadingSubjects || !exam}
               className="w-full p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#2E5C55]/20 dark:focus:ring-[#4ade80]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -652,28 +714,37 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
           {/* Actions */}
           {isEssay ? (
-            /* Essay Mode - Two Buttons */
+            /* Essay Mode - Two Buttons: Full Essay + Outline Only */
             <div className="space-y-3">
               <Button
-                onClick={handleEvaluate}
+                onClick={() => handleEvaluate("essay")}
                 disabled={!file || !user || loading || (!subject || !exam)}
                 className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {loading ? "Evaluating..." : "Complete Essay Analysis"}
+                {loading && !isOutlineMode ? "Evaluating..." : "Complete Essay Analysis"}
               </Button>
               
               <Button
-                disabled={true}
-                className="w-full py-6 text-lg font-bold bg-zinc-400 dark:bg-zinc-600 text-white rounded-xl shadow-lg cursor-not-allowed opacity-60"
-                title="Coming soon - Outline-only analysis pipeline"
+                onClick={() => handleEvaluate("outline")}
+                disabled={!file || !user || loading || (!subject || !exam)}
+                className="w-full py-6 text-lg font-bold bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-xl shadow-lg shadow-amber-600/20 dark:shadow-amber-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Outline Only (Coming Soon)
+                {loading && isOutlineMode ? "Evaluating Outline..." : "Outline Only"}
               </Button>
             </div>
+          ) : isPrecis ? (
+            /* Precis Mode - Single Button */
+            <Button
+              onClick={() => handleEvaluate("precis")}
+              disabled={!file || !user || loading || (!subject || !exam)}
+              className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? "Evaluating Precis..." : "Analyze Precis"}
+            </Button>
           ) : (
             /* Regular Subject Mode - Single Button */
             <Button
-              onClick={handleEvaluate}
+              onClick={() => handleEvaluate("regular")}
               disabled={!file || !user || loading || (!subject || !exam)}
               className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
             >

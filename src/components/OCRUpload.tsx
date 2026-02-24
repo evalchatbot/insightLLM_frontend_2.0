@@ -338,7 +338,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             : currentIsEssay
             ? (isOutlineMode ? "outline" : "essay")
             : "regular")
-        : (requestedMode === "auto" ? "regular" : requestedMode)
+        : requestedMode
 
     const useOutline = selectedMode === "outline"
     const useEssay = selectedMode === "essay"

@@ -73,6 +73,35 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   const statusPollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const progressPollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  const getFriendlyOutlineStepMessage = (
+    stepNumber: number,
+    details?: ProgressData["details"]
+  ): string => {
+    const step = Math.max(1, Math.min(9, Number(stepNumber) || 1))
+    const labels: Record<number, string> = {
+      1: "We received your outline and started checking it.",
+      2: "Reading your pages clearly.",
+      3: "Extracting key outline points.",
+      4: "Understanding your structure and flow.",
+      5: "Checking quality against the rubric.",
+      6: "Preparing feedback and improvements.",
+      7: "Matching feedback to exact lines on your page.",
+      8: "Building your annotated PDF report.",
+      9: "Final review and saving your report.",
+    }
+
+    let message = labels[step] || "Working on your outline report."
+
+    if (
+      details?.pages_completed !== undefined &&
+      details?.total_pages !== undefined
+    ) {
+      message += ` (Page ${details.pages_completed} of ${details.total_pages})`
+    }
+
+    return message
+  }
+
   // Subject Mapping & Grouping Logic
   const getDisplayName = (originalName: string) => {
     const mapping: Record<string, string> = {
@@ -359,7 +388,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     setError(null)
     setProgress(0)
     setLoadingStage(
-      useOutline ? "Starting Outline Evaluation..." :
+      useOutline ? "Starting your outline evaluation..." :
       useEssay ? "Starting Essay Evaluation..." :
       usePrecis ? "Starting Precis Evaluation..." :
       "Submitting job..."
@@ -392,7 +421,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
       setJobId(newJobId)
       setRequestId(newRequestId)
-      setLoadingStage("Job submitted. Processing started...")
+      setLoadingStage(useOutline ? "Outline file uploaded. We are starting now..." : "Job submitted. Processing started...")
       setProgress(5)
 
       // Poll job status
@@ -417,7 +446,11 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
           if (currentStatus === "completed") {
             stopPolling()
             setProgress(100)
-            setLoadingStage("✅ Evaluation complete! Retrieving results...")
+            setLoadingStage(
+              useOutline
+                ? "Outline check complete. Getting your report..."
+                : "✅ Evaluation complete! Retrieving results..."
+            )
 
             try {
                 if (useOutline || useEssay || usePrecis) {
@@ -458,7 +491,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                     onAnnotatedPDF?.(url)
               }
               
-              setLoadingStage("✅ Evaluation complete!")
+              setLoadingStage(useOutline ? "✅ Done! Your outline report is ready." : "✅ Evaluation complete!")
               
               setTimeout(() => {
                 setLoadingStage("")
@@ -500,9 +533,13 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             
             // Build loading stage message
             let stageMessage = progressData.message || `Step ${progressData.step_number}/${progressData.total_steps}: ${progressData.step}`
+
+            if (useOutline) {
+              stageMessage = getFriendlyOutlineStepMessage(progressData.step_number, progressData.details)
+            }
             
             // Add page-level progress if available (during OCR step)
-            if (progressData.details?.pages_completed !== undefined && 
+            if (!useOutline && progressData.details?.pages_completed !== undefined && 
                 progressData.details?.total_pages !== undefined) {
               const pagesCompleted = progressData.details.pages_completed
               const totalPages = progressData.details.total_pages
@@ -800,19 +837,29 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               
               {jobStatus && jobStatus.status === "running" && (
                 <p className="text-xs text-zinc-600 dark:text-zinc-400 text-center">
-                  <span className="font-medium">Processing in background...</span><br />
+                  <span className="font-medium">
+                    {isOutlineMode ? "Your outline is being checked..." : "Processing in background..."}
+                  </span><br />
                   {jobId && (
                     <>
                       Job ID: <span className="font-mono text-xs">{jobId}</span><br />
                     </>
                   )}
-                  You can close this page and check back later. The job will continue processing.
+                  {isOutlineMode
+                    ? "Please wait while we prepare your report. You can keep this page open or come back later."
+                    : "You can close this page and check back later. The job will continue processing."}
                 </p>
               )}
               {(!jobStatus || jobStatus.status === "pending") && (
                 <p className="text-xs text-zinc-600 dark:text-zinc-400 text-center">
-                  <span className="font-medium">Starting processing...</span><br />
-                  Depending on document size and complexity, this may take <span className="font-semibold text-red-600 dark:text-red-400">3-4 minutes</span>.
+                  <span className="font-medium">
+                    {isOutlineMode ? "Setting things up for your outline..." : "Starting processing..."}
+                  </span><br />
+                  {isOutlineMode
+                    ? "This usually takes a few minutes."
+                    : <>
+                        Depending on document size and complexity, this may take <span className="font-semibold text-red-600 dark:text-red-400">3-4 minutes</span>.
+                      </>}
                 </p>
               )}
             </div>

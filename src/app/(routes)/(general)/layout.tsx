@@ -16,17 +16,19 @@ const GeneralLayout = ({ children }: { children: React.ReactNode }) => {
   const showInputPrompt = pathname === '/app' ||
     (pathname?.match(/^\/app\/[^/]+$/) &&
       !pathname.includes('/ocr') &&
+      !pathname.includes('/factbook') &&
       !pathname.includes('/help') &&
       !pathname.includes('/activity') &&
       !pathname.includes('/prompt-gallery'));
 
-  // Hide sidebar on OCR and Help pages
-  const showSidebar = !pathname?.includes('/ocr') && !pathname?.includes('/help');
+  // Hide sidebar on non-chat focused feature pages.
+  const showSidebar = !pathname?.includes('/ocr') && !pathname?.includes('/help') && !pathname?.includes('/factbook');
 
   // Check if this is a chat page (for styling adjustments)
   const isChatPage = pathname === '/app' || 
     (pathname?.match(/^\/app\/[^/]+$/) && 
      !pathname.includes('/ocr') && 
+     !pathname.includes('/factbook') &&
      !pathname.includes('/help') &&
      !pathname.includes('/quiz') &&
      !pathname.includes('/prompt-gallery') &&

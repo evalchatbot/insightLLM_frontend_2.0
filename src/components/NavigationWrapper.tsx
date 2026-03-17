@@ -12,6 +12,7 @@ const NavigationWrapper = () => {
     const isChatPage = pathname === '/app' || 
         (pathname?.match(/^\/app\/[^/]+$/) && 
          !pathname.includes('/ocr') && 
+         !pathname.includes('/factbook') &&
          !pathname.includes('/help') &&
          !pathname.includes('/quiz') &&
          !pathname.includes('/prompt-gallery') &&

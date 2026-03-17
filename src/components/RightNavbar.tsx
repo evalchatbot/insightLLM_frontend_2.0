@@ -3,39 +3,83 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import { FaMoon, FaSun } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, FileText, Brain, MessageSquare, X } from "lucide-react";
+import { Home, FileText, Brain, MessageSquare, BookOpenText, X, ChevronDown } from "lucide-react";
 import ProfileMenu from "./header-components/ProfileMenu";
+import TopLoader from "./header-components/top-loader";
+import insightZustand from "@/utils/insight-zustand";
+
+type DrawerNavChild = {
+    name: string;
+    href: string;
+};
+
+type DrawerNavLink = {
+    name: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    isActive?: boolean;
+    children?: DrawerNavChild[];
+};
 
 const RightNavbar = () => {
     const { user, isLoaded } = useUser();
     const { theme, setTheme } = useTheme();
+    const { setTopLoader } = insightZustand();
     const [mounted, setMounted] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
     const pathname = usePathname();
-    const router = useRouter();
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
+    useEffect(() => {
+        if (!isOpen) {
+            setOpenSubmenu(null);
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        setTopLoader(false);
+    }, [pathname, setTopLoader]);
+
     if (!mounted) return null;
 
     const isDark = theme === 'dark';
 
-    const navLinks = [
+    const navLinks: DrawerNavLink[] = [
         { name: "Home", href: "/", icon: Home },
         { name: "Evaluations", href: "/app/ocr", icon: FileText },
         { name: "MCQs", href: "/quiz", icon: Brain },
+        { name: "Fact Book", href: "/app/factbook", icon: BookOpenText },
         { name: "Chatbot", href: "/app", icon: MessageSquare, isActive: true },
     ];
 
+    const isPathActive = (href: string) => pathname === href || pathname?.startsWith(`${href}/`);
+
+    const startRouteLoader = (href: string) => {
+        if (isPathActive(href)) {
+            return;
+        }
+        setTopLoader(true);
+    };
+
+    const isLinkActive = (link: DrawerNavLink) => {
+        if (link.children?.length) {
+            return link.children.some((child) => isPathActive(child.href));
+        }
+        return isPathActive(link.href);
+    };
+
     return (
         <>
+            <TopLoader />
             {/* Hamburger Button - Fixed on right side */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
@@ -78,7 +122,14 @@ const RightNavbar = () => {
                     >
                         {/* Logo Section */}
                         <div className="p-6 border-b border-white/10">
-                            <Link href="/" className="flex items-center gap-3 group" onClick={() => setIsOpen(false)}>
+                            <Link
+                                href="/"
+                                className="flex items-center gap-3 group"
+                                onClick={() => {
+                                    startRouteLoader("/");
+                                    setIsOpen(false);
+                                }}
+                            >
                                 <div className="relative w-10 h-10 transition-transform group-hover:scale-110 duration-300">
                                     <Image
                                         src="/assets/Rubric logo.svg"
@@ -97,7 +148,7 @@ const RightNavbar = () => {
                         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                             {navLinks.map((link) => {
                                 const Icon = link.icon;
-                                const isActive = pathname === link.href || (link.href === '/app' && pathname?.startsWith('/app'));
+                                const active = isLinkActive(link);
 
                                 // Chatbot is disabled (Coming Soon)
                                 if (link.isActive) {
@@ -115,12 +166,64 @@ const RightNavbar = () => {
                                     );
                                 }
 
+                                if (link.children?.length) {
+                                    const isSubmenuOpen = openSubmenu === link.name;
+                                    return (
+                                        <div key={link.name} className="space-y-1">
+                                            <button
+                                                onClick={() => setOpenSubmenu(isSubmenuOpen ? null : link.name)}
+                                                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium transition-all duration-300 ${active
+                                                    ? "bg-black dark:bg-white text-white dark:text-black shadow-lg"
+                                                    : "text-zinc-600 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10 hover:text-black dark:hover:text-white"
+                                                    }`}
+                                            >
+                                                <Icon className="w-5 h-5" />
+                                                <span className="flex-1 text-left">{link.name}</span>
+                                                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isSubmenuOpen ? "rotate-180" : ""}`} />
+                                            </button>
+
+                                            <AnimatePresence>
+                                                {isSubmenuOpen && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: "auto" }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        <div className="pl-5 pr-2 pb-1 space-y-1">
+                                                            {link.children.map((child) => (
+                                                                <Link
+                                                                    key={child.name}
+                                                                    href={child.href}
+                                                                    onClick={() => {
+                                                                        startRouteLoader(child.href);
+                                                                        setIsOpen(false);
+                                                                    }}
+                                                                    className={`flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${isPathActive(child.href)
+                                                                        ? "bg-black text-white dark:bg-white dark:text-black"
+                                                                        : "text-zinc-600 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10"
+                                                                        }`}
+                                                                >
+                                                                    {child.name}
+                                                                </Link>
+                                                            ))}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    );
+                                }
+
                                 return (
                                     <Link
                                         key={link.name}
                                         href={link.href}
-                                        onClick={() => setIsOpen(false)}
-                                        className={`flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium transition-all duration-300 ${isActive
+                                        onClick={() => {
+                                            startRouteLoader(link.href);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium transition-all duration-300 ${active
                                                 ? "bg-black dark:bg-white text-white dark:text-black shadow-lg"
                                                 : "text-zinc-600 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10 hover:text-black dark:hover:text-white"
                                             }`}

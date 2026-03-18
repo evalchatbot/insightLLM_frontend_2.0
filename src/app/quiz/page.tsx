@@ -57,6 +57,12 @@ export default function QuizPage() {
   }, []);
 
   useEffect(() => {
+    if (!selectedGenre && genres.length > 0) {
+      setSelectedGenre(genres[0].id);
+    }
+  }, [genres, selectedGenre]);
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('quizBookmarks', JSON.stringify(Array.from(bookmarkedQuestions)));
     }
@@ -103,7 +109,7 @@ export default function QuizPage() {
     setLoading(true);
     setError(null);
     try {
-      const url = `/quiz/mcqs?genre_id=${selectedGenre}&limit=${questionCount}&random=true&useLocal=true`;
+      const url = `/quiz/mcqs?genre_id=${selectedGenre}&limit=${questionCount}&random=true`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`fetch mcqs ${res.status}`);
       const data = await res.json();
@@ -543,7 +549,7 @@ export default function QuizPage() {
                   value={selectedGenre}
                   onChange={(e) => setSelectedGenre(e.target.value)}
                 >
-                  <option value="">Select an exam first</option>
+                  <option value="">Select a subject</option>
                   {genres.map((g) => (
                     <option key={g.id} value={g.id}>{g.name}</option>
                   ))}

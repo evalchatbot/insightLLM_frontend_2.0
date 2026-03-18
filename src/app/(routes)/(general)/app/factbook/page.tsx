@@ -17,6 +17,9 @@ const playfair = Playfair_Display({ subsets: ["latin"], weight: ["600", "700"] }
 const sourceSans = Source_Sans_3({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 type BrowseMode = "date" | "topic";
+type DateSelectionMode = "single" | "range" | "multiple";
+type ModalDateSelectionMode = Exclude<DateSelectionMode, "single">;
+type FactbookDatePayload = Awaited<ReturnType<typeof fetchFactbookEditorials>>;
 
 const FALLBACK_TOPIC_GROUPS: FactbookTopicGroup[] = [
   {
@@ -59,7 +62,15 @@ function getLocalIsoDate(): string {
 }
 
 function formatDate(date: string): string {
+  if (!date) {
+    return "Unknown date";
+  }
+
   const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return date;
+  }
+
   return parsed.toLocaleDateString(undefined, {
     weekday: "short",
     year: "numeric",
@@ -108,10 +119,66 @@ function getInitialTopic(groups: FactbookTopicGroup[]): string {
   return "Economy";
 }
 
+function sortDateStringsDesc(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean))).sort((a, b) => {
+    if (a === b) {
+      return 0;
+    }
+    return a < b ? 1 : -1;
+  });
+}
+
+function getNormalizedDateRange(startDate: string, endDate: string): [string, string] {
+  if (!startDate || !endDate) {
+    return [startDate, endDate];
+  }
+  return startDate <= endDate ? [startDate, endDate] : [endDate, startDate];
+}
+
+function buildDateRangeSelection(startDate: string, endDate: string, datePool: string[]): string[] {
+  if (!startDate || !endDate || datePool.length === 0) {
+    return [];
+  }
+
+  const [from, to] = getNormalizedDateRange(startDate, endDate);
+  return sortDateStringsDesc(datePool.filter((dateValue) => dateValue >= from && dateValue <= to));
+}
+
+function mergeEditorialRows(editorialGroups: FactbookEditorial[][]): FactbookEditorial[] {
+  const deduped = new Map<string, FactbookEditorial>();
+
+  for (const rows of editorialGroups) {
+    for (const editorial of rows || []) {
+      const key = editorial.id || `${editorial.publication_date}::${editorial.headline}`;
+      if (!deduped.has(key)) {
+        deduped.set(key, editorial);
+      }
+    }
+  }
+
+  return Array.from(deduped.values()).sort((left, right) => {
+    if (left.publication_date !== right.publication_date) {
+      return left.publication_date < right.publication_date ? 1 : -1;
+    }
+    return (left.headline || "").localeCompare(right.headline || "");
+  });
+}
+
 export default function FactBookPage() {
   const [browseMode, setBrowseMode] = useState<BrowseMode>("date");
-  const [selectedDate, setSelectedDate] = useState<string>(getLocalIsoDate());
+  const [dateSelectionMode, setDateSelectionMode] = useState<DateSelectionMode>("single");
+  const [selectedDate, setSelectedDate] = useState<string>(() => getLocalIsoDate());
   const [autoDateSelection, setAutoDateSelection] = useState<boolean>(true);
+  const [rangeStartDate, setRangeStartDate] = useState<string>(() => getLocalIsoDate());
+  const [rangeEndDate, setRangeEndDate] = useState<string>(() => getLocalIsoDate());
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [selectionModalOpen, setSelectionModalOpen] = useState(false);
+  const [modalSelectionMode, setModalSelectionMode] = useState<ModalDateSelectionMode>("range");
+  const [modalRangeStartDate, setModalRangeStartDate] = useState<string>(() => getLocalIsoDate());
+  const [modalRangeEndDate, setModalRangeEndDate] = useState<string>(() => getLocalIsoDate());
+  const [modalSelectedDates, setModalSelectedDates] = useState<string[]>([]);
+  const [modalDateSearch, setModalDateSearch] = useState("");
+  const [modalError, setModalError] = useState<string | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string>("Economy");
   const [editorials, setEditorials] = useState<FactbookEditorial[]>([]);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -121,6 +188,8 @@ export default function FactBookPage() {
   const [error, setError] = useState<string | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [datesLoading, setDatesLoading] = useState(false);
+  const [allAvailableDates, setAllAvailableDates] = useState<string[]>([]);
+  const [allDatesLoading, setAllDatesLoading] = useState(false);
   const [topicGroups, setTopicGroups] = useState<FactbookTopicGroup[]>(FALLBACK_TOPIC_GROUPS);
   const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
   const [topicsLoading, setTopicsLoading] = useState(false);
@@ -128,7 +197,24 @@ export default function FactBookPage() {
   const topicDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const selectedMonth = useMemo(() => selectedDate.slice(0, 7), [selectedDate]);
-  const activeFilterKey = browseMode === "date" ? selectedDate : selectedTopic;
+  const normalizedSelectedDates = useMemo(() => sortDateStringsDesc(selectedDates), [selectedDates]);
+  const normalizedRange = useMemo(() => getNormalizedDateRange(rangeStartDate, rangeEndDate), [rangeEndDate, rangeStartDate]);
+  const normalizedRangeDates = useMemo(
+    () => buildDateRangeSelection(normalizedRange[0], normalizedRange[1], allAvailableDates),
+    [allAvailableDates, normalizedRange]
+  );
+
+  const activeDateFilterKey = useMemo(() => {
+    if (dateSelectionMode === "single") {
+      return autoDateSelection ? "date:auto" : `date:${selectedDate}`;
+    }
+    if (dateSelectionMode === "range") {
+      return `date:range:${normalizedRange[0]}:${normalizedRange[1]}`;
+    }
+    return `date:multiple:${normalizedSelectedDates.join(",")}`;
+  }, [autoDateSelection, dateSelectionMode, normalizedRange, normalizedSelectedDates, selectedDate]);
+
+  const activeFilterKey = browseMode === "date" ? activeDateFilterKey : selectedTopic;
 
   const editorialRows = useMemo(
     () =>
@@ -145,6 +231,53 @@ export default function FactBookPage() {
     () => availableDates.filter((dateValue) => dateValue.startsWith(`${selectedMonth}-`)).sort(),
     [availableDates, selectedMonth]
   );
+
+  const dateSelectionDisplay = useMemo(() => {
+    if (dateSelectionMode === "single") {
+      return autoDateSelection ? `Latest available (${formatDate(selectedDate)})` : formatDate(selectedDate);
+    }
+
+    if (dateSelectionMode === "range") {
+      return `${formatDate(normalizedRange[0])} to ${formatDate(normalizedRange[1])}`;
+    }
+
+    if (normalizedSelectedDates.length === 0) {
+      return "No dates selected";
+    }
+
+    if (normalizedSelectedDates.length === 1) {
+      return formatDate(normalizedSelectedDates[0]);
+    }
+
+    return `${normalizedSelectedDates.length} selected dates`;
+  }, [autoDateSelection, dateSelectionMode, normalizedRange, normalizedSelectedDates, selectedDate]);
+
+  const dateLoadingLabel = useMemo(() => {
+    if (dateSelectionMode === "single") {
+      return formatDate(selectedDate);
+    }
+    if (dateSelectionMode === "range") {
+      return `${formatDate(normalizedRange[0])} to ${formatDate(normalizedRange[1])}`;
+    }
+    if (normalizedSelectedDates.length === 0) {
+      return "selected dates";
+    }
+    return `${normalizedSelectedDates.length} selected dates`;
+  }, [dateSelectionMode, normalizedRange, normalizedSelectedDates, selectedDate]);
+
+  const modalRangePreviewDates = useMemo(
+    () => buildDateRangeSelection(modalRangeStartDate, modalRangeEndDate, allAvailableDates),
+    [allAvailableDates, modalRangeEndDate, modalRangeStartDate]
+  );
+
+  const filteredModalDateOptions = useMemo(() => {
+    const query = modalDateSearch.trim();
+    if (!query) {
+      return allAvailableDates;
+    }
+
+    return allAvailableDates.filter((dateValue) => dateValue.includes(query));
+  }, [allAvailableDates, modalDateSearch]);
 
   useEffect(() => {
     if (!topicDropdownOpen) {
@@ -163,6 +296,24 @@ export default function FactBookPage() {
       window.removeEventListener("mousedown", handleOutsideClick);
     };
   }, [topicDropdownOpen]);
+
+  useEffect(() => {
+    if (!selectionModalOpen) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectionModalOpen(false);
+        setModalError(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [selectionModalOpen]);
 
   useEffect(() => {
     let isMounted = true;
@@ -204,7 +355,7 @@ export default function FactBookPage() {
   }, []);
 
   useEffect(() => {
-    if (browseMode !== "date") {
+    if (browseMode !== "date" || dateSelectionMode !== "single") {
       return;
     }
 
@@ -217,7 +368,8 @@ export default function FactBookPage() {
         if (!isMounted) {
           return;
         }
-        setAvailableDates(dates);
+        setAvailableDates(sortDateStringsDesc(dates));
+        setAllAvailableDates((currentDates) => sortDateStringsDesc([...currentDates, ...dates]));
       } catch {
         if (!isMounted) {
           return;
@@ -235,10 +387,49 @@ export default function FactBookPage() {
     return () => {
       isMounted = false;
     };
-  }, [browseMode, selectedMonth]);
+  }, [browseMode, dateSelectionMode, selectedMonth]);
 
   useEffect(() => {
-    if (browseMode !== "date" || availableDates.length === 0) {
+    if (browseMode !== "date") {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadAllEditorialDates = async () => {
+      setAllDatesLoading(true);
+      try {
+        const allDates = await fetchFactbookEditorialDates(undefined, { bypassCache: true });
+        if (!isMounted) {
+          return;
+        }
+        const normalized = sortDateStringsDesc(allDates);
+        setAllAvailableDates(normalized);
+
+        if (dateSelectionMode === "multiple") {
+          setSelectedDates((currentDates) => currentDates.filter((dateValue) => normalized.includes(dateValue)));
+        }
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+        setAllAvailableDates((currentDates) => currentDates);
+      } finally {
+        if (isMounted) {
+          setAllDatesLoading(false);
+        }
+      }
+    };
+
+    loadAllEditorialDates();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [browseMode, dateSelectionMode]);
+
+  useEffect(() => {
+    if (browseMode !== "date" || dateSelectionMode !== "single" || availableDates.length === 0) {
       return;
     }
 
@@ -255,16 +446,14 @@ export default function FactBookPage() {
         })
         .catch(() => undefined);
     }
-  }, [browseMode, availableDates]);
+  }, [availableDates, browseMode, dateSelectionMode]);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadEditorials = async () => {
       const cacheKey = browseMode === "date"
-        ? autoDateSelection
-          ? "date:auto"
-          : `date:${selectedDate}`
+        ? activeDateFilterKey
         : `topic:${selectedTopic}`;
 
       const cachedRows = editorialCacheRef.current.get(cacheKey);
@@ -279,23 +468,56 @@ export default function FactBookPage() {
 
       try {
         if (browseMode === "date") {
-          const payload = await fetchFactbookEditorials(autoDateSelection ? undefined : selectedDate);
-          if (!isMounted) {
+          if (dateSelectionMode === "single") {
+            const payload = await fetchFactbookEditorials(autoDateSelection ? undefined : selectedDate);
+            if (!isMounted) {
+              return;
+            }
+
+            const resolvedDate = payload.date || selectedDate;
+            const rows = payload.editorials || [];
+
+            editorialCacheRef.current.set(`date:${resolvedDate}`, rows);
+            editorialCacheRef.current.set("date:auto", rows);
+            editorialCacheRef.current.set(cacheKey, rows);
+            setEditorials(rows);
+            setExpandedCardId(null);
+
+            if (autoDateSelection && resolvedDate !== selectedDate) {
+              setSelectedDate(resolvedDate);
+            }
+
             return;
           }
 
-          const resolvedDate = payload.date || selectedDate;
-          const rows = payload.editorials || [];
+          const targetDates = dateSelectionMode === "range" ? normalizedRangeDates : normalizedSelectedDates;
 
-          editorialCacheRef.current.set(`date:${resolvedDate}`, rows);
-          editorialCacheRef.current.set("date:auto", rows);
-          setEditorials(rows);
-          setExpandedCardId(null);
-
-          if (autoDateSelection && resolvedDate !== selectedDate) {
-            setSelectedDate(resolvedDate);
+          if (targetDates.length === 0) {
+            editorialCacheRef.current.set(cacheKey, []);
+            setEditorials([]);
+            setExpandedCardId(null);
+            return;
           }
 
+          const settledResults = await Promise.allSettled(
+            targetDates.map((dateValue) => fetchFactbookEditorials(dateValue))
+          );
+
+          const successfulPayloads: FactbookDatePayload[] = settledResults
+            .filter((result): result is PromiseFulfilledResult<FactbookDatePayload> => result.status === "fulfilled")
+            .map((result) => result.value);
+
+          if (!successfulPayloads.length) {
+            const firstFailure = settledResults.find(
+              (result): result is PromiseRejectedResult => result.status === "rejected"
+            );
+            throw firstFailure?.reason || new Error("Failed to fetch editorials for selected dates.");
+          }
+
+          const mergedRows = mergeEditorialRows(successfulPayloads.map((payload) => payload.editorials || []));
+          editorialCacheRef.current.set(cacheKey, mergedRows);
+          setEditorials(mergedRows);
+          setExpandedCardId(null);
           return;
         }
 
@@ -313,7 +535,7 @@ export default function FactBookPage() {
         }
         setEditorials([]);
         setExpandedCardId(null);
-        setError(err?.message || "Failed to load editorials for this date.");
+        setError(err?.message || "Failed to load editorials for selected filters.");
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -322,13 +544,104 @@ export default function FactBookPage() {
     };
 
     if (browseMode === "date" || (browseMode === "topic" && selectedTopic)) {
-      loadEditorials();
+      void loadEditorials();
     }
 
     return () => {
       isMounted = false;
     };
-  }, [autoDateSelection, browseMode, selectedDate, selectedTopic]);
+  }, [
+    activeDateFilterKey,
+    autoDateSelection,
+    browseMode,
+    dateSelectionMode,
+    normalizedRangeDates,
+    normalizedSelectedDates,
+    selectedDate,
+    selectedTopic,
+  ]);
+
+  const switchToSingleDate = (dateValue?: string, useAuto = false) => {
+    setDateSelectionMode("single");
+    setSelectedDates([]);
+    setModalError(null);
+
+    if (useAuto) {
+      setAutoDateSelection(true);
+      setSelectedDate(getLocalIsoDate());
+      return;
+    }
+
+    if (dateValue) {
+      setSelectedDate(dateValue);
+    }
+    setAutoDateSelection(false);
+  };
+
+  const openSelectionModal = () => {
+    const nextMode: ModalDateSelectionMode = dateSelectionMode === "single" ? "range" : dateSelectionMode;
+    setModalSelectionMode(nextMode);
+
+    const [nextRangeStart, nextRangeEnd] = getNormalizedDateRange(
+      dateSelectionMode === "range" ? rangeStartDate : selectedDate,
+      dateSelectionMode === "range" ? rangeEndDate : selectedDate
+    );
+
+    setModalRangeStartDate(nextRangeStart || getLocalIsoDate());
+    setModalRangeEndDate(nextRangeEnd || getLocalIsoDate());
+    setModalSelectedDates(
+      sortDateStringsDesc(
+        dateSelectionMode === "multiple" && selectedDates.length > 0
+          ? selectedDates
+          : selectedDate
+            ? [selectedDate]
+            : []
+      )
+    );
+    setModalDateSearch("");
+    setModalError(null);
+    setSelectionModalOpen(true);
+  };
+
+  const toggleModalSelectedDate = (dateValue: string) => {
+    setModalSelectedDates((currentDates) => {
+      if (currentDates.includes(dateValue)) {
+        return currentDates.filter((entry) => entry !== dateValue);
+      }
+      return sortDateStringsDesc([...currentDates, dateValue]);
+    });
+    setModalError(null);
+  };
+
+  const applySelectionModal = () => {
+    setModalError(null);
+
+    if (modalSelectionMode === "range") {
+      const [nextRangeStart, nextRangeEnd] = getNormalizedDateRange(modalRangeStartDate, modalRangeEndDate);
+      if (!nextRangeStart || !nextRangeEnd) {
+        setModalError("Select both start and end dates.");
+        return;
+      }
+
+      setDateSelectionMode("range");
+      setAutoDateSelection(false);
+      setRangeStartDate(nextRangeStart);
+      setRangeEndDate(nextRangeEnd);
+      setSelectionModalOpen(false);
+      return;
+    }
+
+    const normalizedDates = sortDateStringsDesc(modalSelectedDates);
+    if (normalizedDates.length === 0) {
+      setModalError("Select at least one date.");
+      return;
+    }
+
+    setDateSelectionMode("multiple");
+    setAutoDateSelection(false);
+    setSelectedDates(normalizedDates);
+    setSelectionModalOpen(false);
+  };
 
   const switchBrowseMode = (nextMode: BrowseMode) => {
     if (nextMode === browseMode) {
@@ -340,10 +653,11 @@ export default function FactBookPage() {
     setError(null);
     setTopicDropdownOpen(false);
     setFilterPanelOpen(true);
+    setSelectionModalOpen(false);
+    setModalError(null);
 
     if (nextMode === "date") {
-      setAutoDateSelection(true);
-      setSelectedDate(getLocalIsoDate());
+      switchToSingleDate(undefined, true);
       return;
     }
   };
@@ -393,7 +707,13 @@ export default function FactBookPage() {
             </div>
 
             <div className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-rose-800/70 dark:bg-rose-950/38 dark:text-rose-100 px-3 py-1 text-xs font-semibold">
-              {browseMode === "date" ? "Editorials by Date" : `Topic: ${selectedTopic}`}
+              {browseMode === "date"
+                ? dateSelectionMode === "single"
+                  ? "Editorials by Date"
+                  : dateSelectionMode === "range"
+                    ? "Editorials by Date Range"
+                    : "Editorials by Multiple Dates"
+                : `Topic: ${selectedTopic}`}
             </div>
           </div>
         </motion.section>
@@ -404,7 +724,7 @@ export default function FactBookPage() {
               <div className="rounded-2xl border border-zinc-200 dark:border-rose-900/70 bg-white/92 dark:bg-rose-950/28 p-5 flex items-center gap-3 text-zinc-700 dark:text-rose-100">
                 <Loader2 className="w-5 h-5 animate-spin" />
                 {browseMode === "date"
-                  ? `Loading editorials for ${formatDate(selectedDate)}...`
+                  ? `Loading editorials for ${dateLoadingLabel}...`
                   : `Loading editorials for topic ${selectedTopic}...`}
               </div>
             )}
@@ -418,7 +738,11 @@ export default function FactBookPage() {
             {!isLoading && !error && editorialRows.length === 0 && (
               <div className="rounded-2xl border border-zinc-200 dark:border-rose-900/70 bg-white/92 dark:bg-rose-950/28 p-6 text-zinc-700 dark:text-rose-100">
                 {browseMode === "date"
-                  ? `No editorials available for ${formatDate(selectedDate)} yet.`
+                  ? dateSelectionMode === "single"
+                    ? `No editorials available for ${formatDate(selectedDate)} yet.`
+                    : dateSelectionMode === "range"
+                      ? `No editorials available between ${formatDate(normalizedRange[0])} and ${formatDate(normalizedRange[1])} yet.`
+                      : "No editorials available for the selected dates yet."
                   : `No editorials available for topic ${selectedTopic} yet.`}
               </div>
             )}
@@ -527,10 +851,10 @@ export default function FactBookPage() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-500 dark:text-rose-200/80">
-                    {browseMode === "date" ? "Editorial Date" : "Selected Topic"}
+                    {browseMode === "date" ? "Date Filters" : "Selected Topic"}
                   </p>
                   <p className="mt-1 text-sm font-medium text-zinc-800 dark:text-rose-50">
-                    {browseMode === "date" ? formatDate(selectedDate) : selectedTopic}
+                    {browseMode === "date" ? dateSelectionDisplay : selectedTopic}
                   </p>
                 </div>
 
@@ -555,54 +879,128 @@ export default function FactBookPage() {
                   >
                     {browseMode === "date" ? (
                       <>
-                        <label htmlFor="factbook-date" className="block text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-rose-200/80 mb-2">
-                          Pick a date
-                        </label>
-                        <input
-                          id="factbook-date"
-                          type="date"
-                          value={selectedDate}
-                          onChange={(event) => {
-                            setAutoDateSelection(false);
-                            setSelectedDate(event.target.value);
-                          }}
-                          min="2026-01-01"
-                          max={getLocalIsoDate()}
-                          className={`w-full rounded-lg border bg-white dark:bg-[#2a111c] px-3 py-2 text-sm text-zinc-800 dark:text-rose-50 outline-none focus:ring-2 focus:ring-zinc-400/35 dark:focus:ring-rose-400/35 ${availableDateSet.has(selectedDate)
-                            ? "border-emerald-400 dark:border-rose-400"
-                            : "border-zinc-300 dark:border-rose-900/80"
-                            }`}
-                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => switchToSingleDate(undefined, true)}
+                            className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${dateSelectionMode === "single"
+                              ? "border-zinc-900 bg-zinc-900 text-white dark:border-rose-200 dark:bg-rose-200 dark:text-rose-950"
+                              : "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-rose-900/80 dark:text-rose-100 dark:hover:bg-rose-900/40"
+                              }`}
+                          >
+                            Latest Day
+                          </button>
+                          <button
+                            type="button"
+                            onClick={openSelectionModal}
+                            className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${dateSelectionMode === "single"
+                              ? "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-rose-900/80 dark:text-rose-100 dark:hover:bg-rose-900/40"
+                              : "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:border-rose-300 dark:bg-rose-300/20 dark:text-rose-100"
+                              }`}
+                          >
+                            Range / Multi
+                          </button>
+                        </div>
 
-                        <div className="mt-3">
+                        <div className="mt-3 rounded-lg border border-zinc-200 dark:border-rose-900/70 bg-zinc-50/70 dark:bg-rose-950/30 p-3">
                           <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-zinc-500 dark:text-rose-200/80">
-                            {datesLoading ? "Checking available dates..." : "Available dates this month"}
+                            Active selection
                           </p>
-                          {!datesLoading && monthDateRows.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {monthDateRows.map((dateValue) => (
-                                <button
-                                  key={dateValue}
-                                  type="button"
-                                  onClick={() => {
-                                    setAutoDateSelection(false);
-                                    setSelectedDate(dateValue);
-                                  }}
-                                  className={`min-w-8 rounded-md border px-2 py-1 text-xs transition-colors ${dateValue === selectedDate
-                                    ? "border-emerald-500 bg-emerald-500 text-white dark:border-rose-400 dark:bg-rose-400 dark:text-rose-950"
-                                    : "border-zinc-300 dark:border-rose-900/80 hover:border-emerald-400 dark:hover:border-rose-500 dark:text-rose-100"
-                                    }`}
-                                  title={formatDate(dateValue)}
-                                >
-                                  {dateValue.slice(8)}
-                                </button>
-                              ))}
-                            </div>
+                          <p className="mt-1 text-sm font-semibold text-zinc-800 dark:text-rose-50">
+                            {dateSelectionDisplay}
+                          </p>
+
+                          {dateSelectionMode === "range" && (
+                            <p className="mt-2 text-xs text-zinc-600 dark:text-rose-100/80">
+                              {normalizedRangeDates.length} synced dates found inside this range.
+                            </p>
                           )}
-                          {!datesLoading && monthDateRows.length === 0 && (
-                            <p className="mt-1 text-xs text-zinc-500 dark:text-rose-200/80">No synced dates for this month yet.</p>
+
+                          {dateSelectionMode === "multiple" && (
+                            <>
+                              <p className="mt-2 text-xs text-zinc-600 dark:text-rose-100/80">
+                                {normalizedSelectedDates.length} dates selected.
+                              </p>
+                              {normalizedSelectedDates.length > 0 && (
+                                <div className="mt-2 flex max-h-24 flex-wrap gap-1.5 overflow-y-auto pr-1">
+                                  {normalizedSelectedDates.slice(0, 18).map((dateValue) => (
+                                    <span
+                                      key={`selected-${dateValue}`}
+                                      className="rounded-md border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 dark:border-rose-900/75 dark:text-rose-100"
+                                    >
+                                      {dateValue}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                          {allDatesLoading && (
+                            <p className="mt-2 text-xs text-zinc-500 dark:text-rose-200/80">
+                              Refreshing synced dates...
+                            </p>
                           )}
                         </div>
+
+                        {dateSelectionMode === "single" && (
+                          <>
+                            <label htmlFor="factbook-date" className="mt-3 block text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-rose-200/80 mb-2">
+                              Pick a date
+                            </label>
+                            <input
+                              id="factbook-date"
+                              type="date"
+                              value={selectedDate}
+                              onChange={(event) => {
+                                switchToSingleDate(event.target.value);
+                              }}
+                              min="2026-01-01"
+                              max={getLocalIsoDate()}
+                              className={`w-full rounded-lg border bg-white dark:bg-[#2a111c] px-3 py-2 text-sm text-zinc-800 dark:text-rose-50 outline-none focus:ring-2 focus:ring-zinc-400/35 dark:focus:ring-rose-400/35 ${availableDateSet.has(selectedDate)
+                                ? "border-emerald-400 dark:border-rose-400"
+                                : "border-zinc-300 dark:border-rose-900/80"
+                                }`}
+                            />
+
+                            <div className="mt-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-zinc-500 dark:text-rose-200/80">
+                                {datesLoading ? "Checking available dates..." : "Available dates this month"}
+                              </p>
+                              {!datesLoading && monthDateRows.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  {monthDateRows.map((dateValue) => (
+                                    <button
+                                      key={dateValue}
+                                      type="button"
+                                      onClick={() => {
+                                        switchToSingleDate(dateValue);
+                                      }}
+                                      className={`min-w-8 rounded-md border px-2 py-1 text-xs transition-colors ${dateValue === selectedDate
+                                        ? "border-emerald-500 bg-emerald-500 text-white dark:border-rose-400 dark:bg-rose-400 dark:text-rose-950"
+                                        : "border-zinc-300 dark:border-rose-900/80 hover:border-emerald-400 dark:hover:border-rose-500 dark:text-rose-100"
+                                        }`}
+                                      title={formatDate(dateValue)}
+                                    >
+                                      {dateValue.slice(8)}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              {!datesLoading && monthDateRows.length === 0 && (
+                                <p className="mt-1 text-xs text-zinc-500 dark:text-rose-200/80">No synced dates for this month yet.</p>
+                              )}
+                            </div>
+                          </>
+                        )}
+
+                        {dateSelectionMode !== "single" && (
+                          <p className="mt-3 text-xs text-zinc-600 dark:text-rose-100/80">
+                            {dateSelectionMode === "range"
+                              ? "Showing merged editorials for each synced date inside the selected range."
+                              : "Showing merged editorials for all selected dates."}
+                          </p>
+                        )}
                       </>
                     ) : (
                       <>
@@ -677,13 +1075,215 @@ export default function FactBookPage() {
 
               <p className="mt-4 text-xs leading-relaxed text-zinc-600 dark:text-rose-100/90">
                 {browseMode === "date"
-                  ? "Use date mode to browse the latest day and switch calendar dates."
+                  ? "Use date mode for single day, date range, or multiple-date selections from the advanced picker."
                   : "Use topic mode to browse editorials by domain across dates."}
               </p>
             </div>
           </aside>
         </div>
       </div>
+
+      <AnimatePresence>
+        {selectionModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <button
+              type="button"
+              className="absolute inset-0 bg-zinc-900/60 backdrop-blur-[2px]"
+              onClick={() => {
+                setSelectionModalOpen(false);
+                setModalError(null);
+              }}
+              aria-label="Close date selection modal"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              className="relative z-10 w-full max-w-xl rounded-3xl border border-zinc-200 bg-white/95 p-5 shadow-2xl dark:border-rose-900/80 dark:bg-[#220f1a]/95"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className={`${playfair.className} text-2xl leading-tight text-zinc-900 dark:text-rose-50`}>
+                    Advanced Date Selection
+                  </h2>
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-rose-100/85">
+                    Pick a synced date range or handpick multiple dates.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectionModalOpen(false);
+                    setModalError(null);
+                  }}
+                  className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-rose-900/80 dark:text-rose-100 dark:hover:bg-rose-900/45"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="mt-4 inline-flex w-full rounded-xl border border-zinc-300 dark:border-rose-900/80 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setModalSelectionMode("range")}
+                  className={`flex-1 px-3 py-2 text-sm font-semibold transition-colors ${modalSelectionMode === "range"
+                    ? "bg-zinc-900 text-white dark:bg-rose-200 dark:text-rose-950"
+                    : "bg-transparent text-zinc-700 dark:text-rose-100"
+                    }`}
+                >
+                  Date Range
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalSelectionMode("multiple")}
+                  className={`flex-1 px-3 py-2 text-sm font-semibold transition-colors ${modalSelectionMode === "multiple"
+                    ? "bg-zinc-900 text-white dark:bg-rose-200 dark:text-rose-950"
+                    : "bg-transparent text-zinc-700 dark:text-rose-100"
+                    }`}
+                >
+                  Multiple Dates
+                </button>
+              </div>
+
+              {modalSelectionMode === "range" ? (
+                <div className="mt-4 space-y-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="factbook-modal-range-start" className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-rose-200/80">
+                        Start date
+                      </label>
+                      <input
+                        id="factbook-modal-range-start"
+                        type="date"
+                        value={modalRangeStartDate}
+                        onChange={(event) => {
+                          setModalRangeStartDate(event.target.value);
+                          setModalError(null);
+                        }}
+                        min="2026-01-01"
+                        max={getLocalIsoDate()}
+                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:ring-2 focus:ring-zinc-400/35 dark:border-rose-900/80 dark:bg-[#2a111c] dark:text-rose-50 dark:focus:ring-rose-400/35"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="factbook-modal-range-end" className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-rose-200/80">
+                        End date
+                      </label>
+                      <input
+                        id="factbook-modal-range-end"
+                        type="date"
+                        value={modalRangeEndDate}
+                        onChange={(event) => {
+                          setModalRangeEndDate(event.target.value);
+                          setModalError(null);
+                        }}
+                        min="2026-01-01"
+                        max={getLocalIsoDate()}
+                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:ring-2 focus:ring-zinc-400/35 dark:border-rose-900/80 dark:bg-[#2a111c] dark:text-rose-50 dark:focus:ring-rose-400/35"
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-zinc-600 dark:text-rose-100/85">
+                    {modalRangePreviewDates.length} synced dates in this range.
+                  </p>
+
+                  {modalRangePreviewDates.length > 0 && (
+                    <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50/80 p-2 dark:border-rose-900/70 dark:bg-rose-950/30">
+                      {modalRangePreviewDates.slice(0, 24).map((dateValue) => (
+                        <span
+                          key={`modal-range-preview-${dateValue}`}
+                          className="rounded-md border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 dark:border-rose-900/75 dark:text-rose-100"
+                        >
+                          {dateValue}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  <label htmlFor="factbook-modal-search" className="block text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-rose-200/80">
+                    Filter dates
+                  </label>
+                  <input
+                    id="factbook-modal-search"
+                    type="text"
+                    placeholder="Search YYYY-MM"
+                    value={modalDateSearch}
+                    onChange={(event) => setModalDateSearch(event.target.value)}
+                    className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 outline-none focus:ring-2 focus:ring-zinc-400/35 dark:border-rose-900/80 dark:bg-[#2a111c] dark:text-rose-50 dark:focus:ring-rose-400/35"
+                  />
+
+                  <p className="text-xs text-zinc-600 dark:text-rose-100/85">
+                    {modalSelectedDates.length} date{modalSelectedDates.length === 1 ? "" : "s"} selected.
+                  </p>
+
+                  <div className="max-h-64 overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50/80 p-2 dark:border-rose-900/70 dark:bg-rose-950/30">
+                    {allDatesLoading ? (
+                      <p className="px-2 py-3 text-xs text-zinc-500 dark:text-rose-200/80">Loading synced dates...</p>
+                    ) : filteredModalDateOptions.length === 0 ? (
+                      <p className="px-2 py-3 text-xs text-zinc-500 dark:text-rose-200/80">No matching dates.</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {filteredModalDateOptions.map((dateValue) => {
+                          const isSelected = modalSelectedDates.includes(dateValue);
+                          return (
+                            <button
+                              key={`modal-select-${dateValue}`}
+                              type="button"
+                              onClick={() => toggleModalSelectedDate(dateValue)}
+                              className={`w-full rounded-md border px-2.5 py-2 text-left text-sm transition-colors ${isSelected
+                                ? "border-emerald-500 bg-emerald-500 text-white dark:border-rose-300 dark:bg-rose-300 dark:text-rose-950"
+                                : "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-rose-900/80 dark:text-rose-100 dark:hover:bg-rose-900/45"
+                                }`}
+                            >
+                              {dateValue}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {modalError && (
+                <p className="mt-3 rounded-lg border border-rose-300/80 bg-rose-50/85 px-3 py-2 text-xs text-rose-700 dark:border-rose-700/80 dark:bg-rose-950/45 dark:text-rose-100">
+                  {modalError}
+                </p>
+              )}
+
+              <div className="mt-5 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectionModalOpen(false);
+                    setModalError(null);
+                  }}
+                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-rose-900/80 dark:text-rose-100 dark:hover:bg-rose-900/45"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={applySelectionModal}
+                  className="rounded-lg border border-zinc-900 bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:opacity-90 dark:border-rose-200 dark:bg-rose-200 dark:text-rose-950"
+                >
+                  Apply Selection
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

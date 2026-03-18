@@ -44,7 +44,7 @@ export async function GET(req: Request) {
     const useLocal = url.searchParams.get('useLocal') === 'true' || url.searchParams.get('useLocal') === '1';
 
     // If a backend URL is configured and the caller did not request local data, proxy the request there
-    const backend = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backend = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
     if (backend && !useLocal) {
       const proxyUrl = `${backend.replace(/\/$/, '')}/quiz/mcqs?genre_id=${encodeURIComponent(genre_id)}&limit=${limit}&random=${random}`;
       const res = await fetch(proxyUrl);
@@ -56,7 +56,7 @@ export async function GET(req: Request) {
 
     // If Supabase is configured, query the mcqs table
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (supabaseUrl && supabaseKey) {
       const supabase = createClient(supabaseUrl, supabaseKey);
       const { data, error } = await supabase

@@ -357,7 +357,7 @@ When updating documentation:
 **Date**: [YYYY-MM-DD]
 
 ### Files Updated
-- `docs/file.md`: [What was added/changed]
+- `Documents/file.md`: [What was added/changed]
 
 ### Reason
 [Why was documentation updated?]
@@ -403,7 +403,7 @@ Before committing changes, ensure:
 ## Documentation File Structure
 
 ```
-docs/
+Documents/
 ├── FRONTEND_DOCUMENTATION.md      # Main overview and architecture
 ├── COMPONENTS_DOCUMENTATION.md     # All components
 ├── API_ROUTES_DOCUMENTATION.md     # All API routes

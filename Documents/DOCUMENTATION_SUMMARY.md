@@ -108,7 +108,7 @@ Templates and guidelines for documenting future changes:
 Includes checklists and best practices.
 
 ### 6. Documentation Index
-**File**: `docs/README.md`
+**File**: `Documents/DOCUMENTS_INDEX.md`
 
 Quick reference guide with:
 - Links to all documentation
@@ -122,8 +122,8 @@ Quick reference guide with:
 
 ```
 insightLLM_frontend_2.0/
-├── docs/
-│   ├── README.md                          # Documentation index
+├── Documents/
+│   ├── DOCUMENTS_INDEX.md                 # Documentation index
 │   ├── FRONTEND_DOCUMENTATION.md          # Main architecture (80+ sections)
 │   ├── COMPONENTS_DOCUMENTATION.md        # All components (60+ components)
 │   ├── API_ROUTES_DOCUMENTATION.md        # All API routes (10+ endpoints)
@@ -138,7 +138,7 @@ insightLLM_frontend_2.0/
 ## 🎯 How to Use This Documentation
 
 ### For New Developers
-1. **Start Here**: Read `docs/README.md` for overview
+1. **Start Here**: Read `Documents/DOCUMENTS_INDEX.md` for overview
 2. **Architecture**: Read `FRONTEND_DOCUMENTATION.md` to understand the system
 3. **Components**: Use `COMPONENTS_DOCUMENTATION.md` as a reference when working with components
 4. **APIs**: Check `API_ROUTES_DOCUMENTATION.md` when working with backend
@@ -277,7 +277,7 @@ insightLLM_frontend_2.0/
 ## 🎓 Learning Resources
 
 ### Documentation Files
-- Start with `docs/README.md` for navigation
+- Start with `Documents/DOCUMENTS_INDEX.md` for navigation
 - Read `FRONTEND_DOCUMENTATION.md` for architecture
 - Use `COMPONENTS_DOCUMENTATION.md` as reference
 - Check `API_ROUTES_DOCUMENTATION.md` for APIs

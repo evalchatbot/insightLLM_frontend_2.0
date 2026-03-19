@@ -61,7 +61,7 @@ Welcome to the Rubrik AI Frontend documentation! This directory contains compreh
 
 ```
 Documents/
-├── README.md                          # This file - documentation index
+├── DOCUMENTS_INDEX.md                 # This file - documentation index
 ├── FRONTEND_DOCUMENTATION.md          # Main architecture and overview
 ├── COMPONENTS_DOCUMENTATION.md        # All components
 ├── API_ROUTES_DOCUMENTATION.md        # All API routes

@@ -150,7 +150,7 @@ insightLLM_frontend_2.0/
 ├── public/                     # Static assets
 │   └── assets/                # Images, icons, etc.
 │
-├── docs/                       # Documentation
+├── Documents/                  # Documentation
 │   └── FRONTEND_DOCUMENTATION.md
 │
 └── package.json               # Dependencies and scripts

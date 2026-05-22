@@ -8,22 +8,16 @@ import { useUser, SignInButton } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import { FaMoon, FaSun } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, FileText, Brain, MessageSquare, BookOpenText, X, ChevronDown } from "lucide-react";
+import { Home, FileText, Brain, MessageSquare, BookOpenText, X } from "lucide-react";
 import ProfileMenu from "./header-components/ProfileMenu";
 import TopLoader from "./header-components/top-loader";
 import insightZustand from "@/utils/insight-zustand";
-
-type DrawerNavChild = {
-    name: string;
-    href: string;
-};
 
 type DrawerNavLink = {
     name: string;
     href: string;
     icon: React.ComponentType<{ className?: string }>;
     isActive?: boolean;
-    children?: DrawerNavChild[];
 };
 
 const RightNavbar = () => {
@@ -32,18 +26,11 @@ const RightNavbar = () => {
     const { setTopLoader } = insightZustand();
     const [mounted, setMounted] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
-    const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
     const pathname = usePathname();
 
     useEffect(() => {
         setMounted(true);
     }, []);
-
-    useEffect(() => {
-        if (!isOpen) {
-            setOpenSubmenu(null);
-        }
-    }, [isOpen]);
 
     useEffect(() => {
         setTopLoader(false);
@@ -58,6 +45,7 @@ const RightNavbar = () => {
         { name: "Evaluations", href: "/app/ocr", icon: FileText },
         { name: "MCQs", href: "/quiz", icon: Brain },
         { name: "Fact Book", href: "/app/factbook", icon: BookOpenText },
+        { name: "Past Papers", href: "/app/past-papers", icon: BookOpenText },
         { name: "Chatbot", href: "/app", icon: MessageSquare, isActive: true },
     ];
 
@@ -71,9 +59,6 @@ const RightNavbar = () => {
     };
 
     const isLinkActive = (link: DrawerNavLink) => {
-        if (link.children?.length) {
-            return link.children.some((child) => isPathActive(child.href));
-        }
         return isPathActive(link.href);
     };
 
@@ -162,55 +147,6 @@ const RightNavbar = () => {
                                             <span className="ml-auto text-red-500 text-[7px] font-bold uppercase tracking-wide">
                                                 Soon
                                             </span>
-                                        </div>
-                                    );
-                                }
-
-                                if (link.children?.length) {
-                                    const isSubmenuOpen = openSubmenu === link.name;
-                                    return (
-                                        <div key={link.name} className="space-y-1">
-                                            <button
-                                                onClick={() => setOpenSubmenu(isSubmenuOpen ? null : link.name)}
-                                                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium transition-all duration-300 ${active
-                                                    ? "bg-black dark:bg-white text-white dark:text-black shadow-lg"
-                                                    : "text-zinc-600 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10 hover:text-black dark:hover:text-white"
-                                                    }`}
-                                            >
-                                                <Icon className="w-5 h-5" />
-                                                <span className="flex-1 text-left">{link.name}</span>
-                                                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isSubmenuOpen ? "rotate-180" : ""}`} />
-                                            </button>
-
-                                            <AnimatePresence>
-                                                {isSubmenuOpen && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, height: 0 }}
-                                                        animate={{ opacity: 1, height: "auto" }}
-                                                        exit={{ opacity: 0, height: 0 }}
-                                                        className="overflow-hidden"
-                                                    >
-                                                        <div className="pl-5 pr-2 pb-1 space-y-1">
-                                                            {link.children.map((child) => (
-                                                                <Link
-                                                                    key={child.name}
-                                                                    href={child.href}
-                                                                    onClick={() => {
-                                                                        startRouteLoader(child.href);
-                                                                        setIsOpen(false);
-                                                                    }}
-                                                                    className={`flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${isPathActive(child.href)
-                                                                        ? "bg-black text-white dark:bg-white dark:text-black"
-                                                                        : "text-zinc-600 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10"
-                                                                        }`}
-                                                                >
-                                                                    {child.name}
-                                                                </Link>
-                                                            ))}
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
                                         </div>
                                     );
                                 }

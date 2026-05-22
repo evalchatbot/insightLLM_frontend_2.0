@@ -7,8 +7,8 @@ import RightNavbar from "./RightNavbar";
 const NavigationWrapper = () => {
     const pathname = usePathname();
 
-    // Show RightNavbar (hamburger on right) for chat pages: /app and /app/[chat]
-    // Exclude other /app routes like /app/ocr, /app/help, etc.
+    // Show RightNavbar (hamburger on right) only for chat pages: /app and /app/[chat]
+    // Exclude feature pages like /app/ocr, /app/help, /app/factbook, /app/past-papers, etc.
     const isChatPage = pathname === '/app' || 
         (pathname?.match(/^\/app\/[^/]+$/) && 
          !pathname.includes('/ocr') && 
@@ -16,7 +16,8 @@ const NavigationWrapper = () => {
          !pathname.includes('/help') &&
          !pathname.includes('/quiz') &&
          !pathname.includes('/prompt-gallery') &&
-         !pathname.includes('/activity'));
+         !pathname.includes('/activity') &&
+         !pathname.includes('/past-papers'));
 
     // Show regular Navbar for all other pages
     if (isChatPage) {

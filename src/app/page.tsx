@@ -3,15 +3,20 @@
 import React, { useState, useEffect } from "react";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Check, Zap, Brain, Users, FileText, CheckCircle2, MessageSquare, Mail, Phone, X, ChevronDown } from "lucide-react";
 import RotatingImages from "@/components/landing-components/RotatingImages";
 import FAQ from "@/components/landing-components/FAQ";
-import ProAccessModal from "@/components/header-components/pro-access-modal";
 import Footer from "@/components/Footer";
 import UnderConstructionNotice from "@/components/UnderConstructionNotice";
 import FeedbackWidget from "@/components/FeedbackWidget";
+
+const ProAccessModal = dynamic(
+    () => import("@/components/header-components/pro-access-modal"),
+    { ssr: false }
+);
 
 export default function LandingPage() {
     const { user, isLoaded } = useUser();

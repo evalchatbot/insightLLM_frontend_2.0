@@ -83,7 +83,7 @@ const DevInput = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={labelName && labelName}
             {...props}
-            className="autofill:duration-[5000s] autofill:delay-0 autofill:ease-in-out bg-transparent rounded text-sm outline-0 w-full"
+            className="autofill:duration-&lsqb;5000s&rsqb; autofill:delay-0 autofill:ease-in-out bg-transparent rounded text-sm outline-0 w-full"
           />
         </div>
       </div>

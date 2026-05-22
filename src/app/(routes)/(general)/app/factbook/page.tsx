@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarDays, ChevronDown, Loader2 } from "lucide-react";
+import { jsPDF } from "jspdf";
 import { Playfair_Display, Source_Sans_3 } from "next/font/google";
 import {
   FactbookEditorial,
@@ -19,6 +20,7 @@ const sourceSans = Source_Sans_3({ subsets: ["latin"], weight: ["400", "500", "6
 type BrowseMode = "date" | "topic";
 type DateSelectionMode = "single" | "range" | "multiple";
 type ModalDateSelectionMode = Exclude<DateSelectionMode, "single">;
+type TopicDateMode = "current" | "range" | "all";
 type FactbookDatePayload = Awaited<ReturnType<typeof fetchFactbookEditorials>>;
 
 const FALLBACK_TOPIC_GROUPS: FactbookTopicGroup[] = [
@@ -144,6 +146,117 @@ function buildDateRangeSelection(startDate: string, endDate: string, datePool: s
   return sortDateStringsDesc(datePool.filter((dateValue) => dateValue >= from && dateValue <= to));
 }
 
+function sanitizePdfFileName(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64) || "factbook";
+}
+
+function filterEditorialsBySelectedDates(
+  rows: FactbookEditorial[],
+  dateSelectionMode: DateSelectionMode,
+  selectedDate: string,
+  normalizedRangeDates: string[],
+  normalizedSelectedDates: string[]
+): FactbookEditorial[] {
+  if (dateSelectionMode === "range") {
+    const dateSet = new Set(normalizedRangeDates);
+    return rows.filter((row) => dateSet.has(row.publication_date));
+  }
+
+  if (dateSelectionMode === "multiple") {
+    const dateSet = new Set(normalizedSelectedDates);
+    return rows.filter((row) => dateSet.has(row.publication_date));
+  }
+
+  return rows.filter((row) => row.publication_date === selectedDate);
+}
+
+function generateFactbookPdf(
+  rows: FactbookEditorial[],
+  options: {
+    title: string;
+    subtitle: string;
+    fileName: string;
+  }
+): void {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const marginX = 42;
+  const marginY = 44;
+  const contentWidth = pageWidth - marginX * 2;
+
+  let cursorY = marginY;
+
+  const ensureSpace = (requiredHeight: number) => {
+    if (cursorY + requiredHeight <= pageHeight - marginY) {
+      return;
+    }
+    doc.addPage();
+    cursorY = marginY;
+  };
+
+  const writeWrapped = (text: string, fontSize = 11, lineGap = 15, isBold = false) => {
+    const cleanText = (text || "").trim();
+    if (!cleanText) {
+      return 0;
+    }
+
+    doc.setFont("times", isBold ? "bold" : "normal");
+    doc.setFontSize(fontSize);
+    const lines = doc.splitTextToSize(cleanText, contentWidth);
+    const requiredHeight = lines.length * lineGap;
+    ensureSpace(requiredHeight + 6);
+    doc.text(lines, marginX, cursorY);
+    cursorY += requiredHeight;
+    return requiredHeight;
+  };
+
+  doc.setTextColor(17, 24, 39);
+  writeWrapped(options.title, 20, 24, true);
+  cursorY += 2;
+  writeWrapped(options.subtitle, 11, 15, false);
+  cursorY += 10;
+
+  rows.forEach((row, index) => {
+    const blockHeightEstimate = 210;
+    ensureSpace(blockHeightEstimate);
+
+    if (index > 0) {
+      cursorY += 8;
+      ensureSpace(40);
+    }
+
+    writeWrapped(`${formatDate(row.publication_date)}  •  ${row.topic_domain || "Other"}`, 9.5, 13, true);
+    cursorY += 2;
+    writeWrapped(row.headline, 15, 18, true);
+    cursorY += 4;
+
+    const summaryLines = [
+      ...(row.summary_bullets || []).slice(0, 3).map((bullet) => `• ${bullet}`),
+      row.takeaway ? `Takeaway: ${row.takeaway}` : "",
+      row.summary_paragraph ? `Brief: ${row.summary_paragraph}` : "",
+    ].filter(Boolean);
+
+    summaryLines.forEach((line) => {
+      writeWrapped(line, 10.5, 14, false);
+      cursorY += 2;
+    });
+
+    cursorY += 6;
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.8);
+    doc.line(marginX, cursorY, pageWidth - marginX, cursorY);
+    cursorY += 12;
+  });
+
+  doc.save(`${sanitizePdfFileName(options.fileName)}.pdf`);
+}
+
 function mergeEditorialRows(editorialGroups: FactbookEditorial[][]): FactbookEditorial[] {
   const deduped = new Map<string, FactbookEditorial>();
 
@@ -165,7 +278,7 @@ function mergeEditorialRows(editorialGroups: FactbookEditorial[][]): FactbookEdi
 }
 
 export default function FactBookPage() {
-  const [browseMode, setBrowseMode] = useState<BrowseMode>("date");
+  const [browseMode, setBrowseMode] = useState<BrowseMode>("topic");
   const [dateSelectionMode, setDateSelectionMode] = useState<DateSelectionMode>("single");
   const [selectedDate, setSelectedDate] = useState<string>(() => getLocalIsoDate());
   const [autoDateSelection, setAutoDateSelection] = useState<boolean>(true);
@@ -180,6 +293,7 @@ export default function FactBookPage() {
   const [modalDateSearch, setModalDateSearch] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string>("Economy");
+  const [topicDateMode, setTopicDateMode] = useState<TopicDateMode>("current");
   const [editorials, setEditorials] = useState<FactbookEditorial[]>([]);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [filterPanelOpen, setFilterPanelOpen] = useState(true);
@@ -193,6 +307,8 @@ export default function FactBookPage() {
   const [topicGroups, setTopicGroups] = useState<FactbookTopicGroup[]>(FALLBACK_TOPIC_GROUPS);
   const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
   const [topicsLoading, setTopicsLoading] = useState(false);
+  const [isPdfExporting, setIsPdfExporting] = useState(false);
+  const [pdfExportError, setPdfExportError] = useState<string | null>(null);
   const editorialCacheRef = useRef<Map<string, FactbookEditorial[]>>(new Map());
   const topicDropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -214,15 +330,44 @@ export default function FactBookPage() {
     return `date:multiple:${normalizedSelectedDates.join(",")}`;
   }, [autoDateSelection, dateSelectionMode, normalizedRange, normalizedSelectedDates, selectedDate]);
 
-  const activeFilterKey = browseMode === "date" ? activeDateFilterKey : selectedTopic;
+  const displayedEditorials = useMemo(() => {
+    if (browseMode !== "topic") {
+      return editorials;
+    }
+
+    if (topicDateMode === "all") {
+      return editorials;
+    }
+
+    return filterEditorialsBySelectedDates(
+      editorials,
+      dateSelectionMode,
+      autoDateSelection ? getLocalIsoDate() : selectedDate,
+      normalizedRangeDates,
+      normalizedSelectedDates
+    );
+  }, [
+    autoDateSelection,
+    browseMode,
+    dateSelectionMode,
+    editorials,
+    normalizedRangeDates,
+    normalizedSelectedDates,
+    topicDateMode,
+    selectedDate,
+  ]);
+
+  const activeFilterKey = browseMode === "date"
+    ? activeDateFilterKey
+    : `topic:${selectedTopic}:${topicDateMode}:${dateSelectionMode}:${selectedDate}:${rangeStartDate}:${rangeEndDate}:${selectedDates.join(",")}`;
 
   const editorialRows = useMemo(
     () =>
-      editorials.map((editorial, index) => ({
+      displayedEditorials.map((editorial, index) => ({
         ...editorial,
         cardId: `${activeFilterKey}-${index}`,
       })),
-    [editorials, activeFilterKey]
+    [activeFilterKey, displayedEditorials]
   );
 
   const availableDateSet = useMemo(() => new Set(availableDates), [availableDates]);
@@ -521,7 +666,7 @@ export default function FactBookPage() {
           return;
         }
 
-        const response = await fetchFactbookEditorialsByTopic(selectedTopic);
+        const response = await fetchFactbookEditorialsByTopic(selectedTopic, 500);
         if (!isMounted) {
           return;
         }
@@ -660,6 +805,70 @@ export default function FactBookPage() {
       switchToSingleDate(undefined, true);
       return;
     }
+
+    setTopicDateMode("current");
+  };
+
+  const handleDownloadCurrentPdf = async () => {
+    if (!displayedEditorials.length) {
+      setPdfExportError("There are no editorials in the current selection to export.");
+      return;
+    }
+
+    try {
+      setIsPdfExporting(true);
+      setPdfExportError(null);
+
+      const title = browseMode === "date"
+        ? "Fact Book - Selected Dates"
+        : topicDateMode === "all"
+          ? `Fact Book - ${selectedTopic} (All Time)`
+          : `Fact Book - ${selectedTopic}`;
+
+      const subtitle = browseMode === "date"
+        ? `Selection: ${dateSelectionDisplay}`
+        : topicDateMode === "all"
+          ? `Topic: ${selectedTopic} | Selection: All Time`
+          : `Topic: ${selectedTopic} | Selection: ${dateSelectionDisplay}`;
+
+      const fileName = browseMode === "date"
+        ? `factbook-${dateSelectionMode}-${selectedDate}`
+        : topicDateMode === "all"
+          ? `factbook-${sanitizePdfFileName(selectedTopic)}-all-time`
+          : `factbook-${sanitizePdfFileName(selectedTopic)}-filtered`;
+
+      generateFactbookPdf(displayedEditorials, { title, subtitle, fileName });
+    } catch (downloadError: any) {
+      setPdfExportError(downloadError?.message || "Unable to generate the PDF right now.");
+    } finally {
+      setIsPdfExporting(false);
+    }
+  };
+
+  const handleDownloadTopicPdf = async () => {
+    if (browseMode !== "topic") {
+      return;
+    }
+
+    if (!editorials.length) {
+      setPdfExportError("No topic editorials are available to export yet.");
+      return;
+    }
+
+    try {
+      setIsPdfExporting(true);
+      setPdfExportError(null);
+
+      generateFactbookPdf(editorials, {
+        title: `Fact Book - ${selectedTopic} (Complete Topic)`,
+        subtitle: `Complete topic export for ${selectedTopic}`,
+        fileName: `factbook-${sanitizePdfFileName(selectedTopic)}-complete`,
+      });
+    } catch (downloadError: any) {
+      setPdfExportError(downloadError?.message || "Unable to generate the PDF right now.");
+    } finally {
+      setIsPdfExporting(false);
+    }
   };
 
   return (
@@ -713,7 +922,9 @@ export default function FactBookPage() {
                   : dateSelectionMode === "range"
                     ? "Editorials by Date Range"
                     : "Editorials by Multiple Dates"
-                : `Topic: ${selectedTopic}`}
+                : topicDateMode === "all"
+                  ? `Topic: ${selectedTopic} | All Time`
+                  : `Topic: ${selectedTopic}`}
             </div>
           </div>
         </motion.section>
@@ -825,27 +1036,13 @@ export default function FactBookPage() {
 
           <aside className="order-1 xl:order-2 xl:sticky xl:top-28">
             <div className="rounded-3xl border border-zinc-200/80 dark:border-rose-900/70 bg-white/94 dark:bg-[#220f1a]/86 backdrop-blur-xl p-5 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.28)] dark:shadow-[0_22px_54px_-34px_rgba(159,18,57,0.45)]">
-              <div className="mb-4 inline-flex w-full rounded-xl border border-zinc-300 dark:border-rose-900/80 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => void switchBrowseMode("date")}
-                  className={`flex-1 px-3 py-2 text-sm font-semibold transition-colors ${browseMode === "date"
-                    ? "bg-zinc-900 text-white dark:bg-rose-200 dark:text-rose-950"
-                    : "bg-transparent text-zinc-700 dark:text-rose-100"
-                    }`}
-                >
-                  By Date
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void switchBrowseMode("topic")}
-                  className={`flex-1 px-3 py-2 text-sm font-semibold transition-colors ${browseMode === "topic"
-                    ? "bg-zinc-900 text-white dark:bg-rose-200 dark:text-rose-950"
-                    : "bg-transparent text-zinc-700 dark:text-rose-100"
-                    }`}
-                >
-                  By Topic
-                </button>
+              <div className="mb-4 border-b border-zinc-200/80 pb-3 dark:border-rose-900/70">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-500 dark:text-rose-200/80">
+                  Topic
+                </p>
+                <h3 className="mt-1 text-xl font-semibold text-zinc-900 dark:text-rose-50">
+                  Select a topic
+                </h3>
               </div>
 
               <div className="flex items-center justify-between gap-4">
@@ -854,7 +1051,7 @@ export default function FactBookPage() {
                     {browseMode === "date" ? "Date Filters" : "Selected Topic"}
                   </p>
                   <p className="mt-1 text-sm font-medium text-zinc-800 dark:text-rose-50">
-                    {browseMode === "date" ? dateSelectionDisplay : selectedTopic}
+                    {browseMode === "date" ? dateSelectionDisplay : topicDateMode === "all" ? "All Time" : dateSelectionDisplay}
                   </p>
                 </div>
 
@@ -1064,10 +1261,99 @@ export default function FactBookPage() {
                           </AnimatePresence>
                         </div>
 
+                        <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-rose-900/70 bg-zinc-50/80 dark:bg-rose-950/30 p-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-zinc-500 dark:text-rose-200/80">
+                            Topic date filter
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-zinc-800 dark:text-rose-50">
+                            {topicDateMode === "all"
+                              ? "All Time"
+                              : dateSelectionDisplay}
+                          </p>
+                          <div className="mt-3 grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTopicDateMode("current");
+                                switchToSingleDate(undefined, true);
+                              }}
+                              className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${topicDateMode === "current"
+                                ? "border-zinc-900 bg-zinc-900 text-white dark:border-rose-200 dark:bg-rose-200 dark:text-rose-950"
+                                : "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-rose-900/80 dark:text-rose-100 dark:hover:bg-rose-900/40"
+                                }`}
+                            >
+                              Current
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTopicDateMode("range");
+                                openSelectionModal();
+                              }}
+                              className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${topicDateMode === "range"
+                                ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:border-rose-300 dark:bg-rose-300/20 dark:text-rose-100"
+                                : "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-rose-900/80 dark:text-rose-100 dark:hover:bg-rose-900/40"
+                                }`}
+                            >
+                              Date Range
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setTopicDateMode("all")}
+                              className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${topicDateMode === "all"
+                                ? "border-zinc-900 bg-zinc-900 text-white dark:border-rose-200 dark:bg-rose-200 dark:text-rose-950"
+                                : "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-rose-900/80 dark:text-rose-100 dark:hover:bg-rose-900/40"
+                                }`}
+                            >
+                              All Time
+                            </button>
+                          </div>
+
+                          {topicDateMode === "range" && (
+                            <p className="mt-2 text-xs text-zinc-600 dark:text-rose-100/80">
+                              {normalizedRangeDates.length} synced dates found inside this range.
+                            </p>
+                          )}
+
+                          {topicDateMode === "current" && dateSelectionMode === "multiple" && (
+                            <p className="mt-2 text-xs text-zinc-600 dark:text-rose-100/80">
+                              {normalizedSelectedDates.length} dates selected for this topic.
+                            </p>
+                          )}
+                        </div>
+
                         <p className="mt-2 text-xs text-zinc-500 dark:text-rose-200/80">
-                          {topicsLoading ? "Refreshing topic map..." : "Choose a domain to browse editorials grouped by theme."}
+                          {topicsLoading ? "Refreshing topic map..." : "Choose a domain to browse editorials grouped by theme and filter by date."}
                         </p>
                       </>
+                    )}
+
+                    <div className="mt-4 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleDownloadCurrentPdf()}
+                        disabled={isPdfExporting || !displayedEditorials.length}
+                        className="rounded-xl border border-zinc-900 bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-200 dark:bg-rose-200 dark:text-rose-950"
+                      >
+                        {isPdfExporting ? "Generating PDF..." : "Download selected PDF"}
+                      </button>
+
+                      {browseMode === "topic" && (
+                        <button
+                          type="button"
+                          onClick={() => void handleDownloadTopicPdf()}
+                          disabled={isPdfExporting || !editorials.length}
+                          className="rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-900/80 dark:bg-[#2a111c] dark:text-rose-100 dark:hover:bg-rose-900/40"
+                        >
+                          Download complete topic PDF
+                        </button>
+                      )}
+                    </div>
+
+                    {pdfExportError && (
+                      <p className="mt-3 rounded-xl border border-rose-300/80 bg-rose-50/85 px-3 py-2 text-xs text-rose-700 dark:border-rose-700/80 dark:bg-rose-950/45 dark:text-rose-100">
+                        {pdfExportError}
+                      </p>
                     )}
                   </motion.div>
                 )}
@@ -1076,7 +1362,9 @@ export default function FactBookPage() {
               <p className="mt-4 text-xs leading-relaxed text-zinc-600 dark:text-rose-100/90">
                 {browseMode === "date"
                   ? "Use date mode for single day, date range, or multiple-date selections from the advanced picker."
-                  : "Use topic mode to browse editorials by domain across dates."}
+                  : topicDateMode === "all"
+                    ? "All time shows every editorial for the selected topic."
+                    : "Use topic mode to browse editorials by domain across dates."}
               </p>
             </div>
           </aside>

@@ -12,17 +12,18 @@ const GeneralLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   // Show input prompt only on /app (home) and /app/[chatid] (chat pages)
-  // Exclude: /app/ocr, /app/help, /app/activity, /app/prompt-gallery
+  // Exclude feature pages like /app/ocr, /app/help, /app/activity, /app/prompt-gallery, /app/past-papers
   const showInputPrompt = pathname === '/app' ||
     (pathname?.match(/^\/app\/[^/]+$/) &&
       !pathname.includes('/ocr') &&
       !pathname.includes('/factbook') &&
       !pathname.includes('/help') &&
       !pathname.includes('/activity') &&
-      !pathname.includes('/prompt-gallery'));
+      !pathname.includes('/prompt-gallery') &&
+      !pathname.includes('/past-papers'));
 
   // Hide sidebar on non-chat focused feature pages.
-  const showSidebar = !pathname?.includes('/ocr') && !pathname?.includes('/help') && !pathname?.includes('/factbook');
+  const showSidebar = !pathname?.includes('/ocr') && !pathname?.includes('/help') && !pathname?.includes('/factbook') && !pathname?.includes('/past-papers');
 
   // Check if this is a chat page (for styling adjustments)
   const isChatPage = pathname === '/app' || 
@@ -32,7 +33,8 @@ const GeneralLayout = ({ children }: { children: React.ReactNode }) => {
      !pathname.includes('/help') &&
      !pathname.includes('/quiz') &&
      !pathname.includes('/prompt-gallery') &&
-     !pathname.includes('/activity'));
+     !pathname.includes('/activity') &&
+     !pathname.includes('/past-papers'));
 
   return (
     <SidebarProvider>

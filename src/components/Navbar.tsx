@@ -8,21 +8,15 @@ import { useUser, SignInButton } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import { FaMoon, FaSun } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import ProfileMenu from "./header-components/ProfileMenu";
 import TopLoader from "./header-components/top-loader";
 import insightZustand from "@/utils/insight-zustand";
-
-type NavChild = {
-    name: string;
-    href: string;
-};
 
 type NavLink = {
     name: string;
     href: string;
     isSpecial?: boolean;
-    children?: NavChild[];
 };
 
 const Navbar = () => {
@@ -32,7 +26,6 @@ const Navbar = () => {
     const [mounted, setMounted] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [openMobileSubmenu, setOpenMobileSubmenu] = useState<string | null>(null);
     const pathname = usePathname();
 
     useEffect(() => {
@@ -43,12 +36,6 @@ const Navbar = () => {
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
-
-    useEffect(() => {
-        if (!isMobileMenuOpen) {
-            setOpenMobileSubmenu(null);
-        }
-    }, [isMobileMenuOpen]);
 
     useEffect(() => {
         setTopLoader(false);
@@ -63,6 +50,7 @@ const Navbar = () => {
         { name: "Evaluations", href: "/app/ocr" },
         { name: "MCQs", href: "/quiz" },
         { name: "Fact Book", href: "/app/factbook" },
+        { name: "Past Papers", href: "/app/past-papers" },
         { name: "Chatbot", href: "/app", isSpecial: true },
     ];
 
@@ -76,9 +64,6 @@ const Navbar = () => {
     };
 
     const isLinkActive = (link: NavLink) => {
-        if (link.children?.length) {
-            return link.children.some((child) => isPathActive(child.href));
-        }
         return isPathActive(link.href);
     };
 
@@ -129,41 +114,6 @@ const Navbar = () => {
                                         <span className="absolute -top-0.5 -right-0.5 text-red-500 text-[7px] font-bold uppercase tracking-wider">
                                             Soon
                                         </span>
-                                    </div>
-                                );
-                            }
-
-                            if (link.children?.length) {
-                                return (
-                                    <div key={link.name} className="relative group">
-                                        <Link
-                                            href={link.href}
-                                            onClick={() => startRouteLoader(link.href)}
-                                            className={`relative px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 inline-flex items-center gap-1 ${active
-                                                ? "text-white bg-black dark:bg-white dark:text-black shadow-md"
-                                                : "text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
-                                                }`}
-                                        >
-                                            {link.name}
-                                            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${active ? "rotate-180" : "group-hover:rotate-180"}`} />
-                                        </Link>
-                                        <div className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 opacity-0 translate-y-1 transition-all duration-200 group-hover:pointer-events-auto group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-focus-within:translate-y-0 z-50">
-                                            <div className="min-w-[190px] rounded-2xl border border-black/10 dark:border-white/10 bg-white/95 dark:bg-black/95 backdrop-blur-xl shadow-xl p-2">
-                                                {link.children.map((child) => (
-                                                    <Link
-                                                        key={child.name}
-                                                        href={child.href}
-                                                        onClick={() => startRouteLoader(child.href)}
-                                                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-colors ${isPathActive(child.href)
-                                                            ? "bg-black text-white dark:bg-white dark:text-black"
-                                                            : "text-zinc-600 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10"
-                                                            }`}
-                                                    >
-                                                        {child.name}
-                                                    </Link>
-                                                ))}
-                                            </div>
-                                        </div>
                                     </div>
                                 );
                             }
@@ -266,54 +216,6 @@ const Navbar = () => {
                                             <span className="text-red-500 text-[7px] font-bold uppercase tracking-wide">
                                                 Soon
                                             </span>
-                                        </div>
-                                    );
-                                }
-
-                                if (link.children?.length) {
-                                    const isSubmenuOpen = openMobileSubmenu === link.name;
-                                    return (
-                                        <div key={link.name} className="space-y-1">
-                                            <button
-                                                onClick={() => setOpenMobileSubmenu(isSubmenuOpen ? null : link.name)}
-                                                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${active
-                                                    ? "bg-black/5 dark:bg-white/10 text-black dark:text-white"
-                                                    : "text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5"
-                                                    }`}
-                                            >
-                                                <span>{link.name}</span>
-                                                <ChevronDown className={`w-4 h-4 transition-transform ${isSubmenuOpen ? "rotate-180" : ""}`} />
-                                            </button>
-
-                                            <AnimatePresence>
-                                                {isSubmenuOpen && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, height: 0 }}
-                                                        animate={{ opacity: 1, height: "auto" }}
-                                                        exit={{ opacity: 0, height: 0 }}
-                                                        className="overflow-hidden"
-                                                    >
-                                                        <div className="pl-3 space-y-1">
-                                                            {link.children.map((child) => (
-                                                                <Link
-                                                                    key={child.name}
-                                                                    href={child.href}
-                                                                    onClick={() => {
-                                                                        startRouteLoader(child.href);
-                                                                        setIsMobileMenuOpen(false);
-                                                                    }}
-                                                                    className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-colors ${isPathActive(child.href)
-                                                                        ? "bg-black text-white dark:bg-white dark:text-black"
-                                                                        : "text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5"
-                                                                        }`}
-                                                                >
-                                                                    {child.name}
-                                                                </Link>
-                                                            ))}
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
                                         </div>
                                     );
                                 }

@@ -32,6 +32,7 @@
     "eventsource-parser": "^3.0.6",
     "framer-motion": "^11.2.13",
     "highlight.js": "^11.10.0",
+    "jspdf": "^4.2.1",
     "lowlight": "^2.9.0",
     "lucide-react": "^0.545.0",
     "nanoid": "^5.0.7",

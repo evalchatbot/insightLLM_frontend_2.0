@@ -189,18 +189,43 @@ function generateFactbookPdf(
   const marginX = 42;
   const marginY = 44;
   const contentWidth = pageWidth - marginX * 2;
+  const columnGap = 24;
+  const columnWidth = (contentWidth - columnGap) / 2;
 
   let cursorY = marginY;
+  let columnTopY = marginY;
+  let currentColumn = 0;
+
+  const getColumnX = () => marginX + currentColumn * (columnWidth + columnGap);
+
+  const moveToNextColumn = () => {
+    if (currentColumn === 0) {
+      currentColumn = 1;
+      cursorY = columnTopY;
+      return;
+    }
+
+    doc.addPage();
+    currentColumn = 0;
+    columnTopY = marginY;
+    cursorY = columnTopY;
+  };
 
   const ensureSpace = (requiredHeight: number) => {
     if (cursorY + requiredHeight <= pageHeight - marginY) {
       return;
     }
-    doc.addPage();
-    cursorY = marginY;
+    moveToNextColumn();
   };
 
-  const writeWrapped = (text: string, fontSize = 11, lineGap = 15, isBold = false) => {
+  const writeWrapped = (
+    text: string,
+    fontSize = 11,
+    lineGap = 15,
+    isBold = false,
+    width = columnWidth,
+    x = getColumnX()
+  ) => {
     const cleanText = (text || "").trim();
     if (!cleanText) {
       return 0;
@@ -208,49 +233,50 @@ function generateFactbookPdf(
 
     doc.setFont("times", isBold ? "bold" : "normal");
     doc.setFontSize(fontSize);
-    const lines = doc.splitTextToSize(cleanText, contentWidth);
+    const lines = doc.splitTextToSize(cleanText, width);
     const requiredHeight = lines.length * lineGap;
     ensureSpace(requiredHeight + 6);
-    doc.text(lines, marginX, cursorY);
+    doc.text(lines, x, cursorY);
     cursorY += requiredHeight;
     return requiredHeight;
   };
 
   doc.setTextColor(17, 24, 39);
-  writeWrapped(options.title, 20, 24, true);
+  doc.setFont("times", "normal");
+  writeWrapped(options.title, 20, 24, true, contentWidth, marginX);
   cursorY += 2;
-  writeWrapped(options.subtitle, 11, 15, false);
-  cursorY += 10;
+  writeWrapped(options.subtitle, 11, 15, false, contentWidth, marginX);
+  cursorY += 14;
+  columnTopY = cursorY;
 
   rows.forEach((row, index) => {
-    const blockHeightEstimate = 210;
+    const summaryLines = [
+      ...(row.summary_bullets || []).slice(0, 3).map((bullet) => `- ${bullet}`),
+      row.takeaway ? `Takeaway: ${row.takeaway}` : "",
+    ].filter(Boolean);
+
+    const blockHeightEstimate = 96 + summaryLines.length * 34;
     ensureSpace(blockHeightEstimate);
 
     if (index > 0) {
-      cursorY += 8;
-      ensureSpace(40);
+      cursorY += 6;
+      ensureSpace(blockHeightEstimate);
     }
 
-    writeWrapped(`${formatDate(row.publication_date)}  •  ${row.topic_domain || "Other"}`, 9.5, 13, true);
+    writeWrapped(`${formatDate(row.publication_date)} | ${row.topic_domain || "Other"}`, 8.8, 12, true);
     cursorY += 2;
-    writeWrapped(row.headline, 15, 18, true);
+    writeWrapped(`ARTICLE SUMMARY: ${(row.headline || "Untitled Editorial").toUpperCase()}`, 12.5, 15, true);
     cursorY += 4;
 
-    const summaryLines = [
-      ...(row.summary_bullets || []).slice(0, 3).map((bullet) => `• ${bullet}`),
-      row.takeaway ? `Takeaway: ${row.takeaway}` : "",
-      row.summary_paragraph ? `Brief: ${row.summary_paragraph}` : "",
-    ].filter(Boolean);
-
     summaryLines.forEach((line) => {
-      writeWrapped(line, 10.5, 14, false);
+      writeWrapped(line, 9.8, 13, false);
       cursorY += 2;
     });
 
     cursorY += 6;
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.8);
-    doc.line(marginX, cursorY, pageWidth - marginX, cursorY);
+    doc.line(getColumnX(), cursorY, getColumnX() + columnWidth, cursorY);
     cursorY += 12;
   });
 
@@ -1006,7 +1032,7 @@ export default function FactBookPage() {
                           <div className="mx-4 sm:mx-5 mb-5 rounded-xl border border-zinc-200 dark:border-rose-900/65 bg-zinc-50/80 dark:bg-rose-950/35 p-4 sm:p-5 grid gap-4 md:grid-cols-[1.1fr_2fr]">
                             <div>
                               <h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-500 dark:text-rose-200/80">
-                                Quick Brief
+                                Summary Points
                               </h3>
                               <ul className="mt-3 space-y-2">
                                 {(editorial.summary_bullets || []).slice(0, 3).map((bullet, bulletIndex) => (

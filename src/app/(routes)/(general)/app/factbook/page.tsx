@@ -112,15 +112,6 @@ function getEditorialTeaser(editorial: FactbookEditorial): string {
   return truncateText(firstSentence, 170);
 }
 
-function getInitialTopic(groups: FactbookTopicGroup[]): string {
-  for (const group of groups) {
-    if (group.topics.length > 0) {
-      return group.topics[0];
-    }
-  }
-  return "Economy";
-}
-
 function sortDateStringsDesc(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean))).sort((a, b) => {
     if (a === b) {
@@ -265,7 +256,7 @@ function generateFactbookPdf(
 
     writeWrapped(`${formatDate(row.publication_date)} | ${row.topic_domain || "Other"}`, 8.8, 12, true);
     cursorY += 2;
-    writeWrapped(`ARTICLE SUMMARY: ${(row.headline || "Untitled Editorial").toUpperCase()}`, 12.5, 15, true);
+    writeWrapped(`COMPREHENSIVE EDITORIAL SUMMARY: ${(row.headline || "Untitled Editorial").toUpperCase()}`, 12.5, 15, true);
     cursorY += 4;
 
     summaryLines.forEach((line) => {
@@ -304,7 +295,7 @@ function mergeEditorialRows(editorialGroups: FactbookEditorial[][]): FactbookEdi
 }
 
 export default function FactBookPage() {
-  const [browseMode, setBrowseMode] = useState<BrowseMode>("topic");
+  const [browseMode, setBrowseMode] = useState<BrowseMode>("date");
   const [dateSelectionMode, setDateSelectionMode] = useState<DateSelectionMode>("single");
   const [selectedDate, setSelectedDate] = useState<string>(() => getLocalIsoDate());
   const [autoDateSelection, setAutoDateSelection] = useState<boolean>(true);
@@ -318,7 +309,7 @@ export default function FactBookPage() {
   const [modalSelectedDates, setModalSelectedDates] = useState<string[]>([]);
   const [modalDateSearch, setModalDateSearch] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
-  const [selectedTopic, setSelectedTopic] = useState<string>("Economy");
+  const [selectedTopic, setSelectedTopic] = useState<string>("");
   const [topicDateMode, setTopicDateMode] = useState<TopicDateMode>("current");
   const [editorials, setEditorials] = useState<FactbookEditorial[]>([]);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -368,12 +359,11 @@ export default function FactBookPage() {
     return filterEditorialsBySelectedDates(
       editorials,
       dateSelectionMode,
-      autoDateSelection ? getLocalIsoDate() : selectedDate,
+      selectedDate,
       normalizedRangeDates,
       normalizedSelectedDates
     );
   }, [
-    autoDateSelection,
     browseMode,
     dateSelectionMode,
     editorials,
@@ -501,10 +491,6 @@ export default function FactBookPage() {
         setTopicGroups(groups);
         setTopicCounts(payload.counts || {});
 
-        const flattenedTopics = groups.flatMap((group) => group.topics);
-        if (!flattenedTopics.includes(selectedTopic)) {
-          setSelectedTopic(getInitialTopic(groups));
-        }
       } catch {
         if (!isMounted) {
           return;
@@ -872,7 +858,7 @@ export default function FactBookPage() {
   };
 
   const handleDownloadTopicPdf = async () => {
-    if (browseMode !== "topic") {
+    if (browseMode !== "topic" || !selectedTopic) {
       return;
     }
 
@@ -948,9 +934,11 @@ export default function FactBookPage() {
                   : dateSelectionMode === "range"
                     ? "Editorials by Date Range"
                     : "Editorials by Multiple Dates"
-                : topicDateMode === "all"
-                  ? `Topic: ${selectedTopic} | All Time`
-                  : `Topic: ${selectedTopic}`}
+                : selectedTopic
+                  ? topicDateMode === "all"
+                    ? `Topic: ${selectedTopic} | All Time`
+                    : `Topic: ${selectedTopic}`
+                  : "Choose a Topic"}
             </div>
           </div>
         </motion.section>
@@ -962,7 +950,9 @@ export default function FactBookPage() {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 {browseMode === "date"
                   ? `Loading editorials for ${dateLoadingLabel}...`
-                  : `Loading editorials for topic ${selectedTopic}...`}
+                  : selectedTopic
+                    ? `Loading editorials for topic ${selectedTopic}...`
+                    : "Choose a topic to load editorials."}
               </div>
             )}
 
@@ -980,7 +970,9 @@ export default function FactBookPage() {
                     : dateSelectionMode === "range"
                       ? `No editorials available between ${formatDate(normalizedRange[0])} and ${formatDate(normalizedRange[1])} yet.`
                       : "No editorials available for the selected dates yet."
-                  : `No editorials available for topic ${selectedTopic} yet.`}
+                  : selectedTopic
+                    ? `No editorials available for topic ${selectedTopic} yet.`
+                    : "Choose a topic to browse editorials by domain."}
               </div>
             )}
 
@@ -1077,7 +1069,11 @@ export default function FactBookPage() {
                     {browseMode === "date" ? "Date Filters" : "Selected Topic"}
                   </p>
                   <p className="mt-1 text-sm font-medium text-zinc-800 dark:text-rose-50">
-                    {browseMode === "date" ? dateSelectionDisplay : topicDateMode === "all" ? "All Time" : dateSelectionDisplay}
+                    {browseMode === "date"
+                      ? dateSelectionDisplay
+                      : selectedTopic
+                        ? topicDateMode === "all" ? "All Time" : dateSelectionDisplay
+                        : "No topic selected"}
                   </p>
                 </div>
 
@@ -1100,6 +1096,29 @@ export default function FactBookPage() {
                     exit={{ opacity: 0, y: -8 }}
                     className="mt-4 rounded-2xl border border-zinc-200 dark:border-rose-900/70 bg-white/95 dark:bg-rose-950/25 p-3"
                   >
+                    <div className="mb-3 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => switchBrowseMode("date")}
+                        className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${browseMode === "date"
+                          ? "border-zinc-900 bg-zinc-900 text-white dark:border-rose-200 dark:bg-rose-200 dark:text-rose-950"
+                          : "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-rose-900/80 dark:text-rose-100 dark:hover:bg-rose-900/40"
+                          }`}
+                      >
+                        Current Editorials
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => switchBrowseMode("topic")}
+                        className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${browseMode === "topic"
+                          ? "border-zinc-900 bg-zinc-900 text-white dark:border-rose-200 dark:bg-rose-200 dark:text-rose-950"
+                          : "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-rose-900/80 dark:text-rose-100 dark:hover:bg-rose-900/40"
+                          }`}
+                      >
+                        Browse Topics
+                      </button>
+                    </div>
+
                     {browseMode === "date" ? (
                       <>
                         <div className="grid grid-cols-2 gap-2">
@@ -1236,7 +1255,7 @@ export default function FactBookPage() {
                             onClick={() => setTopicDropdownOpen((open) => !open)}
                             className="w-full rounded-lg border border-zinc-300 dark:border-rose-900/80 bg-white dark:bg-[#2a111c] px-3 py-2 text-sm text-zinc-800 dark:text-rose-50 outline-none focus:ring-2 focus:ring-zinc-400/35 dark:focus:ring-rose-400/35 inline-flex items-center justify-between gap-2"
                           >
-                            <span className="truncate text-left font-semibold">{selectedTopic}</span>
+                            <span className="truncate text-left font-semibold">{selectedTopic || "Choose a topic"}</span>
                             <ChevronDown className={`w-4 h-4 text-zinc-500 dark:text-rose-200 transition-transform ${topicDropdownOpen ? "rotate-180" : ""}`} />
                           </button>
 
@@ -1262,6 +1281,7 @@ export default function FactBookPage() {
                                             type="button"
                                             onClick={() => {
                                               setSelectedTopic(topic);
+                                              setBrowseMode("topic");
                                               setTopicDropdownOpen(false);
                                             }}
                                             className={`w-full rounded-lg px-2.5 py-2 text-left text-sm transition-colors inline-flex items-center justify-between ${isSelected
@@ -1301,7 +1321,9 @@ export default function FactBookPage() {
                               type="button"
                               onClick={() => {
                                 setTopicDateMode("current");
-                                switchToSingleDate(undefined, true);
+                                setDateSelectionMode("single");
+                                setSelectedDates([]);
+                                setAutoDateSelection(true);
                               }}
                               className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${topicDateMode === "current"
                                 ? "border-zinc-900 bg-zinc-900 text-white dark:border-rose-200 dark:bg-rose-200 dark:text-rose-950"
@@ -1364,7 +1386,7 @@ export default function FactBookPage() {
                         {isPdfExporting ? "Generating PDF..." : "Download selected PDF"}
                       </button>
 
-                      {browseMode === "topic" && (
+                      {browseMode === "topic" && selectedTopic && (
                         <button
                           type="button"
                           onClick={() => void handleDownloadTopicPdf()}

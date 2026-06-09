@@ -10,7 +10,6 @@ import { Check, Zap, Brain, Users, FileText, CheckCircle2, MessageSquare, Mail, 
 import RotatingImages from "@/components/landing-components/RotatingImages";
 import FAQ from "@/components/landing-components/FAQ";
 import Footer from "@/components/Footer";
-import UnderConstructionNotice from "@/components/UnderConstructionNotice";
 import FeedbackWidget from "@/components/FeedbackWidget";
 
 const ProAccessModal = dynamic(
@@ -90,7 +89,6 @@ export default function LandingPage() {
 
     return (
         <div className="min-h-screen bg-white dark:bg-zinc-950 relative overflow-x-hidden">
-            <UnderConstructionNotice />
             {/* Auth required toast */}
             {showAuthNotice && (
                 <motion.div

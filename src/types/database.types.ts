@@ -221,6 +221,89 @@ export interface Database {
         }
         Relationships: []
       }
+      past_paper_subjects: {
+        Row: {
+          id: string
+          exam_type: 'CSS' | 'PMS'
+          name: string
+          slug: string
+          subject_group: 'compulsory' | 'optional'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          exam_type: 'CSS' | 'PMS'
+          name: string
+          slug: string
+          subject_group?: 'compulsory' | 'optional'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          exam_type?: 'CSS' | 'PMS'
+          name?: string
+          slug?: string
+          subject_group?: 'compulsory' | 'optional'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      past_paper_questions: {
+        Row: {
+          id: string
+          subject_id: string
+          exam_type: 'CSS' | 'PMS'
+          year: number
+          question_number: string
+          question_text: string
+          answer_text: string
+          marks: number | null
+          display_order: number
+          uploaded_by_email: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          subject_id: string
+          exam_type: 'CSS' | 'PMS'
+          year: number
+          question_number: string
+          question_text: string
+          answer_text: string
+          marks?: number | null
+          display_order?: number
+          uploaded_by_email?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          subject_id?: string
+          exam_type?: 'CSS' | 'PMS'
+          year?: number
+          question_number?: string
+          question_text?: string
+          answer_text?: string
+          marks?: number | null
+          display_order?: number
+          uploaded_by_email?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "past_paper_questions_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "past_paper_subjects"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {}
     Functions: {}
@@ -262,3 +345,11 @@ export type UsageProUpdate = Database['public']['Tables']['usage_pro']['Update']
 export type FeedbackRow = Database['public']['Tables']['feedback']['Row']
 export type FeedbackInsert = Database['public']['Tables']['feedback']['Insert']
 export type FeedbackUpdate = Database['public']['Tables']['feedback']['Update']
+
+export type PastPaperSubjectRow = Database['public']['Tables']['past_paper_subjects']['Row']
+export type PastPaperSubjectInsert = Database['public']['Tables']['past_paper_subjects']['Insert']
+export type PastPaperSubjectUpdate = Database['public']['Tables']['past_paper_subjects']['Update']
+
+export type PastPaperQuestionRow = Database['public']['Tables']['past_paper_questions']['Row']
+export type PastPaperQuestionInsert = Database['public']['Tables']['past_paper_questions']['Insert']
+export type PastPaperQuestionUpdate = Database['public']['Tables']['past_paper_questions']['Update']

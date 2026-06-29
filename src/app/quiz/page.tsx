@@ -108,6 +108,33 @@ export default function QuizPage() {
   const fetchMcqs = async () => {
     setLoading(true);
     setError(null);
+
+    // Free tier = 1 MCQ test for all time; Pro = unlimited. Gate before starting a new test.
+    try {
+      const limitCheck = await fetch('/api/quiz/check-limit', { method: 'POST' });
+      if (limitCheck.status === 429) {
+        const data = await limitCheck.json().catch(() => ({}));
+        setError(data.message || "You have used your free MCQ test. Upgrade to Pro for unlimited tests.");
+        setLoading(false);
+        return;
+      }
+      if (!limitCheck.ok) {
+        setError("Unable to verify your MCQ test limit. Please try again.");
+        setLoading(false);
+        return;
+      }
+      const limitData = await limitCheck.json().catch(() => null);
+      if (!limitData || !limitData.can_proceed) {
+        setError((limitData && limitData.message) || "You have used your free MCQ test. Upgrade to Pro for unlimited tests.");
+        setLoading(false);
+        return;
+      }
+    } catch (e) {
+      setError("Unable to verify your MCQ test limit. Please try again.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const url = `/quiz/mcqs?genre_id=${selectedGenre}&limit=${questionCount}&random=true`;
       const res = await fetch(url);
@@ -152,6 +179,14 @@ export default function QuizPage() {
         setTimeRemaining(questionCount * 60);
       } else {
         setTimeRemaining(null);
+      }
+
+      // Record this MCQ test against the user's lifetime allowance (no-op for Pro).
+      // Non-fatal: the test still starts if recording fails.
+      try {
+        await fetch('/api/quiz/record-attempt', { method: 'POST' });
+      } catch (recErr) {
+        console.error('Failed to record MCQ attempt:', recErr);
       }
 
       setViewMode('quiz');

@@ -213,12 +213,32 @@ export async function POST(req: Request) {
     if (!activationResult || !activationResult.success) {
       console.error("Activation failed:", activationResult?.message || "Unknown error");
       return NextResponse.json(
-        { 
-          success: false, 
-          message: activationResult?.message || "Failed to activate key" 
+        {
+          success: false,
+          message: activationResult?.message || "Failed to activate key"
         },
         { status: 400 }
       );
+    }
+
+    // Reset the Free-tier LIFETIME allowance on Pro activation so that a user who
+    // upgrades and later lapses back to Free receives a fresh evaluation + MCQ test.
+    // (See migration 019_free_lifetime_limits.sql)
+    try {
+      await supabase
+        .from('free_lifetime_usage')
+        .upsert(
+          {
+            user_id: supabaseUserId,
+            eval_count: 0,
+            mcq_count: 0,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id' }
+        );
+    } catch (resetErr) {
+      // Non-fatal: activation already succeeded.
+      console.error('Failed to reset free_lifetime_usage on pro activation:', resetErr);
     }
 
     // =====================================================

@@ -178,97 +178,174 @@ function generateFactbookPdf(
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const marginX = 42;
-  const marginY = 44;
+  const marginY = 48;
   const contentWidth = pageWidth - marginX * 2;
   const columnGap = 24;
   const columnWidth = (contentWidth - columnGap) / 2;
+  const bottomLimit = pageHeight - marginY;
 
-  let cursorY = marginY;
-  let columnTopY = marginY;
+  const INK: [number, number, number] = [17, 24, 39];
+  const MUTED: [number, number, number] = [100, 116, 139];
+  const RULE: [number, number, number] = [226, 232, 240];
+  const BRAND: [number, number, number] = [178, 34, 34]; // #b22222 rubric red
+  const CREAM: [number, number, number] = [228, 226, 221]; // #e4e2dd logo mark
+
   let currentColumn = 0;
-
+  let columnTopY = marginY;
+  let cursorY = marginY;
   const getColumnX = () => marginX + currentColumn * (columnWidth + columnGap);
 
-  const moveToNextColumn = () => {
+  // rubric.ai watermark (logo mark + wordmark) in the top-right of every page.
+  const drawWatermark = () => {
+    const s = 14; // logo square size (pt)
+    const label = "rubric.ai";
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    const labelW = doc.getTextWidth(label);
+    const gap = 5;
+    const totalW = s + gap + labelW;
+    const x = pageWidth - marginX - totalW;
+    const yTop = 20; // sits inside the top margin band, above content
+
+    const anyDoc = doc as any;
+    anyDoc.saveGraphicsState?.();
+    if (anyDoc.GState && anyDoc.setGState) {
+      anyDoc.setGState(new anyDoc.GState({ opacity: 0.5 }));
+    }
+
+    // brand square
+    doc.setFillColor(BRAND[0], BRAND[1], BRAND[2]);
+    doc.roundedRect(x, yTop, s, s, 2, 2, "F");
+
+    // cream "r" mark (stem + offset dot) from the real logo geometry
+    doc.setFillColor(CREAM[0], CREAM[1], CREAM[2]);
+    const gh = 0.64 * s;
+    const gw = 0.513 * s;
+    const gLeft = x + (s - gw) / 2;
+    const gTop = yTop + (s - gh) / 2;
+    doc.rect(gLeft, gTop + 0.026 * gh, 0.4527 * gw, 0.974 * gh, "F");
+    doc.circle(gLeft + 0.779 * gw, gTop + 0.177 * gh, 0.177 * gh, "F");
+
+    // wordmark
+    doc.setTextColor(BRAND[0], BRAND[1], BRAND[2]);
+    doc.text(label, x + s + gap, yTop + s * 0.72);
+
+    anyDoc.restoreGraphicsState?.();
+  };
+
+  const newPage = () => {
+    doc.addPage();
+    drawWatermark();
+    currentColumn = 0;
+    columnTopY = marginY;
+    cursorY = marginY;
+  };
+
+  const nextColumn = () => {
     if (currentColumn === 0) {
       currentColumn = 1;
       cursorY = columnTopY;
-      return;
+    } else {
+      newPage();
     }
-
-    doc.addPage();
-    currentColumn = 0;
-    columnTopY = marginY;
-    cursorY = columnTopY;
   };
 
-  const ensureSpace = (requiredHeight: number) => {
-    if (cursorY + requiredHeight <= pageHeight - marginY) {
-      return;
-    }
-    moveToNextColumn();
+  type LineItem = {
+    lines: string[];
+    fontSize: number;
+    lineGap: number;
+    bold: boolean;
+    color: [number, number, number];
+    gapAfter: number;
   };
 
-  const writeWrapped = (
-    text: string,
-    fontSize = 11,
-    lineGap = 15,
-    isBold = false,
-    width = columnWidth,
-    x = getColumnX()
-  ) => {
-    const cleanText = (text || "").trim();
-    if (!cleanText) {
-      return 0;
-    }
-
-    doc.setFont("times", isBold ? "bold" : "normal");
-    doc.setFontSize(fontSize);
-    const lines = doc.splitTextToSize(cleanText, width);
-    const requiredHeight = lines.length * lineGap;
-    ensureSpace(requiredHeight + 6);
-    doc.text(lines, x, cursorY);
-    cursorY += requiredHeight;
-    return requiredHeight;
+  // Pre-split an editorial into measured line-items so the whole block can be
+  // placed at once (avoids the text overlap caused by splitting blocks mid-flow).
+  const buildBlock = (row: FactbookEditorial): LineItem[] => {
+    const items: LineItem[] = [];
+    const push = (
+      text: string,
+      fontSize: number,
+      lineGap: number,
+      bold: boolean,
+      color: [number, number, number],
+      gapAfter = 0
+    ) => {
+      const t = (text || "").trim();
+      if (!t) return;
+      doc.setFont("times", bold ? "bold" : "normal");
+      doc.setFontSize(fontSize);
+      const lines = doc.splitTextToSize(t, columnWidth) as string[];
+      items.push({ lines, fontSize, lineGap, bold, color, gapAfter });
+    };
+    push(`${formatDate(row.publication_date)}  |  ${row.topic_domain || "Other"}`, 8.8, 12, true, MUTED, 3);
+    // Headline only — no "COMPREHENSIVE EDITORIAL SUMMARY:" prefix.
+    push((row.headline || "Untitled Editorial").toUpperCase(), 12.5, 15, true, INK, 5);
+    (row.summary_bullets || []).slice(0, 3).forEach((bullet) => push(`•  ${bullet}`, 9.8, 13, false, INK, 3));
+    if (row.takeaway) push(`Takeaway: ${row.takeaway}`, 9.8, 13, false, INK, 0);
+    return items;
   };
 
-  doc.setTextColor(17, 24, 39);
-  doc.setFont("times", "normal");
-  writeWrapped(options.title, 20, 24, true, contentWidth, marginX);
+  const blockHeight = (items: LineItem[]) =>
+    items.reduce((h, it) => h + it.lines.length * it.lineGap + it.gapAfter, 0);
+
+  const drawItems = (items: LineItem[]) => {
+    items.forEach((it) => {
+      doc.setFont("times", it.bold ? "bold" : "normal");
+      doc.setFontSize(it.fontSize);
+      doc.setTextColor(it.color[0], it.color[1], it.color[2]);
+      const x = getColumnX();
+      it.lines.forEach((line) => {
+        // fallback for a block longer than a full column: flow to the next
+        if (cursorY + it.lineGap > bottomLimit) nextColumn();
+        doc.text(line, x, cursorY + it.fontSize * 0.78);
+        cursorY += it.lineGap;
+      });
+      cursorY += it.gapAfter;
+    });
+  };
+
+  // Header (first page)
+  drawWatermark();
+  doc.setTextColor(INK[0], INK[1], INK[2]);
+  doc.setFont("times", "bold");
+  doc.setFontSize(20);
+  (doc.splitTextToSize(options.title, contentWidth) as string[]).forEach((line) => {
+    doc.text(line, marginX, cursorY + 20 * 0.78);
+    cursorY += 24;
+  });
   cursorY += 2;
-  writeWrapped(options.subtitle, 11, 15, false, contentWidth, marginX);
-  cursorY += 14;
+  doc.setFont("times", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+  (doc.splitTextToSize(options.subtitle, contentWidth) as string[]).forEach((line) => {
+    doc.text(line, marginX, cursorY + 11 * 0.78);
+    cursorY += 15;
+  });
+  cursorY += 16;
   columnTopY = cursorY;
 
-  rows.forEach((row, index) => {
-    const summaryLines = [
-      ...(row.summary_bullets || []).slice(0, 3).map((bullet) => `- ${bullet}`),
-      row.takeaway ? `Takeaway: ${row.takeaway}` : "",
-    ].filter(Boolean);
+  rows.forEach((row) => {
+    const items = buildBlock(row);
+    const h = blockHeight(items);
+    const columnCapacity = bottomLimit - columnTopY;
 
-    const blockHeightEstimate = 96 + summaryLines.length * 34;
-    ensureSpace(blockHeightEstimate);
-
-    if (index > 0) {
-      cursorY += 6;
-      ensureSpace(blockHeightEstimate);
+    // Place each editorial as a single block; if it won't fit in the rest of the
+    // current column (but fits in a fresh one), move first so blocks never overlap.
+    if (cursorY + h > bottomLimit && h <= columnCapacity) {
+      nextColumn();
     }
 
-    writeWrapped(`${formatDate(row.publication_date)} | ${row.topic_domain || "Other"}`, 8.8, 12, true);
-    cursorY += 2;
-    writeWrapped(`COMPREHENSIVE EDITORIAL SUMMARY: ${(row.headline || "Untitled Editorial").toUpperCase()}`, 12.5, 15, true);
-    cursorY += 4;
+    drawItems(items);
 
-    summaryLines.forEach((line) => {
-      writeWrapped(line, 9.8, 13, false);
-      cursorY += 2;
-    });
-
-    cursorY += 6;
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.8);
-    doc.line(getColumnX(), cursorY, getColumnX() + columnWidth, cursorY);
-    cursorY += 12;
+    // divider between editorials within a column
+    cursorY += 8;
+    if (cursorY < bottomLimit) {
+      doc.setDrawColor(RULE[0], RULE[1], RULE[2]);
+      doc.setLineWidth(0.8);
+      doc.line(getColumnX(), cursorY, getColumnX() + columnWidth, cursorY);
+    }
+    cursorY += 14;
   });
 
   doc.save(`${sanitizePdfFileName(options.fileName)}.pdf`);
@@ -326,8 +403,39 @@ export default function FactBookPage() {
   const [topicsLoading, setTopicsLoading] = useState(false);
   const [isPdfExporting, setIsPdfExporting] = useState(false);
   const [pdfExportError, setPdfExportError] = useState<string | null>(null);
+  // Tier gating: Free users may only view today's editorials (no date/topic controls).
+  // null = unknown (loading), true = Pro, false = Free.
+  const [isPro, setIsPro] = useState<boolean | null>(null);
   const editorialCacheRef = useRef<Map<string, FactbookEditorial[]>>(new Map());
   const topicDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Resolve the user's tier once on mount. Fail closed (treat as Free) on error.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/pro/status");
+        const data = await res.json().catch(() => ({} as any));
+        if (!cancelled) setIsPro(Boolean(data?.isPro));
+      } catch {
+        if (!cancelled) setIsPro(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Free tier: force the view to today's editorials only (single date, no topic).
+  useEffect(() => {
+    if (isPro === false) {
+      setBrowseMode("date");
+      setDateSelectionMode("single");
+      setAutoDateSelection(true);
+      setSelectedDate(getLocalIsoDate());
+      setSelectedTopic("");
+    }
+  }, [isPro]);
 
   const selectedMonth = useMemo(() => selectedDate.slice(0, 7), [selectedDate]);
   const normalizedSelectedDates = useMemo(() => sortDateStringsDesc(selectedDates), [selectedDates]);
@@ -1052,6 +1160,7 @@ export default function FactBookPage() {
               })}
           </section>
 
+          {isPro === true && (
           <aside className="order-1 xl:order-2 xl:sticky xl:top-28">
             <div className="rounded-3xl border border-zinc-200/80 dark:border-rose-900/70 bg-white/94 dark:bg-[#220f1a]/86 backdrop-blur-xl p-5 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.28)] dark:shadow-[0_22px_54px_-34px_rgba(159,18,57,0.45)]">
               <div className="mb-4 border-b border-zinc-200/80 pb-3 dark:border-rose-900/70">
@@ -1416,6 +1525,29 @@ export default function FactBookPage() {
               </p>
             </div>
           </aside>
+          )}
+
+          {isPro === false && (
+            <aside className="order-1 xl:order-2 xl:sticky xl:top-28">
+              <div className="rounded-3xl border border-zinc-200/80 dark:border-rose-900/70 bg-white/94 dark:bg-[#220f1a]/86 backdrop-blur-xl p-5 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.28)] dark:shadow-[0_22px_54px_-34px_rgba(159,18,57,0.45)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-500 dark:text-rose-200/80">
+                  Today&apos;s Briefing
+                </p>
+                <h3 className="mt-1 text-xl font-semibold text-zinc-900 dark:text-rose-50">
+                  Free plan
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-zinc-600 dark:text-rose-100/90">
+                  You&apos;re viewing today&apos;s editorials. Upgrade to Pro to browse previous dates, date ranges, and topics.
+                </p>
+                <a
+                  href="/"
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-zinc-900 bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 dark:border-rose-200 dark:bg-rose-200 dark:text-rose-950"
+                >
+                  Upgrade to Pro
+                </a>
+              </div>
+            </aside>
+          )}
         </div>
       </div>
 

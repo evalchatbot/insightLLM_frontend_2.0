@@ -612,8 +612,58 @@ export async function gradeEssay(
   throw new Error("Unexpected loop exit");
 }
 
+/**
+ * Enforce the shared evaluation usage limit (Free = 1 evaluation total for all time across
+ * rubric/essay/precis/outline; Pro = unchanged). Mirrors the gating already used by
+ * submitOCRJob so that essay/precis/outline evaluations are counted too.
+ *
+ * Calls /api/ocr/check-limit (pre-check) then /api/ocr/record-usage (count at pipeline start).
+ * Throws an Error with a user-facing message if the user is over their limit.
+ */
+async function enforceEvaluationLimit(): Promise<void> {
+  // Pre-check
+  const limitCheck = await fetch('/api/ocr/check-limit', { method: 'POST' });
+
+  if (limitCheck.status === 429) {
+    const errorData = await limitCheck.json().catch(() => ({} as any));
+    if (errorData.downgraded || errorData.is_pro === false) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refreshProStatus'));
+        localStorage.setItem('proStatusRefresh', Date.now().toString());
+      }
+    }
+    throw new Error(errorData.message || "You have used your free evaluation. Upgrade to Pro for unlimited evaluations.");
+  }
+
+  if (!limitCheck.ok) {
+    throw new Error("Unable to verify evaluation limits. Please try again or contact support.");
+  }
+
+  const limitData = await limitCheck.json().catch(() => null);
+  if (!limitData || !limitData.can_proceed) {
+    throw new Error((limitData && limitData.message) || "You have used your free evaluation. Upgrade to Pro for unlimited evaluations.");
+  }
+
+  // Record immediately (count at pipeline start, even if the user leaves mid-processing)
+  const usageResponse = await fetch('/api/ocr/record-usage', { method: 'POST' });
+  if (!usageResponse.ok) {
+    throw new Error("Failed to record evaluation usage. Please try again.");
+  }
+
+  const usageData = await usageResponse.json().catch(() => ({} as any));
+  if (usageData.downgraded || (usageData.was_pro && !usageData.is_pro)) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('refreshProStatus'));
+      localStorage.setItem('proStatusRefresh', Date.now().toString());
+    }
+  }
+}
+
 // Better approach: Expose the separate steps so React component can show progress
 export async function submitEssayJob(file: File, userId: string) {
+  // Free tier = 1 evaluation total for all time (shared across all evaluation types)
+  await enforceEvaluationLimit();
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('user_id', userId);
@@ -646,6 +696,9 @@ export async function getEssayJobResult(jobId: string) {
 // ============================================================================
 
 export async function submitOutlineJob(file: File, userId: string) {
+  // Free tier = 1 evaluation total for all time (shared across all evaluation types)
+  await enforceEvaluationLimit();
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('user_id', userId);
@@ -676,6 +729,9 @@ export async function getOutlineJobResult(jobId: string) {
 // ============================================================================
 
 export async function submitPrecisJob(file: File, userId: string) {
+  // Free tier = 1 evaluation total for all time (shared across all evaluation types)
+  await enforceEvaluationLimit();
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('user_id', userId);

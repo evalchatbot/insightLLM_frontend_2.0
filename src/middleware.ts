@@ -2,10 +2,10 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 // Public routes for signed-out users
+// NOTE: /app/factbook is intentionally NOT public — Factbook requires sign-in.
 const isPublicRoute = createRouteMatcher([
   "/",
   "/api/(.*)",
-  "/app/factbook(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/sso-callback(.*)"

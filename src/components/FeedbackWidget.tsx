@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { MessageSquare, X, Send } from "lucide-react";
-import { useUser } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface FeedbackWidgetProps {
@@ -21,7 +20,7 @@ export default function FeedbackWidget({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   
-  const { user } = useUser();
+  // Hardcoded-login build: no Clerk — feedback is submitted anonymously.
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +39,8 @@ export default function FeedbackWidget({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_id: user?.id || null,
-          user_email: user?.primaryEmailAddress?.emailAddress || null,
+          user_id: null,
+          user_email: null,
           page_url: pageName,
           feedback_type: "general",
           subject: "User Feedback",

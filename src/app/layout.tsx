@@ -3,8 +3,6 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProviders } from "@/utils/theme-providers";
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { ClerkProvider } from "@clerk/nextjs";
-import EnsureSupabaseUser from "@/components/EnsureSupabaseUser";
 import NavigationWrapper from "@/components/NavigationWrapper";
 import Footer from "@/components/Footer";
 // import SignupIssueBanner from "@/components/header-components/signup-issue-banner"; // Kept for future use
@@ -61,21 +59,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body
-          className={`${outfit.className} bg-background text-foreground h-dvh w-full overflow-auto selection:bg-blue-100 dark:selection:bg-blue-900`}
-        >
-          <ErrorBoundary>
-            <ThemeProviders>
-              <EnsureSupabaseUser />
-              {/* <SignupIssueBanner /> */}
-              <NavigationWrapper />
-              {children}
-            </ThemeProviders>
-          </ErrorBoundary>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${outfit.className} bg-background text-foreground h-dvh w-full overflow-auto selection:bg-blue-100 dark:selection:bg-blue-900`}
+      >
+        <ErrorBoundary>
+          <ThemeProviders>
+            <NavigationWrapper />
+            {children}
+          </ThemeProviders>
+        </ErrorBoundary>
+      </body>
+    </html>
   );
 }

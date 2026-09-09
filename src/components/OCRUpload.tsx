@@ -3,8 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { useUser } from "@clerk/nextjs"
-import { 
+import {
   annotateDocument, 
   type OCRResult,
   submitOCRJob,
@@ -44,7 +43,9 @@ interface Subject {
 }
 
 export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps) {
-  const { user } = useUser()
+  // Hardcoded-login build: no Clerk. Use a static local identity so all
+  // downstream `user` / `user.id` usages keep working unchanged.
+  const user = { id: "standalone-user" }
   const { setToast } = insightZustand()
   const [file, setFile] = useState<File | null>(null)
   const [exam, setExam] = useState("")

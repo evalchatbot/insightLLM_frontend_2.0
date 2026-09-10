@@ -26,7 +26,6 @@ import {
 } from "@/utils/ocr-api"
 import { Upload, X } from "lucide-react"
 import insightZustand from "@/utils/insight-zustand"
-import FeedbackWidget from "@/components/FeedbackWidget"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -69,6 +68,20 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
   // Document Guidelines Modal State
   const [showGuidelines, setShowGuidelines] = useState(false)
+
+  // ---- Bulk evaluation (up to MAX_BULK PDFs at once) ----
+  const MAX_BULK = 10
+  type BulkItem = {
+    name: string
+    status: "queued" | "processing" | "completed" | "failed"
+    downloadUrl?: string
+    scoreText?: string
+    error?: string
+  }
+  const [bulkMode, setBulkMode] = useState(false)
+  const [bulkFiles, setBulkFiles] = useState<File[]>([])
+  const [bulkItems, setBulkItems] = useState<BulkItem[]>([])
+  const [bulkRunning, setBulkRunning] = useState(false)
 
   // Refs for polling intervals
   const statusPollIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -659,10 +672,140 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
 
 
+  // ---- Bulk evaluation handlers ----
+  const updateBulkItem = (index: number, patch: Partial<BulkItem>) => {
+    setBulkItems(prev => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)))
+  }
+
+  const handleBulkFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files || [])
+    const pdfs = picked.filter(f => f.type === "application/pdf")
+    if (picked.length !== pdfs.length) {
+      setError("Only PDF files are allowed — non-PDF files were skipped.")
+    } else {
+      setError(null)
+    }
+    if (pdfs.length > MAX_BULK) {
+      setError(`You can evaluate up to ${MAX_BULK} PDFs at once. Only the first ${MAX_BULK} were kept.`)
+      setBulkFiles(pdfs.slice(0, MAX_BULK))
+    } else {
+      setBulkFiles(pdfs)
+    }
+    setBulkItems([])
+  }
+
+  const resolveBulkMode = (): "essay" | "outline" | "precis" | "regular" => {
+    if (isPrecisSubject(subject)) return "precis"
+    if (isEnglishEssaySubject(subject)) return isOutlineMode ? "outline" : "essay"
+    return "regular"
+  }
+
+  const processOneBulk = async (
+    file: File,
+    index: number,
+    mode: "essay" | "outline" | "precis" | "regular"
+  ) => {
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+    updateBulkItem(index, { status: "processing" })
+    try {
+      let bulkJobId: string
+      if (mode === "essay") bulkJobId = (await submitEssayJob(file, user.id)).jobId
+      else if (mode === "outline") bulkJobId = (await submitOutlineJob(file, user.id)).jobId
+      else if (mode === "precis") bulkJobId = (await submitPrecisJob(file, user.id)).jobId
+      else bulkJobId = (await submitOCRJob(file, user.id, subject)).jobId
+
+      // Poll until a terminal state (safety cap ~10 min at 3s intervals).
+      for (let attempt = 0; attempt < 200; attempt++) {
+        await sleep(3000)
+        const raw = mode === "essay"
+          ? await getEssayJobStatus(bulkJobId)
+          : mode === "outline"
+          ? await getOutlineJobStatus(bulkJobId)
+          : mode === "precis"
+          ? await getPrecisJobStatus(bulkJobId)
+          : await getJobStatus(bulkJobId)
+        if (!raw) continue
+        const s = ((raw as any).status || raw) as string
+        if (s === "completed") {
+          if (mode === "regular") {
+            const { pdfBlob, metadata } = await getJobResult(bulkJobId)
+            const url = URL.createObjectURL(pdfBlob)
+            const total = metadata?.score?.total_score
+            const max = metadata?.score?.max_score
+            const scoreText = total != null ? `${total}/${max ?? 20}` : undefined
+            updateBulkItem(index, { status: "completed", downloadUrl: url, scoreText })
+          } else {
+            const data = mode === "essay"
+              ? await getEssayJobResult(bulkJobId)
+              : mode === "outline"
+              ? await getOutlineJobResult(bulkJobId)
+              : await getPrecisJobResult(bulkJobId)
+            updateBulkItem(index, { status: "completed", downloadUrl: data.annotated_pdf_url })
+          }
+          return
+        }
+        if (s === "failed") {
+          updateBulkItem(index, { status: "failed", error: (raw as any).error || "Evaluation failed" })
+          return
+        }
+        if (s === "cancelled") {
+          updateBulkItem(index, { status: "failed", error: "Cancelled" })
+          return
+        }
+      }
+      updateBulkItem(index, { status: "failed", error: "Timed out" })
+    } catch (e) {
+      updateBulkItem(index, { status: "failed", error: e instanceof Error ? e.message : "Error" })
+    }
+  }
+
+  const handleBulkEvaluate = async () => {
+    if (!exam) { setError("Please select an exam"); return }
+    if (!subject) { setError("Please select a subject"); return }
+    if (bulkFiles.length === 0) { setError(`Please choose up to ${MAX_BULK} PDF files`); return }
+    setError(null)
+    setBulkRunning(true)
+    const mode = resolveBulkMode()
+    setBulkItems(bulkFiles.map(f => ({ name: f.name, status: "queued" as const })))
+    const CONCURRENCY = 3
+    let cursor = 0
+    const worker = async () => {
+      while (cursor < bulkFiles.length) {
+        const i = cursor++
+        await processOneBulk(bulkFiles[i], i, mode)
+      }
+    }
+    try {
+      await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCY, bulkFiles.length) }, () => worker())
+      )
+    } finally {
+      setBulkRunning(false)
+    }
+  }
+
   return (
     <>
       <Card className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden">
         <CardContent className="p-8 space-y-6">
+          {/* Single vs Bulk toggle */}
+          <div className="flex items-center gap-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 p-1 w-full max-w-xs mx-auto">
+            <button
+              type="button"
+              onClick={() => setBulkMode(false)}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${!bulkMode ? "bg-white dark:bg-zinc-900 text-red-600 shadow" : "text-zinc-500 dark:text-zinc-400"}`}
+            >
+              Single
+            </button>
+            <button
+              type="button"
+              onClick={() => setBulkMode(true)}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${bulkMode ? "bg-white dark:bg-zinc-900 text-red-600 shadow" : "text-zinc-500 dark:text-zinc-400"}`}
+            >
+              Bulk (up to {MAX_BULK})
+            </button>
+          </div>
+
           {!user && (
             <Alert variant="default" className="border-border bg-secondary/50">
               <AlertTitle className="font-medium text-foreground">Sign in required</AlertTitle>
@@ -712,6 +855,8 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             </select>
           </div>
 
+          {!bulkMode && (
+          <>
           {/* File Upload */}
           <div className="space-y-2">
             <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Upload Your Answer (PDF)</label>
@@ -788,6 +933,96 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             >
               {loading ? "Evaluating..." : "Analyze"}
             </Button>
+          )}
+          </>
+          )}
+
+          {/* Bulk upload + per-file results */}
+          {bulkMode && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Upload PDFs (up to {MAX_BULK})</label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    multiple
+                    onChange={handleBulkFileChange}
+                    disabled={bulkRunning}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                  />
+                  <div className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-red-600/10 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">
+                      {bulkFiles.length > 0
+                        ? `${bulkFiles.length} file${bulkFiles.length > 1 ? "s" : ""} selected`
+                        : "Drag & drop or click to browse"}
+                    </p>
+                    <p className="text-xs text-zinc-500">Select up to {MAX_BULK} PDFs (max 20MB each)</p>
+                  </div>
+                </div>
+              </div>
+
+              {bulkFiles.length > 0 && bulkItems.length === 0 && (
+                <ul className="text-sm text-zinc-600 dark:text-zinc-400 space-y-1 max-h-40 overflow-auto pl-1">
+                  {bulkFiles.map((f, i) => (
+                    <li key={i} className="truncate">
+                      • {f.name} <span className="text-xs text-zinc-400">({(f.size / 1024 / 1024).toFixed(2)} MB)</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <Button
+                onClick={handleBulkEvaluate}
+                disabled={bulkRunning || bulkFiles.length === 0 || !subject || !exam}
+                className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {bulkRunning
+                  ? "Evaluating…"
+                  : `Evaluate ${bulkFiles.length || ""} PDF${bulkFiles.length === 1 ? "" : "s"}`}
+              </Button>
+
+              {bulkItems.length > 0 && (
+                <div className="space-y-1 rounded-2xl border-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4">
+                  {bulkItems.map((it, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between gap-3 py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-200">{it.name}</p>
+                        <p className="text-xs">
+                          {it.status === "queued" && <span className="text-zinc-500">Queued…</span>}
+                          {it.status === "processing" && <span className="text-amber-600 dark:text-amber-400">Processing…</span>}
+                          {it.status === "completed" && (
+                            <span className="text-green-600 dark:text-green-400">
+                              Completed{it.scoreText ? ` · ${it.scoreText}` : ""}
+                            </span>
+                          )}
+                          {it.status === "failed" && (
+                            <span className="text-red-600 dark:text-red-400">Failed{it.error ? `: ${it.error}` : ""}</span>
+                          )}
+                        </p>
+                      </div>
+                      {it.status === "completed" && it.downloadUrl && (
+                        <a
+                          href={it.downloadUrl}
+                          download={it.name.replace(/\.pdf$/i, "") + "-report.pdf"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 inline-flex items-center rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2"
+                        >
+                          Download
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Progress Indicator */}
@@ -890,7 +1125,6 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                   >
                     Evaluate Another Question
                   </button>
-                  <FeedbackWidget pageName="ocr-evaluation-result" variant="button" />
                 </div>
               </AlertDescription>
             </Alert>

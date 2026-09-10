@@ -1,6 +1,5 @@
 ﻿"use client"
 import OCRUpload from "@/components/OCRUpload"
-import FeedbackWidget from "@/components/FeedbackWidget"
 import { Clock, Target, TrendingUp, CheckCircle2 } from "lucide-react"
 
 export default function OCRPage() {
@@ -197,8 +196,6 @@ export default function OCRPage() {
         </div>
       </footer>
 
-      {/* Feedback Widget */}
-      <FeedbackWidget pageName="ocr-evaluation" />
     </>
   )
 }

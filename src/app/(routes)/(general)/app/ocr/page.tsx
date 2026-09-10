@@ -1,5 +1,6 @@
 ﻿"use client"
 import OCRUpload from "@/components/OCRUpload"
+import EvalStatsPanel from "@/components/EvalStatsPanel"
 import { Clock, Target, TrendingUp, CheckCircle2 } from "lucide-react"
 
 export default function OCRPage() {
@@ -111,8 +112,9 @@ export default function OCRPage() {
             }
           `}</style>
 
-          <div className="w-full max-w-2xl mx-auto mb-24">
+          <div className="w-full max-w-2xl mx-auto mb-24 space-y-8">
             <OCRUpload />
+            <EvalStatsPanel />
           </div>
 
           <section className="mb-24">

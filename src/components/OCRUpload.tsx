@@ -435,6 +435,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
       setJobId(newJobId)
       setRequestId(newRequestId)
+      recordEvalStat(subject) // count at submit (per-subject + total)
       setLoadingStage(useOutline ? "Outline file uploaded. We are starting now..." : "Job submitted. Processing started...")
       setProgress(5)
 
@@ -672,6 +673,22 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
 
 
+  // Record an evaluation at submit time (per-subject + total counter).
+  // Fire-and-forget: never blocks or breaks the evaluation flow.
+  const recordEvalStat = (subjectId: string) => {
+    if (!subjectId) return
+    const label = getDisplayName(subjects.find(s => s.id === subjectId)?.display_name || subjectId)
+    fetch("/api/eval-stats", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject: subjectId, label }),
+    })
+      .then(() => {
+        if (typeof window !== "undefined") window.dispatchEvent(new Event("evalStatRecorded"))
+      })
+      .catch(() => {})
+  }
+
   // ---- Bulk evaluation handlers ----
   const updateBulkItem = (index: number, patch: Partial<BulkItem>) => {
     setBulkItems(prev => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)))
@@ -713,6 +730,8 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
       else if (mode === "outline") bulkJobId = (await submitOutlineJob(file, user.id)).jobId
       else if (mode === "precis") bulkJobId = (await submitPrecisJob(file, user.id)).jobId
       else bulkJobId = (await submitOCRJob(file, user.id, subject)).jobId
+
+      recordEvalStat(subject) // count each bulk file at submit
 
       // Poll until a terminal state (safety cap ~10 min at 3s intervals).
       for (let attempt = 0; attempt < 200; attempt++) {

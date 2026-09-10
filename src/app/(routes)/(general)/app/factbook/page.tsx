@@ -403,27 +403,15 @@ export default function FactBookPage() {
   const [topicsLoading, setTopicsLoading] = useState(false);
   const [isPdfExporting, setIsPdfExporting] = useState(false);
   const [pdfExportError, setPdfExportError] = useState<string | null>(null);
-  // Tier gating: Free users may only view today's editorials (no date/topic controls).
-  // null = unknown (loading), true = Pro, false = Free.
-  const [isPro, setIsPro] = useState<boolean | null>(null);
+  // Standalone admin build: no Pro tier — full access for everyone (all dates,
+  // ranges, and topics). Forced to Pro; the /api/pro/status check was removed.
+  const [isPro, setIsPro] = useState<boolean | null>(true);
   const editorialCacheRef = useRef<Map<string, FactbookEditorial[]>>(new Map());
   const topicDropdownRef = useRef<HTMLDivElement | null>(null);
 
-  // Resolve the user's tier once on mount. Fail closed (treat as Free) on error.
+  // No Pro tier in this build — always grant full access (no /api/pro/status call).
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/pro/status");
-        const data = await res.json().catch(() => ({} as any));
-        if (!cancelled) setIsPro(Boolean(data?.isPro));
-      } catch {
-        if (!cancelled) setIsPro(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setIsPro(true);
   }, []);
 
   // Free tier: force the view to today's editorials only (single date, no topic).

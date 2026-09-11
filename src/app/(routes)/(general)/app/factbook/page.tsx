@@ -423,28 +423,10 @@ function drawDateSummaryAppendix(
     return marginY;
   };
 
-  /** Shorten long editorial titles into a clean skim-friendly line. */
-  const summarizeHeadline = (text: string): string => {
-    let t = (text || "").replace(/\s+/g, " ").trim();
-    if (!t) return "Untitled";
-    // Prefer first sentence / clause
-    const sentenceCut = t.search(/[.!?;:](?:\s|$)/);
-    if (sentenceCut > 24 && sentenceCut <= 90) {
-      t = t.slice(0, sentenceCut).trim();
-    }
-    if (t.length <= 72) return t;
-    const cut = t.slice(0, 72);
-    const lastSpace = cut.lastIndexOf(" ");
-    return `${(lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim()}…`;
-  };
-
-  const summarizeTakeaway = (text: string): string => {
-    let t = (text || "").replace(/\s+/g, " ").trim();
-    if (!t) return "—";
-    if (t.length <= 110) return t;
-    const cut = t.slice(0, 110);
-    const lastSpace = cut.lastIndexOf(" ");
-    return `${(lastSpace > 60 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+  /** Normalize whitespace; keep full meaningful sentences (no ellipsis cut). */
+  const cleanText = (text: string, fallback = "—"): string => {
+    const t = (text || "").replace(/\s+/g, " ").trim();
+    return t || fallback;
   };
 
   doc.addPage();
@@ -505,23 +487,25 @@ function drawDateSummaryAppendix(
     y += 10;
 
     items.forEach((row, idx) => {
-      const topic = (row.topic_domain || "Other").trim() || "Other";
-      const headline = summarizeHeadline(row.headline || "Untitled Editorial");
-      const takeaway = summarizeTakeaway(
-        row.takeaway || (row.summary_bullets || [])[0] || "—"
+      const topic = cleanText(row.topic_domain || "Other", "Other");
+      const headline = cleanText(row.headline || "Untitled Editorial", "Untitled Editorial");
+      const takeaway = cleanText(
+        row.takeaway || (row.summary_bullets || [])[0] || "—",
+        "—"
       );
 
+      // Wrap fully inside each column — no mid-sentence ellipsis truncation.
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8);
-      const topicLines = (doc.splitTextToSize(topic, topicW - 2) as string[]).slice(0, 2);
+      const topicLines = doc.splitTextToSize(topic, topicW - 2) as string[];
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8.5);
-      const headlineLines = (doc.splitTextToSize(headline, headlineW - 2) as string[]).slice(0, 2);
+      const headlineLines = doc.splitTextToSize(headline, headlineW - 2) as string[];
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
-      const takeawayLines = (doc.splitTextToSize(takeaway, takeawayW - 2) as string[]).slice(0, 3);
+      const takeawayLines = doc.splitTextToSize(takeaway, takeawayW - 2) as string[];
 
       const lineCount = Math.max(topicLines.length, headlineLines.length, takeawayLines.length, 1);
       const rowH = lineCount * 11 + 10;

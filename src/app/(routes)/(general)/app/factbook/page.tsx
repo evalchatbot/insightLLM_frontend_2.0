@@ -348,7 +348,197 @@ function generateFactbookPdf(
     cursorY += 14;
   });
 
+  // End-of-PDF appendix: compact date summary for readers who skip the full digest.
+  drawDateSummaryAppendix(doc, rows, {
+    pageWidth,
+    pageHeight,
+    marginX,
+    marginY,
+    contentWidth,
+    ink: INK,
+    muted: MUTED,
+    rule: RULE,
+    brand: BRAND,
+    cream: CREAM,
+    drawWatermark,
+  });
+
   doc.save(`${sanitizePdfFileName(options.fileName)}.pdf`);
+}
+
+function drawDateSummaryAppendix(
+  doc: jsPDF,
+  rows: FactbookEditorial[],
+  layout: {
+    pageWidth: number;
+    pageHeight: number;
+    marginX: number;
+    marginY: number;
+    contentWidth: number;
+    ink: [number, number, number];
+    muted: [number, number, number];
+    rule: [number, number, number];
+    brand: [number, number, number];
+    cream: [number, number, number];
+    drawWatermark: () => void;
+  }
+): void {
+  if (!rows.length) return;
+
+  const {
+    pageWidth,
+    pageHeight,
+    marginX,
+    marginY,
+    contentWidth,
+    ink,
+    muted,
+    rule,
+    brand,
+    drawWatermark,
+  } = layout;
+  const bottomLimit = pageHeight - marginY;
+
+  // Group by publication date (ascending) so the appendix reads chronologically.
+  const byDate = new Map<string, FactbookEditorial[]>();
+  for (const row of rows) {
+    const key = row.publication_date || "unknown";
+    const bucket = byDate.get(key) || [];
+    bucket.push(row);
+    byDate.set(key, bucket);
+  }
+  const dates = Array.from(byDate.keys()).sort();
+
+  const ensureSpace = (needed: number, y: number): number => {
+    if (y + needed <= bottomLimit) return y;
+    doc.addPage();
+    drawWatermark();
+    return marginY;
+  };
+
+  doc.addPage();
+  drawWatermark();
+  let y = marginY;
+
+  // Appendix header
+  doc.setFont("times", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(ink[0], ink[1], ink[2]);
+  doc.text("Quick Summary by Date", marginX, y + 18 * 0.78);
+  y += 26;
+
+  doc.setFont("times", "normal");
+  doc.setFontSize(10.5);
+  doc.setTextColor(muted[0], muted[1], muted[2]);
+  const overview = `${rows.length} editorial${rows.length === 1 ? "" : "s"} across ${dates.length} date${
+    dates.length === 1 ? "" : "s"
+  } — skim this table if you do not want to read the full digest above.`;
+  (doc.splitTextToSize(overview, contentWidth) as string[]).forEach((line) => {
+    doc.text(line, marginX, y + 10.5 * 0.78);
+    y += 14;
+  });
+  y += 10;
+
+  // Accent rule under header
+  doc.setDrawColor(brand[0], brand[1], brand[2]);
+  doc.setLineWidth(1.2);
+  doc.line(marginX, y, marginX + contentWidth, y);
+  y += 16;
+
+  // Column layout for table rows
+  const colTopicW = 92;
+  const colHeadlineW = contentWidth * 0.38;
+  const colTakeawayX = marginX + colTopicW + colHeadlineW + 12;
+  const colTakeawayW = marginX + contentWidth - colTakeawayX;
+
+  for (const dateKey of dates) {
+    const items = byDate.get(dateKey) || [];
+    y = ensureSpace(36, y);
+
+    // Date section banner
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(marginX, y - 4, contentWidth, 22, 3, 3, "F");
+    doc.setFont("times", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(brand[0], brand[1], brand[2]);
+    doc.text(formatDate(dateKey), marginX + 8, y + 11);
+    doc.setFont("times", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(muted[0], muted[1], muted[2]);
+    const countLabel = `${items.length} item${items.length === 1 ? "" : "s"}`;
+    doc.text(countLabel, marginX + contentWidth - 8 - doc.getTextWidth(countLabel), y + 11);
+    y += 28;
+
+    // Column headers (once per date group)
+    y = ensureSpace(18, y);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(muted[0], muted[1], muted[2]);
+    doc.text("TOPIC", marginX, y);
+    doc.text("HEADLINE", marginX + colTopicW + 6, y);
+    doc.text("TAKEAWAY", colTakeawayX, y);
+    y += 6;
+    doc.setDrawColor(rule[0], rule[1], rule[2]);
+    doc.setLineWidth(0.6);
+    doc.line(marginX, y, marginX + contentWidth, y);
+    y += 10;
+
+    items.forEach((row, idx) => {
+      const topic = (row.topic_domain || "Other").trim() || "Other";
+      const headline = (row.headline || "Untitled Editorial").trim();
+      const takeaway = (row.takeaway || (row.summary_bullets || [])[0] || "—").trim();
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      const topicLines = doc.splitTextToSize(topic, colTopicW - 4) as string[];
+      const headlineLines = doc.splitTextToSize(headline, colHeadlineW - 4) as string[];
+      const takeawayLines = doc.splitTextToSize(takeaway, colTakeawayW - 2) as string[];
+      const lineCount = Math.max(topicLines.length, headlineLines.length, takeawayLines.length, 1);
+      const rowH = lineCount * 11 + 8;
+
+      y = ensureSpace(rowH, y);
+
+      // Alternating row tint for readability
+      if (idx % 2 === 0) {
+        doc.setFillColor(252, 252, 251);
+        doc.rect(marginX, y - 3, contentWidth, rowH - 2, "F");
+      }
+
+      doc.setTextColor(ink[0], ink[1], ink[2]);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      topicLines.forEach((line, i) => {
+        doc.text(line, marginX, y + 8 + i * 11);
+      });
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      headlineLines.forEach((line, i) => {
+        doc.text(line, marginX + colTopicW + 6, y + 8 + i * 11);
+      });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(muted[0], muted[1], muted[2]);
+      takeawayLines.forEach((line, i) => {
+        doc.text(line, colTakeawayX, y + 8 + i * 11);
+      });
+
+      y += rowH;
+      doc.setDrawColor(rule[0], rule[1], rule[2]);
+      doc.setLineWidth(0.4);
+      doc.line(marginX, y - 4, marginX + contentWidth, y - 4);
+    });
+
+    y += 12;
+  }
+
+  // Footer note on last appendix content
+  y = ensureSpace(24, y);
+  doc.setFont("times", "italic");
+  doc.setFontSize(9);
+  doc.setTextColor(muted[0], muted[1], muted[2]);
+  doc.text("Generated by Rubric.ai Factbook — summary appendix", marginX, y + 9);
 }
 
 function mergeEditorialRows(editorialGroups: FactbookEditorial[][]): FactbookEditorial[] {

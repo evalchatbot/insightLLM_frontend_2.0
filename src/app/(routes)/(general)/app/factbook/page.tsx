@@ -386,7 +386,6 @@ function drawDateSummaryAppendix(
   if (!rows.length) return;
 
   const {
-    pageWidth,
     pageHeight,
     marginX,
     marginY,
@@ -398,8 +397,16 @@ function drawDateSummaryAppendix(
     drawWatermark,
   } = layout;
   const bottomLimit = pageHeight - marginY;
+  const colGap = 14;
 
-  // Group by publication date (ascending) so the appendix reads chronologically.
+  // Fixed non-overlapping columns (topic | headline | takeaway)
+  const topicW = Math.floor(contentWidth * 0.17);
+  const headlineW = Math.floor(contentWidth * 0.36);
+  const takeawayW = contentWidth - topicW - headlineW - colGap * 2;
+  const topicX = marginX;
+  const headlineX = topicX + topicW + colGap;
+  const takeawayX = headlineX + headlineW + colGap;
+
   const byDate = new Map<string, FactbookEditorial[]>();
   for (const row of rows) {
     const key = row.publication_date || "unknown";
@@ -416,11 +423,34 @@ function drawDateSummaryAppendix(
     return marginY;
   };
 
+  /** Shorten long editorial titles into a clean skim-friendly line. */
+  const summarizeHeadline = (text: string): string => {
+    let t = (text || "").replace(/\s+/g, " ").trim();
+    if (!t) return "Untitled";
+    // Prefer first sentence / clause
+    const sentenceCut = t.search(/[.!?;:](?:\s|$)/);
+    if (sentenceCut > 24 && sentenceCut <= 90) {
+      t = t.slice(0, sentenceCut).trim();
+    }
+    if (t.length <= 72) return t;
+    const cut = t.slice(0, 72);
+    const lastSpace = cut.lastIndexOf(" ");
+    return `${(lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+  };
+
+  const summarizeTakeaway = (text: string): string => {
+    let t = (text || "").replace(/\s+/g, " ").trim();
+    if (!t) return "—";
+    if (t.length <= 110) return t;
+    const cut = t.slice(0, 110);
+    const lastSpace = cut.lastIndexOf(" ");
+    return `${(lastSpace > 60 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+  };
+
   doc.addPage();
   drawWatermark();
   let y = marginY;
 
-  // Appendix header
   doc.setFont("times", "bold");
   doc.setFontSize(18);
   doc.setTextColor(ink[0], ink[1], ink[2]);
@@ -439,23 +469,15 @@ function drawDateSummaryAppendix(
   });
   y += 10;
 
-  // Accent rule under header
   doc.setDrawColor(brand[0], brand[1], brand[2]);
   doc.setLineWidth(1.2);
   doc.line(marginX, y, marginX + contentWidth, y);
   y += 16;
 
-  // Column layout for table rows
-  const colTopicW = 92;
-  const colHeadlineW = contentWidth * 0.38;
-  const colTakeawayX = marginX + colTopicW + colHeadlineW + 12;
-  const colTakeawayW = marginX + contentWidth - colTakeawayX;
-
   for (const dateKey of dates) {
     const items = byDate.get(dateKey) || [];
-    y = ensureSpace(36, y);
+    y = ensureSpace(40, y);
 
-    // Date section banner
     doc.setFillColor(248, 250, 252);
     doc.roundedRect(marginX, y - 4, contentWidth, 22, 3, 3, "F");
     doc.setFont("times", "bold");
@@ -469,15 +491,14 @@ function drawDateSummaryAppendix(
     doc.text(countLabel, marginX + contentWidth - 8 - doc.getTextWidth(countLabel), y + 11);
     y += 28;
 
-    // Column headers (once per date group)
     y = ensureSpace(18, y);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setTextColor(muted[0], muted[1], muted[2]);
-    doc.text("TOPIC", marginX, y);
-    doc.text("HEADLINE", marginX + colTopicW + 6, y);
-    doc.text("TAKEAWAY", colTakeawayX, y);
-    y += 6;
+    doc.text("TOPIC", topicX, y);
+    doc.text("HEADLINE", headlineX, y);
+    doc.text("TAKEAWAY", takeawayX, y);
+    y += 5;
     doc.setDrawColor(rule[0], rule[1], rule[2]);
     doc.setLineWidth(0.6);
     doc.line(marginX, y, marginX + contentWidth, y);
@@ -485,20 +506,27 @@ function drawDateSummaryAppendix(
 
     items.forEach((row, idx) => {
       const topic = (row.topic_domain || "Other").trim() || "Other";
-      const headline = (row.headline || "Untitled Editorial").trim();
-      const takeaway = (row.takeaway || (row.summary_bullets || [])[0] || "—").trim();
+      const headline = summarizeHeadline(row.headline || "Untitled Editorial");
+      const takeaway = summarizeTakeaway(
+        row.takeaway || (row.summary_bullets || [])[0] || "—"
+      );
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      const topicLines = (doc.splitTextToSize(topic, topicW - 2) as string[]).slice(0, 2);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      const headlineLines = (doc.splitTextToSize(headline, headlineW - 2) as string[]).slice(0, 2);
 
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      const topicLines = doc.splitTextToSize(topic, colTopicW - 4) as string[];
-      const headlineLines = doc.splitTextToSize(headline, colHeadlineW - 4) as string[];
-      const takeawayLines = doc.splitTextToSize(takeaway, colTakeawayW - 2) as string[];
-      const lineCount = Math.max(topicLines.length, headlineLines.length, takeawayLines.length, 1);
-      const rowH = lineCount * 11 + 8;
+      doc.setFontSize(8);
+      const takeawayLines = (doc.splitTextToSize(takeaway, takeawayW - 2) as string[]).slice(0, 3);
 
+      const lineCount = Math.max(topicLines.length, headlineLines.length, takeawayLines.length, 1);
+      const rowH = lineCount * 11 + 10;
       y = ensureSpace(rowH, y);
 
-      // Alternating row tint for readability
       if (idx % 2 === 0) {
         doc.setFillColor(252, 252, 251);
         doc.rect(marginX, y - 3, contentWidth, rowH - 2, "F");
@@ -507,22 +535,16 @@ function drawDateSummaryAppendix(
       doc.setTextColor(ink[0], ink[1], ink[2]);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8);
-      topicLines.forEach((line, i) => {
-        doc.text(line, marginX, y + 8 + i * 11);
-      });
+      topicLines.forEach((line, i) => doc.text(line, topicX, y + 8 + i * 11));
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8.5);
-      headlineLines.forEach((line, i) => {
-        doc.text(line, marginX + colTopicW + 6, y + 8 + i * 11);
-      });
+      headlineLines.forEach((line, i) => doc.text(line, headlineX, y + 8 + i * 11));
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(muted[0], muted[1], muted[2]);
-      takeawayLines.forEach((line, i) => {
-        doc.text(line, colTakeawayX, y + 8 + i * 11);
-      });
+      takeawayLines.forEach((line, i) => doc.text(line, takeawayX, y + 8 + i * 11));
 
       y += rowH;
       doc.setDrawColor(rule[0], rule[1], rule[2]);
@@ -533,7 +555,6 @@ function drawDateSummaryAppendix(
     y += 12;
   }
 
-  // Footer note on last appendix content
   y = ensureSpace(24, y);
   doc.setFont("times", "italic");
   doc.setFontSize(9);

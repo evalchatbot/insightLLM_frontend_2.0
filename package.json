@@ -2,7 +2,7 @@
   "name": "insight-llm",
   "version": "0.1.0",
   "private": true,
-  "description": "Insight LLM - An AI-powered chat application for intelligent conversations",
+  "description": "Lahore CSS Academy - AI-powered essay evaluation and Fact Book for CSS exam preparation",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

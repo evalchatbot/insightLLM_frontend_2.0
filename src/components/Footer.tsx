@@ -17,21 +17,21 @@ const Footer = () => {
                 <div className="flex items-center gap-3">
                     <div className="relative w-6 h-6">
                         <Image
-                            src="/assets/Rubric logo.svg"
-                            alt="InsightLLM Logo"
+                            src="/assets/lahore-css-academy-mark.png"
+                            alt="Lahore CSS Academy Logo"
                             fill
                             className="object-contain"
                         />
                     </div>
-                    <span className="font-bold text-xl tracking-tight text-red-600 dark:text-red-400">
-                        rubric.ai
+                    <span className="font-bold text-xl tracking-tight text-zinc-900 dark:text-white">
+                        Lahore CSS Academy
                     </span>
                 </div>
 
 
                 {/* Copyright */}
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    © 2025 RUBRIC. All rights reserved.
+                    © 2025 Lahore CSS Academy. All rights reserved.
                 </p>
             </div>
         </footer>

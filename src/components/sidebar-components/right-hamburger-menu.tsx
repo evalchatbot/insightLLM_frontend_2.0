@@ -236,7 +236,7 @@ const RightHamburgerMenu = () => {
               {/* Footer */}
               <div className="mt-4 pt-4 border-t border-border">
                 <p className="text-[10px] text-muted-foreground text-center">
-                  InsightLLM v2.0
+                  Lahore CSS Academy
                 </p>
               </div>
             </div>

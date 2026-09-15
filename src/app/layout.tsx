@@ -11,17 +11,17 @@ const outfit = Outfit({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
-  title: "Rubric AI",
+  title: "Lahore CSS Academy",
   description: "AI-powered essay evaluation and feedback for CSS exam preparation",
-  keywords: ["AI", "essay evaluation", "CSS", "Rubric", "exam preparation", "feedback", "grading"],
-  authors: [{ name: "Rubric AI" }],
-  creator: "Rubric AI",
-  publisher: "Rubric AI",
+  keywords: ["AI", "essay evaluation", "CSS", "Lahore CSS Academy", "exam preparation", "feedback", "grading"],
+  authors: [{ name: "Lahore CSS Academy" }],
+  creator: "Lahore CSS Academy",
+  publisher: "Lahore CSS Academy",
   openGraph: {
-    title: "Rubric AI",
+    title: "Lahore CSS Academy",
     description: "AI-powered essay evaluation and feedback for CSS exam preparation",
     url: "https://insight-llm.vercel.app",
-    siteName: "Rubric AI",
+    siteName: "Lahore CSS Academy",
     images: [
       {
         url: "/assets/insight-banner.png",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "Rubric AI",
+    title: "Lahore CSS Academy",
     description: "AI-powered essay evaluation and feedback for CSS exam preparation",
     creator: "@yourTwitterHandle",
     images: ["/assets/insight-banner.png"],

@@ -22,7 +22,7 @@ export default function LoadingState() {
                 />
                 <div className="relative z-10 w-full h-full">
                     <Image
-                        src="/assets/Rubric logo.svg"
+                        src="/assets/lahore-css-academy-mark.png"
                         alt="Loading..."
                         fill
                         className="object-contain"
@@ -31,8 +31,8 @@ export default function LoadingState() {
             </div>
 
             <div className="flex flex-col items-center gap-2">
-                <h3 className="text-lg font-bold text-red-700 dark:text-red-500 tracking-tight">
-                    rubric.ai
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
+                    Lahore CSS Academy
                 </h3>
                 <div className="flex gap-1">
                     {[0, 1, 2].map((i) => (

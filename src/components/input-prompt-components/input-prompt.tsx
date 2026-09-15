@@ -439,7 +439,7 @@ const InputPrompt = () => {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (!user) {
-        setToast('Please sign in to use Insight LLM!');
+        setToast('Please sign in to use Lahore CSS Academy!');
         return;
       }
 
@@ -512,7 +512,7 @@ const InputPrompt = () => {
 
       </div>
       <p className="text-[11px] sm:text-xs text-muted-foreground/70 text-center max-w-4xl mx-auto px-2">
-        Insight LLM may display inaccurate info, including about people, so double-check its responses.
+        Lahore CSS Academy may display inaccurate info, including about people, so double-check its responses.
         <Link className="underline hover:text-primary transition-colors ml-1 touch-manipulation" href="/">Your privacy & AI Apps</Link>
       </p>
     </div>

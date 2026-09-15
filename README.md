@@ -1,6 +1,6 @@
-# Evaluations + Fact Book (standalone)
+# Lahore CSS Academy — Evaluations + Fact Book (standalone)
 
-A trimmed-down clone of the Rubric AI frontend that ships **only two features**:
+A trimmed-down clone of the Lahore CSS Academy frontend that ships **only two features**:
 
 - **Evaluations** (`/app/ocr`) — upload an answer PDF and get AI feedback (rubric, essay, précis, outline modes)
 - **Fact Book** (`/app/factbook`) — daily editorial summaries by date and topic

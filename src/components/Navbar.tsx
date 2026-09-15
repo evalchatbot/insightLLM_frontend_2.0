@@ -55,9 +55,9 @@ const Navbar = () => {
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-3 group z-10">
                         <div className="relative w-8 h-8 transition-transform group-hover:scale-110 duration-300">
-                            <Image src="/assets/Rubric logo.svg" alt="Rubric AI Logo" fill className="object-contain" />
+                            <Image src="/assets/lahore-css-academy-mark.png" alt="Lahore CSS Academy Logo" fill className="object-contain" />
                         </div>
-                        <span className="font-bold text-xl tracking-tight text-red-700 dark:text-red-500">rubric.ai</span>
+                        <span className="font-bold text-xl tracking-tight text-zinc-900 dark:text-white">Lahore CSS Academy</span>
                     </Link>
 
                     {/* Desktop nav */}

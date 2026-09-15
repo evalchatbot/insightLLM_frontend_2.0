@@ -51,7 +51,10 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
-          <span className="font-bold text-3xl tracking-tight text-red-700 dark:text-red-500">rubric.ai</span>
+          <div className="flex items-center justify-center gap-3">
+            <img src="/assets/lahore-css-academy-mark.png" alt="Lahore CSS Academy Logo" className="w-10 h-10 object-contain" />
+            <span className="font-bold text-3xl tracking-tight text-zinc-900 dark:text-white">Lahore CSS Academy</span>
+          </div>
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Sign in to continue</p>
         </div>
 

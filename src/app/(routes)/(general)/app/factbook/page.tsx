@@ -187,7 +187,7 @@ function generateFactbookPdf(
   const INK: [number, number, number] = [17, 24, 39];
   const MUTED: [number, number, number] = [100, 116, 139];
   const RULE: [number, number, number] = [226, 232, 240];
-  const BRAND: [number, number, number] = [178, 34, 34]; // #b22222 rubric red
+  const BRAND: [number, number, number] = [180, 83, 9]; // #b45309 amber-700 (Lahore CSS Academy)
   const CREAM: [number, number, number] = [228, 226, 221]; // #e4e2dd logo mark
 
   let currentColumn = 0;

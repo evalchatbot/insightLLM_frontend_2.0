@@ -25,10 +25,10 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             <Link
               href="/app/ocr"
-              className="group bg-white dark:bg-zinc-900 p-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-red-500 dark:hover:border-red-400 transition-all duration-300"
+              className="group bg-white dark:bg-zinc-900 p-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-amber-500 dark:hover:border-amber-400 transition-all duration-300"
             >
-              <div className="w-14 h-14 bg-red-100 dark:bg-red-500/20 rounded-xl flex items-center justify-center mb-6">
-                <FileText className="w-7 h-7 text-red-600 dark:text-red-400" />
+              <div className="w-14 h-14 bg-amber-100 dark:bg-amber-500/20 rounded-xl flex items-center justify-center mb-6">
+                <FileText className="w-7 h-7 text-amber-600 dark:text-amber-400" />
               </div>
               <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-white flex items-center gap-2">
                 Evaluations
@@ -41,10 +41,10 @@ export default function HomePage() {
 
             <Link
               href="/app/factbook"
-              className="group bg-white dark:bg-zinc-900 p-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-red-500 dark:hover:border-red-400 transition-all duration-300"
+              className="group bg-white dark:bg-zinc-900 p-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-amber-500 dark:hover:border-amber-400 transition-all duration-300"
             >
-              <div className="w-14 h-14 bg-red-100 dark:bg-red-500/20 rounded-xl flex items-center justify-center mb-6">
-                <BookOpenText className="w-7 h-7 text-red-600 dark:text-red-400" />
+              <div className="w-14 h-14 bg-amber-100 dark:bg-amber-500/20 rounded-xl flex items-center justify-center mb-6">
+                <BookOpenText className="w-7 h-7 text-amber-600 dark:text-amber-400" />
               </div>
               <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-white flex items-center gap-2">
                 Fact Book

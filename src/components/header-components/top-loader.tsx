@@ -24,7 +24,7 @@ const TopLoader = () => {
                       instead of looping forever.
                     */}
                     <motion.div
-                        className="h-[3px] w-full bg-gradient-to-r from-amber-500 via-red-500 to-cyan-500 shadow-[0_0_16px_rgba(239,68,68,0.7)]"
+                        className="h-[3px] w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 shadow-[0_0_16px_rgba(245,166,35,0.7)]"
                         style={{ transformOrigin: "0% 50%" }}
                         initial={{ scaleX: 0.06 }}
                         animate={{ scaleX: 0.92 }}

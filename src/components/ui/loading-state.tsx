@@ -18,7 +18,7 @@ export default function LoadingState() {
                         repeat: Infinity,
                         ease: "easeInOut",
                     }}
-                    className="absolute inset-0 bg-red-600 dark:bg-red-500 rounded-full blur-xl opacity-20"
+                    className="absolute inset-0 bg-amber-600 dark:bg-amber-500 rounded-full blur-xl opacity-20"
                 />
                 <div className="relative z-10 w-full h-full">
                     <Image
@@ -47,7 +47,7 @@ export default function LoadingState() {
                                 delay: i * 0.1,
                                 ease: "easeInOut",
                             }}
-                            className="w-2 h-2 rounded-full bg-red-600 dark:bg-red-500"
+                            className="w-2 h-2 rounded-full bg-amber-600 dark:bg-amber-500"
                         />
                     ))}
                 </div>

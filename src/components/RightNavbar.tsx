@@ -144,7 +144,7 @@ const RightNavbar = () => {
                                         >
                                             <Icon className="w-5 h-5" />
                                             <span>{link.name}</span>
-                                            <span className="ml-auto text-red-500 text-[7px] font-bold uppercase tracking-wide">
+                                            <span className="ml-auto text-amber-500 text-[7px] font-bold uppercase tracking-wide">
                                                 Soon
                                             </span>
                                         </div>

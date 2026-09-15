@@ -41,11 +41,11 @@ export default function EvalStatsPanel() {
     <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="flex items-center gap-2 text-lg font-bold text-zinc-800 dark:text-zinc-100">
-          <BarChart3 className="w-5 h-5 text-red-600 dark:text-red-400" /> Evaluation Stats
+          <BarChart3 className="w-5 h-5 text-amber-600 dark:text-amber-400" /> Evaluation Stats
         </h3>
         <button
           onClick={load}
-          className="p-2 rounded-lg text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+          className="p-2 rounded-lg text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
           title="Refresh"
           aria-label="Refresh stats"
         >
@@ -54,7 +54,7 @@ export default function EvalStatsPanel() {
       </div>
 
       <div className="mb-4">
-        <div className="text-4xl font-black text-red-700 dark:text-red-400 leading-none">{total}</div>
+        <div className="text-4xl font-black text-amber-700 dark:text-amber-400 leading-none">{total}</div>
         <div className="mt-1 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Total evaluations</div>
       </div>
 

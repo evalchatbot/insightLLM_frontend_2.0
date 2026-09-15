@@ -812,14 +812,14 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             <button
               type="button"
               onClick={() => setBulkMode(false)}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${!bulkMode ? "bg-white dark:bg-zinc-900 text-red-600 shadow" : "text-zinc-500 dark:text-zinc-400"}`}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${!bulkMode ? "bg-white dark:bg-zinc-900 text-amber-600 shadow" : "text-zinc-500 dark:text-zinc-400"}`}
             >
               Single
             </button>
             <button
               type="button"
               onClick={() => setBulkMode(true)}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${bulkMode ? "bg-white dark:bg-zinc-900 text-red-600 shadow" : "text-zinc-500 dark:text-zinc-400"}`}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${bulkMode ? "bg-white dark:bg-zinc-900 text-amber-600 shadow" : "text-zinc-500 dark:text-zinc-400"}`}
             >
               Bulk (up to {MAX_BULK})
             </button>
@@ -840,7 +840,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Select Exam</label>
               <button
                 onClick={() => setShowGuidelines(true)}
-                className="text-xs text-red-600 font-medium cursor-pointer hover:underline"
+                className="text-xs text-amber-600 font-medium cursor-pointer hover:underline"
               >
                 Document Guidelines
               </button>
@@ -888,10 +888,10 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                 disabled={loading}
               />
               <div className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-all duration-200 ${file
-                ? "border-red-600 bg-red-50 dark:border-red-500 dark:bg-red-950/20"
+                ? "border-amber-600 bg-amber-50 dark:border-amber-500 dark:bg-amber-950/20"
                 : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                 }`}>
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${file ? "bg-red-600 text-white dark:bg-red-500 dark:text-white" : "bg-red-600/10 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors ${file ? "bg-amber-600 text-white dark:bg-amber-500 dark:text-white" : "bg-amber-600/10 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
                   }`}>
                   <Upload className="w-6 h-6" />
                 </div>
@@ -905,7 +905,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                   <div className="text-center">
                     <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">Drag and drop</p>
                     <p className="text-xs text-zinc-500 mb-4">or click to browse (Max 20MB)</p>
-                    <span className="inline-block px-4 py-2 border border-red-600 text-red-600 dark:border-red-500 dark:text-red-400 rounded-lg text-sm font-medium">
+                    <span className="inline-block px-4 py-2 border border-amber-600 text-amber-600 dark:border-amber-500 dark:text-amber-400 rounded-lg text-sm font-medium">
                       Choose File
                     </span>
                   </div>
@@ -921,7 +921,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               <Button
                 onClick={() => handleEvaluate("essay")}
                 disabled={!file || !user || loading || (!subject || !exam)}
-                className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full py-6 text-lg font-bold bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-xl shadow-lg shadow-amber-600/20 dark:shadow-amber-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading && !isOutlineMode ? "Evaluating..." : "Complete Essay Analysis"}
               </Button>
@@ -939,7 +939,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             <Button
               onClick={() => handleEvaluate("precis")}
               disabled={!file || !user || loading || (!subject || !exam)}
-              className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-6 text-lg font-bold bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-xl shadow-lg shadow-amber-600/20 dark:shadow-amber-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? "Evaluating Precis..." : "Analyze Precis"}
             </Button>
@@ -948,7 +948,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             <Button
               onClick={() => handleEvaluate("regular")}
               disabled={!file || !user || loading || (!subject || !exam)}
-              className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-6 text-lg font-bold bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-xl shadow-lg shadow-amber-600/20 dark:shadow-amber-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? "Evaluating..." : "Analyze"}
             </Button>
@@ -971,7 +971,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                   />
                   <div className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-red-600/10 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-amber-600/10 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
                       <Upload className="w-6 h-6" />
                     </div>
                     <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">
@@ -997,7 +997,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               <Button
                 onClick={handleBulkEvaluate}
                 disabled={bulkRunning || bulkFiles.length === 0 || !subject || !exam}
-                className="w-full py-6 text-lg font-bold bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 dark:shadow-red-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full py-6 text-lg font-bold bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-xl shadow-lg shadow-amber-600/20 dark:shadow-amber-500/20 transition-all hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {bulkRunning
                   ? "Evaluating…"
@@ -1032,7 +1032,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                           download={it.name.replace(/\.pdf$/i, "") + "-report.pdf"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="shrink-0 inline-flex items-center rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2"
+                          className="shrink-0 inline-flex items-center rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2"
                         >
                           Download
                         </a>
@@ -1054,7 +1054,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                   {jobId && (
                     <button
                       onClick={handleCancel}
-                      className="p-1 text-zinc-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      className="p-1 text-zinc-500 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
                       title="Cancel job"
                     >
                       <X className="w-4 h-4" />
@@ -1064,7 +1064,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800">
                 <div
-                  className="h-full bg-red-600 dark:bg-red-500 transition-all duration-300 ease-out"
+                  className="h-full bg-amber-600 dark:bg-amber-500 transition-all duration-300 ease-out"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -1113,7 +1113,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                   {isOutlineMode
                     ? "This usually takes a few minutes."
                     : <>
-                        Depending on document size and complexity, this may take <span className="font-semibold text-red-600 dark:text-red-400">3-4 minutes</span>.
+                        Depending on document size and complexity, this may take <span className="font-semibold text-amber-600 dark:text-amber-400">3-4 minutes</span>.
                       </>}
                 </p>
               )}
@@ -1130,12 +1130,12 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
 
           {/* Report Ready */}
           {(annotatedPdfBlob || annotatedPdfUrl) && (
-            <Alert className="border-2 border-red-500/30 bg-red-50 dark:border-red-500/30 dark:bg-red-950/20 rounded-2xl">
-              <AlertTitle className="text-red-700 dark:text-red-400 font-bold">Evaluation Report Ready</AlertTitle>
+            <Alert className="border-2 border-amber-500/30 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-950/20 rounded-2xl">
+              <AlertTitle className="text-amber-700 dark:text-amber-400 font-bold">Evaluation Report Ready</AlertTitle>
               <AlertDescription className="flex flex-col gap-3">
                 <span className="text-zinc-700 dark:text-zinc-300">Your detailed evaluation report is ready for download.</span>
                 <div className="flex flex-col gap-2 md:flex-row">
-                  <Button onClick={downloadAnnotatedPDF} className="w-full md:w-auto bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white">
+                  <Button onClick={downloadAnnotatedPDF} className="w-full md:w-auto bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white">
                     Download Report
                   </Button>
                   <button
@@ -1171,11 +1171,11 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               </p>
 
               <div>
-                <h4 className="text-lg font-bold mb-3 flex items-center gap-2 text-zinc-900 dark:text-red-400">
-                  <span className="w-1 h-6 bg-red-600 rounded-full"></span>
+                <h4 className="text-lg font-bold mb-3 flex items-center gap-2 text-zinc-900 dark:text-amber-400">
+                  <span className="w-1 h-6 bg-amber-600 rounded-full"></span>
                   Document Structure
                 </h4>
-                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-300 pl-4 list-disc marker:text-red-500">
+                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-300 pl-4 list-disc marker:text-amber-500">
                   <li>Begin your response by writing the question statement at the top</li>
                   <li>Start the response with the Introduction heading</li>
                   <li>Number every heading and subheading</li>
@@ -1185,11 +1185,11 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               </div>
 
               <div>
-                <h4 className="text-lg font-bold mb-3 flex items-center gap-2 text-zinc-900 dark:text-red-400">
-                  <span className="w-1 h-6 bg-red-600 rounded-full"></span>
+                <h4 className="text-lg font-bold mb-3 flex items-center gap-2 text-zinc-900 dark:text-amber-400">
+                  <span className="w-1 h-6 bg-amber-600 rounded-full"></span>
                   Scanning Quality
                 </h4>
-                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-300 pl-4 list-disc marker:text-red-500">
+                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-300 pl-4 list-disc marker:text-amber-500">
                   <li>Scan documents at high resolution</li>
                   <li>Ensure good lighting with no shadows on the page</li>
                   <li>Keep pages flat and aligned during scanning</li>
@@ -1199,11 +1199,11 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               </div>
 
               <div>
-                <h4 className="text-lg font-bold mb-3 flex items-center gap-2 text-zinc-900 dark:text-red-400">
-                  <span className="w-1 h-6 bg-red-600 rounded-full"></span>
+                <h4 className="text-lg font-bold mb-3 flex items-center gap-2 text-zinc-900 dark:text-amber-400">
+                  <span className="w-1 h-6 bg-amber-600 rounded-full"></span>
                   Best Practices
                 </h4>
-                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-300 pl-4 list-disc marker:text-red-500">
+                <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-300 pl-4 list-disc marker:text-amber-500">
                   <li>Write legibly with consistent spacing between words</li>
                   <li>Avoid excessive strike-throughs or corrections</li>
                   <li>Save as PDF format (not images) for best results</li>
@@ -1213,7 +1213,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
             </div>
 
             <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex justify-end">
-              <Button onClick={() => setShowGuidelines(false)} className="bg-red-600 hover:bg-red-700 text-white">
+              <Button onClick={() => setShowGuidelines(false)} className="bg-amber-600 hover:bg-amber-700 text-white">
                 Understood
               </Button>
             </div>

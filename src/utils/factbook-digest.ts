@@ -2,7 +2,8 @@
 
 // Fact Book digest: calls the backend AI digest endpoint, then renders the result
 // as a vector PDF (Lahore CSS Academy digest design) and downloads it. The accent
-// colour is passed in so each app brands its own digest.
+// colour and an optional faint brand watermark are passed in so each app brands
+// its own digest.
 
 import { jsPDF } from "jspdf";
 import type { FactbookEditorial } from "@/utils/factbook-api";
@@ -40,9 +41,18 @@ export interface FactbookDigest {
   figures: DigestFigure[];
 }
 
+interface Watermark {
+  /** PNG data URL of the brand mark. */
+  dataUrl: string;
+  /** Intrinsic height / width, so we can keep the aspect ratio. */
+  ratio: number;
+}
+
 export interface DigestBrand {
   /** Accent colour (hex) for card marks, figures and takeaway rules. */
   accent: string;
+  /** Optional faint centred brand watermark, already rasterised to PNG. */
+  watermark?: Watermark | null;
 }
 
 type RGB = [number, number, number];
@@ -82,6 +92,35 @@ export async function fetchFactbookDigest(
   return (await response.json()) as FactbookDigest;
 }
 
+// ---- watermark loading (client only) ------------------------------------
+
+// Rasterise a logo (PNG or same-origin SVG) to a PNG data URL so jsPDF can
+// stamp it. Returns null on any failure — the watermark is purely decorative
+// and must never block the export.
+async function loadWatermarkImage(url: string): Promise<Watermark | null> {
+  if (typeof document === "undefined" || typeof Image === "undefined") return null;
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error("watermark image failed to load"));
+      im.src = url;
+    });
+    const w = img.naturalWidth || 512;
+    const h = img.naturalHeight || 512;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, w, h);
+    return { dataUrl: canvas.toDataURL("image/png"), ratio: h / w };
+  } catch {
+    return null;
+  }
+}
+
 // ---- PDF rendering -------------------------------------------------------
 
 const PAGE_W = 595.28; // A4 pt
@@ -105,6 +144,35 @@ function setText(doc: jsPDF, c: RGB) {
 function paintBackground(doc: jsPDF) {
   setFill(doc, CREAM);
   doc.rect(0, 0, PAGE_W, PAGE_H, "F");
+}
+
+// Faint centred brand mark, drawn under the content on every page.
+function drawWatermark(doc: jsPDF, wm: Watermark) {
+  const maxDim = 300;
+  let w = maxDim;
+  let h = w * (wm.ratio || 1);
+  if (h > maxDim) {
+    h = maxDim;
+    w = h / (wm.ratio || 1);
+  }
+  const x = (PAGE_W - w) / 2;
+  const y = (PAGE_H - h) / 2;
+  const anyDoc = doc as any;
+  try {
+    if (typeof anyDoc.saveGraphicsState === "function") anyDoc.saveGraphicsState();
+    if (typeof anyDoc.GState === "function" && typeof anyDoc.setGState === "function") {
+      anyDoc.setGState(new anyDoc.GState({ opacity: 0.06 }));
+    }
+    doc.addImage(wm.dataUrl, "PNG", x, y, w, h, undefined, "FAST");
+  } catch {
+    // decorative only — swallow errors
+  } finally {
+    try {
+      if (typeof anyDoc.restoreGraphicsState === "function") anyDoc.restoreGraphicsState();
+    } catch {
+      /* noop */
+    }
+  }
 }
 
 interface CardLayout {
@@ -241,10 +309,18 @@ function columnX(col: number): number {
 
 export function generateDigestPdf(digest: FactbookDigest, brand: DigestBrand): jsPDF {
   const accent = hexToRgb(brand.accent || "#C1272D");
+  const wm = brand.watermark || null;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const bottom = PAGE_H - MARGIN_Y;
 
-  paintBackground(doc);
+  // Paint the sheet + watermark for a fresh page. Content is drawn afterwards,
+  // so the watermark always sits beneath the text.
+  const paint = () => {
+    paintBackground(doc);
+    if (wm) drawWatermark(doc, wm);
+  };
+
+  paint();
 
   // ---- header
   let headerY = MARGIN_Y;
@@ -268,35 +344,44 @@ export function generateDigestPdf(digest: FactbookDigest, brand: DigestBrand): j
   doc.line(MARGIN_X, headerY, MARGIN_X + CONTENT_W, headerY);
   const contentTop = headerY + 16;
 
-  // ---- cards (sequential two-column fill)
+  // ---- cards (sequential two-column fill).
+  // Track the bottom of BOTH columns per page so the full-width Key Figures
+  // table starts below whichever column is taller (previously it followed only
+  // the current column and painted on top of the other one).
   let col = 0;
-  let y = contentTop;
+  let pageTop = contentTop;
+  let y = pageTop;
+  const colBottom: [number, number] = [pageTop, pageTop];
   for (const card of digest.cards || []) {
     const layout = layoutCard(doc, card, COL_W);
     if (y + layout.height > bottom) {
       if (col === 0) {
         col = 1;
-        y = contentTop;
+        y = pageTop;
       } else {
         doc.addPage();
-        paintBackground(doc);
+        paint();
         col = 0;
-        y = MARGIN_Y;
+        pageTop = MARGIN_Y;
+        y = pageTop;
+        colBottom[0] = pageTop;
+        colBottom[1] = pageTop;
       }
     }
     drawCard(doc, layout, accent, columnX(col), y, COL_W);
     y += layout.height;
+    colBottom[col] = y;
   }
 
   // ---- Key Figures table (full width)
   const figures = digest.figures || [];
   if (figures.length) {
-    // move to a fresh full-width cursor below the taller column
-    let ty = col === 1 ? Math.max(y, contentTop) : y;
+    // start below whichever column reached furthest down on this page
+    let ty = Math.max(colBottom[0], colBottom[1]);
     ty += 24;
     if (ty + 60 > bottom) {
       doc.addPage();
-      paintBackground(doc);
+      paint();
       ty = MARGIN_Y;
     }
     setDraw(doc, DARK);
@@ -326,15 +411,21 @@ export function generateDigestPdf(digest: FactbookDigest, brand: DigestBrand): j
 
       if (ty + rowH > bottom) {
         doc.addPage();
-        paintBackground(doc);
+        paint();
         ty = MARGIN_Y;
       }
 
-      // figure (accent serif)
+      // figure (accent serif) — shrink if it would overrun the number column
       doc.setFont("times", "bold");
-      doc.setFontSize(13);
+      let figSize = 13;
+      doc.setFontSize(figSize);
+      const figText = f.figure || "";
+      while (figSize > 8 && doc.getTextWidth(figText) > numW) {
+        figSize -= 0.5;
+        doc.setFontSize(figSize);
+      }
       setText(doc, accent);
-      doc.text(f.figure || "", MARGIN_X, ty + 13 * 0.72);
+      doc.text(figText, MARGIN_X, ty + figSize * 0.72);
 
       // label + context
       let cy = ty;
@@ -379,11 +470,12 @@ export function generateDigestPdf(digest: FactbookDigest, brand: DigestBrand): j
   return doc;
 }
 
-export function downloadDigestPdf(
+export async function downloadDigestPdf(
   digest: FactbookDigest,
-  options: { accent: string; fileName: string }
-): void {
-  const doc = generateDigestPdf(digest, { accent: options.accent });
+  options: { accent: string; fileName: string; watermarkUrl?: string }
+): Promise<void> {
+  const watermark = options.watermarkUrl ? await loadWatermarkImage(options.watermarkUrl) : null;
+  const doc = generateDigestPdf(digest, { accent: options.accent, watermark });
   const safeName = (options.fileName || "factbook-digest")
     .replace(/[^a-z0-9\-_]+/gi, "-")
     .replace(/-+/g, "-");

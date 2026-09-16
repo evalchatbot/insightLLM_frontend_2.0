@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarDays, ChevronDown, Loader2 } from "lucide-react";
 import { Playfair_Display, Source_Sans_3 } from "next/font/google";
-import { fetchFactbookDigest, renderDigestHtml, downloadDigestHtml } from "@/utils/factbook-digest";
+import { fetchFactbookDigest, downloadDigestPdf } from "@/utils/factbook-digest";
 
 // Lahore CSS Academy brand accent for the exported digest (amber-700, legible on cream).
 const DIGEST_ACCENT = "#B45309";
@@ -752,8 +752,7 @@ export default function FactBookPage() {
           : `factbook-digest-${sanitizePdfFileName(selectedTopic)}-filtered`;
 
       const digest = await fetchFactbookDigest(displayedEditorials);
-      const html = renderDigestHtml(digest, { accent: DIGEST_ACCENT });
-      downloadDigestHtml(html, fileName);
+      downloadDigestPdf(digest, { accent: DIGEST_ACCENT, fileName });
     } catch (downloadError: any) {
       setPdfExportError(downloadError?.message || "Unable to generate the digest right now.");
     } finally {
@@ -776,8 +775,7 @@ export default function FactBookPage() {
       setPdfExportError(null);
 
       const digest = await fetchFactbookDigest(editorials);
-      const html = renderDigestHtml(digest, { accent: DIGEST_ACCENT });
-      downloadDigestHtml(html, `factbook-digest-${sanitizePdfFileName(selectedTopic)}-complete`);
+      downloadDigestPdf(digest, { accent: DIGEST_ACCENT, fileName: `factbook-digest-${sanitizePdfFileName(selectedTopic)}-complete` });
     } catch (downloadError: any) {
       setPdfExportError(downloadError?.message || "Unable to generate the digest right now.");
     } finally {

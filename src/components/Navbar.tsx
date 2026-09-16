@@ -48,6 +48,7 @@ const Navbar = () => {
     const navLinks: NavLink[] = [
         { name: "Home", href: "/" },
         { name: "Evaluations", href: "/app/ocr" },
+        { name: "Psych Assessment", href: "/app/psych-assessment" },
         { name: "MCQs", href: "/quiz" },
         { name: "Fact Book", href: "/app/factbook" },
         { name: "Past Papers", href: "/app/past-papers" },

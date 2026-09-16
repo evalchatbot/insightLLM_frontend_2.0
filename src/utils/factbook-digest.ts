@@ -53,6 +53,8 @@ export interface DigestBrand {
   accent: string;
   /** Optional faint centred brand watermark, already rasterised to PNG. */
   watermark?: Watermark | null;
+  /** Optional brand logo shown at the top-left of the first page (letterhead). */
+  headerLogo?: Watermark | null;
 }
 
 type RGB = [number, number, number];
@@ -310,6 +312,7 @@ function columnX(col: number): number {
 export function generateDigestPdf(digest: FactbookDigest, brand: DigestBrand): jsPDF {
   const accent = hexToRgb(brand.accent || "#C1272D");
   const wm = brand.watermark || null;
+  const headerLogo = brand.headerLogo || null;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const bottom = PAGE_H - MARGIN_Y;
 
@@ -323,22 +326,51 @@ export function generateDigestPdf(digest: FactbookDigest, brand: DigestBrand): j
   paint();
 
   // ---- header
-  let headerY = MARGIN_Y;
-  doc.setFont("times", "bold");
-  doc.setFontSize(22);
-  setText(doc, DARK);
-  const titleLines = doc.splitTextToSize(digest.digest_title || "Fact Book Digest", CONTENT_W - 170) as string[];
-  titleLines.forEach((ln, i) => doc.text(ln, MARGIN_X, headerY + 22 * 0.72 + i * 24));
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  setText(doc, MUTED);
+  const headerTop = MARGIN_Y;
   const src = digest.source_name || "Dawn Editorials";
   const range = digest.date_range || "";
-  doc.text(src, PAGE_W - MARGIN_X, headerY + 8, { align: "right" });
-  doc.text(range, PAGE_W - MARGIN_X, headerY + 19, { align: "right" });
+  let headerY: number;
 
-  headerY += Math.max(titleLines.length * 24, 26) + 8;
+  if (headerLogo) {
+    // Letterhead layout: brand logo top-left, source/range top-right, title beneath.
+    const logoH = 30;
+    const logoW = logoH / (headerLogo.ratio || 1);
+    try {
+      doc.addImage(headerLogo.dataUrl, "PNG", MARGIN_X, headerTop, logoW, logoH, undefined, "FAST");
+    } catch {
+      // logo is decorative — never block the export
+    }
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    setText(doc, MUTED);
+    doc.text(src, PAGE_W - MARGIN_X, headerTop + 11, { align: "right" });
+    doc.text(range, PAGE_W - MARGIN_X, headerTop + 22, { align: "right" });
+
+    const titleTop = headerTop + logoH + 14;
+    doc.setFont("times", "bold");
+    doc.setFontSize(22);
+    setText(doc, DARK);
+    const titleLines = doc.splitTextToSize(digest.digest_title || "Fact Book Digest", CONTENT_W) as string[];
+    titleLines.forEach((ln, i) => doc.text(ln, MARGIN_X, titleTop + 22 * 0.72 + i * 24));
+    headerY = titleTop + titleLines.length * 24 + 6;
+  } else {
+    // Masthead layout: title top-left, source/range top-right (same row).
+    doc.setFont("times", "bold");
+    doc.setFontSize(22);
+    setText(doc, DARK);
+    const titleLines = doc.splitTextToSize(digest.digest_title || "Fact Book Digest", CONTENT_W - 170) as string[];
+    titleLines.forEach((ln, i) => doc.text(ln, MARGIN_X, headerTop + 22 * 0.72 + i * 24));
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    setText(doc, MUTED);
+    doc.text(src, PAGE_W - MARGIN_X, headerTop + 8, { align: "right" });
+    doc.text(range, PAGE_W - MARGIN_X, headerTop + 19, { align: "right" });
+
+    headerY = headerTop + Math.max(titleLines.length * 24, 26) + 8;
+  }
+
   setDraw(doc, DARK);
   doc.setLineWidth(3);
   doc.line(MARGIN_X, headerY, MARGIN_X + CONTENT_W, headerY);
@@ -472,10 +504,13 @@ export function generateDigestPdf(digest: FactbookDigest, brand: DigestBrand): j
 
 export async function downloadDigestPdf(
   digest: FactbookDigest,
-  options: { accent: string; fileName: string; watermarkUrl?: string }
+  options: { accent: string; fileName: string; watermarkUrl?: string; logoUrl?: string }
 ): Promise<void> {
-  const watermark = options.watermarkUrl ? await loadWatermarkImage(options.watermarkUrl) : null;
-  const doc = generateDigestPdf(digest, { accent: options.accent, watermark });
+  const [watermark, headerLogo] = await Promise.all([
+    options.watermarkUrl ? loadWatermarkImage(options.watermarkUrl) : Promise.resolve(null),
+    options.logoUrl ? loadWatermarkImage(options.logoUrl) : Promise.resolve(null),
+  ]);
+  const doc = generateDigestPdf(digest, { accent: options.accent, watermark, headerLogo });
   const safeName = (options.fileName || "factbook-digest")
     .replace(/[^a-z0-9\-_]+/gi, "-")
     .replace(/-+/g, "-");

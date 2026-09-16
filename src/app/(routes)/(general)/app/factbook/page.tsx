@@ -9,6 +9,7 @@ import { fetchFactbookDigest, downloadDigestPdf } from "@/utils/factbook-digest"
 // Lahore CSS Academy brand accent for the exported digest (amber-700, legible on cream).
 const DIGEST_ACCENT = "#B45309";
 const DIGEST_WATERMARK = "/assets/lahore-css-academy-mark.png";
+const DIGEST_LOGO = "/assets/lahore-css-academy-logo.png";
 import {
   FactbookEditorial,
   FactbookTopicGroup,
@@ -753,7 +754,7 @@ export default function FactBookPage() {
           : `factbook-digest-${sanitizePdfFileName(selectedTopic)}-filtered`;
 
       const digest = await fetchFactbookDigest(displayedEditorials);
-      await downloadDigestPdf(digest, { accent: DIGEST_ACCENT, watermarkUrl: DIGEST_WATERMARK, fileName });
+      await downloadDigestPdf(digest, { accent: DIGEST_ACCENT, watermarkUrl: DIGEST_WATERMARK, logoUrl: DIGEST_LOGO, fileName });
     } catch (downloadError: any) {
       setPdfExportError(downloadError?.message || "Unable to generate the digest right now.");
     } finally {
@@ -776,7 +777,7 @@ export default function FactBookPage() {
       setPdfExportError(null);
 
       const digest = await fetchFactbookDigest(editorials);
-      await downloadDigestPdf(digest, { accent: DIGEST_ACCENT, watermarkUrl: DIGEST_WATERMARK, fileName: `factbook-digest-${sanitizePdfFileName(selectedTopic)}-complete` });
+      await downloadDigestPdf(digest, { accent: DIGEST_ACCENT, watermarkUrl: DIGEST_WATERMARK, logoUrl: DIGEST_LOGO, fileName: `factbook-digest-${sanitizePdfFileName(selectedTopic)}-complete` });
     } catch (downloadError: any) {
       setPdfExportError(downloadError?.message || "Unable to generate the digest right now.");
     } finally {

@@ -3,8 +3,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarDays, ChevronDown, Loader2 } from "lucide-react";
-import { jsPDF } from "jspdf";
 import { Playfair_Display, Source_Sans_3 } from "next/font/google";
+import { fetchFactbookDigest, renderDigestHtml, downloadDigestHtml } from "@/utils/factbook-digest";
+
+// Lahore CSS Academy brand accent for the exported digest (amber-700, legible on cream).
+const DIGEST_ACCENT = "#B45309";
 import {
   FactbookEditorial,
   FactbookTopicGroup,
@@ -164,387 +167,6 @@ function filterEditorialsBySelectedDates(
   }
 
   return rows.filter((row) => row.publication_date === selectedDate);
-}
-
-function generateFactbookPdf(
-  rows: FactbookEditorial[],
-  options: {
-    title: string;
-    subtitle: string;
-    fileName: string;
-  }
-): void {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const marginX = 42;
-  const marginY = 48;
-  const contentWidth = pageWidth - marginX * 2;
-  const columnGap = 24;
-  const columnWidth = (contentWidth - columnGap) / 2;
-  const bottomLimit = pageHeight - marginY;
-
-  const INK: [number, number, number] = [17, 24, 39];
-  const MUTED: [number, number, number] = [100, 116, 139];
-  const RULE: [number, number, number] = [226, 232, 240];
-  const BRAND: [number, number, number] = [180, 83, 9]; // #b45309 amber-700 (Lahore CSS Academy)
-  const CREAM: [number, number, number] = [228, 226, 221]; // #e4e2dd logo mark
-
-  let currentColumn = 0;
-  let columnTopY = marginY;
-  let cursorY = marginY;
-  const getColumnX = () => marginX + currentColumn * (columnWidth + columnGap);
-
-  // Brand watermark (logo mark + wordmark) in the top-right of every page.
-  const MARK: [number, number, number] = [245, 166, 35]; // #f5a623 Lahore CSS Academy orange
-  const drawWatermark = () => {
-    const s = 14; // logo square size (pt)
-    const label = "Lahore CSS Academy";
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    const labelW = doc.getTextWidth(label);
-    const gap = 5;
-    const totalW = s + gap + labelW;
-    const x = pageWidth - marginX - totalW;
-    const yTop = 20; // sits inside the top margin band, above content
-
-    const anyDoc = doc as any;
-    anyDoc.saveGraphicsState?.();
-    if (anyDoc.GState && anyDoc.setGState) {
-      anyDoc.setGState(new anyDoc.GState({ opacity: 0.5 }));
-    }
-
-    // brand square (Lahore CSS Academy orange)
-    doc.setFillColor(MARK[0], MARK[1], MARK[2]);
-    doc.roundedRect(x, yTop, s, s, 2, 2, "F");
-
-    // cream monogram bars echoing the logo mark
-    doc.setFillColor(CREAM[0], CREAM[1], CREAM[2]);
-    const gh = 0.64 * s;
-    const gw = 0.513 * s;
-    const gLeft = x + (s - gw) / 2;
-    const gTop = yTop + (s - gh) / 2;
-    doc.rect(gLeft, gTop + 0.026 * gh, 0.4527 * gw, 0.974 * gh, "F");
-    doc.circle(gLeft + 0.779 * gw, gTop + 0.177 * gh, 0.177 * gh, "F");
-
-    // wordmark
-    doc.setTextColor(INK[0], INK[1], INK[2]);
-    doc.text(label, x + s + gap, yTop + s * 0.72);
-
-    anyDoc.restoreGraphicsState?.();
-  };
-
-  const newPage = () => {
-    doc.addPage();
-    drawWatermark();
-    currentColumn = 0;
-    columnTopY = marginY;
-    cursorY = marginY;
-  };
-
-  const nextColumn = () => {
-    if (currentColumn === 0) {
-      currentColumn = 1;
-      cursorY = columnTopY;
-    } else {
-      newPage();
-    }
-  };
-
-  type LineItem = {
-    lines: string[];
-    fontSize: number;
-    lineGap: number;
-    bold: boolean;
-    color: [number, number, number];
-    gapAfter: number;
-  };
-
-  // Pre-split an editorial into measured line-items so the whole block can be
-  // placed at once (avoids the text overlap caused by splitting blocks mid-flow).
-  const buildBlock = (row: FactbookEditorial): LineItem[] => {
-    const items: LineItem[] = [];
-    const push = (
-      text: string,
-      fontSize: number,
-      lineGap: number,
-      bold: boolean,
-      color: [number, number, number],
-      gapAfter = 0
-    ) => {
-      const t = (text || "").trim();
-      if (!t) return;
-      doc.setFont("times", bold ? "bold" : "normal");
-      doc.setFontSize(fontSize);
-      const lines = doc.splitTextToSize(t, columnWidth) as string[];
-      items.push({ lines, fontSize, lineGap, bold, color, gapAfter });
-    };
-    push(`${formatDate(row.publication_date)}  |  ${row.topic_domain || "Other"}`, 8.8, 12, true, MUTED, 3);
-    // Headline only — no "COMPREHENSIVE EDITORIAL SUMMARY:" prefix.
-    push((row.headline || "Untitled Editorial").toUpperCase(), 12.5, 15, true, INK, 5);
-    (row.summary_bullets || []).slice(0, 3).forEach((bullet) => push(`•  ${bullet}`, 9.8, 13, false, INK, 3));
-    if (row.takeaway) push(`Takeaway: ${row.takeaway}`, 9.8, 13, false, INK, 0);
-    return items;
-  };
-
-  const blockHeight = (items: LineItem[]) =>
-    items.reduce((h, it) => h + it.lines.length * it.lineGap + it.gapAfter, 0);
-
-  const drawItems = (items: LineItem[]) => {
-    items.forEach((it) => {
-      doc.setFont("times", it.bold ? "bold" : "normal");
-      doc.setFontSize(it.fontSize);
-      doc.setTextColor(it.color[0], it.color[1], it.color[2]);
-      const x = getColumnX();
-      it.lines.forEach((line) => {
-        // fallback for a block longer than a full column: flow to the next
-        if (cursorY + it.lineGap > bottomLimit) nextColumn();
-        doc.text(line, x, cursorY + it.fontSize * 0.78);
-        cursorY += it.lineGap;
-      });
-      cursorY += it.gapAfter;
-    });
-  };
-
-  // Header (first page)
-  drawWatermark();
-  doc.setTextColor(INK[0], INK[1], INK[2]);
-  doc.setFont("times", "bold");
-  doc.setFontSize(20);
-  (doc.splitTextToSize(options.title, contentWidth) as string[]).forEach((line) => {
-    doc.text(line, marginX, cursorY + 20 * 0.78);
-    cursorY += 24;
-  });
-  cursorY += 2;
-  doc.setFont("times", "normal");
-  doc.setFontSize(11);
-  doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-  (doc.splitTextToSize(options.subtitle, contentWidth) as string[]).forEach((line) => {
-    doc.text(line, marginX, cursorY + 11 * 0.78);
-    cursorY += 15;
-  });
-  cursorY += 16;
-  columnTopY = cursorY;
-
-  rows.forEach((row) => {
-    const items = buildBlock(row);
-    const h = blockHeight(items);
-    const columnCapacity = bottomLimit - columnTopY;
-
-    // Place each editorial as a single block; if it won't fit in the rest of the
-    // current column (but fits in a fresh one), move first so blocks never overlap.
-    if (cursorY + h > bottomLimit && h <= columnCapacity) {
-      nextColumn();
-    }
-
-    drawItems(items);
-
-    // divider between editorials within a column
-    cursorY += 8;
-    if (cursorY < bottomLimit) {
-      doc.setDrawColor(RULE[0], RULE[1], RULE[2]);
-      doc.setLineWidth(0.8);
-      doc.line(getColumnX(), cursorY, getColumnX() + columnWidth, cursorY);
-    }
-    cursorY += 14;
-  });
-
-  // End-of-PDF appendix: compact date summary for readers who skip the full digest.
-  drawDateSummaryAppendix(doc, rows, {
-    pageWidth,
-    pageHeight,
-    marginX,
-    marginY,
-    contentWidth,
-    ink: INK,
-    muted: MUTED,
-    rule: RULE,
-    brand: BRAND,
-    cream: CREAM,
-    drawWatermark,
-  });
-
-  doc.save(`${sanitizePdfFileName(options.fileName)}.pdf`);
-}
-
-function drawDateSummaryAppendix(
-  doc: jsPDF,
-  rows: FactbookEditorial[],
-  layout: {
-    pageWidth: number;
-    pageHeight: number;
-    marginX: number;
-    marginY: number;
-    contentWidth: number;
-    ink: [number, number, number];
-    muted: [number, number, number];
-    rule: [number, number, number];
-    brand: [number, number, number];
-    cream: [number, number, number];
-    drawWatermark: () => void;
-  }
-): void {
-  if (!rows.length) return;
-
-  const {
-    pageHeight,
-    marginX,
-    marginY,
-    contentWidth,
-    ink,
-    muted,
-    rule,
-    brand,
-    drawWatermark,
-  } = layout;
-  const bottomLimit = pageHeight - marginY;
-  const colGap = 14;
-
-  // Fixed non-overlapping columns (topic | headline | takeaway)
-  const topicW = Math.floor(contentWidth * 0.17);
-  const headlineW = Math.floor(contentWidth * 0.36);
-  const takeawayW = contentWidth - topicW - headlineW - colGap * 2;
-  const topicX = marginX;
-  const headlineX = topicX + topicW + colGap;
-  const takeawayX = headlineX + headlineW + colGap;
-
-  const byDate = new Map<string, FactbookEditorial[]>();
-  for (const row of rows) {
-    const key = row.publication_date || "unknown";
-    const bucket = byDate.get(key) || [];
-    bucket.push(row);
-    byDate.set(key, bucket);
-  }
-  const dates = Array.from(byDate.keys()).sort();
-
-  const ensureSpace = (needed: number, y: number): number => {
-    if (y + needed <= bottomLimit) return y;
-    doc.addPage();
-    drawWatermark();
-    return marginY;
-  };
-
-  /** Normalize whitespace; keep full meaningful sentences (no ellipsis cut). */
-  const cleanText = (text: string, fallback = "—"): string => {
-    const t = (text || "").replace(/\s+/g, " ").trim();
-    return t || fallback;
-  };
-
-  doc.addPage();
-  drawWatermark();
-  let y = marginY;
-
-  doc.setFont("times", "bold");
-  doc.setFontSize(18);
-  doc.setTextColor(ink[0], ink[1], ink[2]);
-  doc.text("Quick Summary by Date", marginX, y + 18 * 0.78);
-  y += 26;
-
-  doc.setFont("times", "normal");
-  doc.setFontSize(10.5);
-  doc.setTextColor(muted[0], muted[1], muted[2]);
-  const overview = `${rows.length} editorial${rows.length === 1 ? "" : "s"} across ${dates.length} date${
-    dates.length === 1 ? "" : "s"
-  } — skim this table if you do not want to read the full digest above.`;
-  (doc.splitTextToSize(overview, contentWidth) as string[]).forEach((line) => {
-    doc.text(line, marginX, y + 10.5 * 0.78);
-    y += 14;
-  });
-  y += 10;
-
-  doc.setDrawColor(brand[0], brand[1], brand[2]);
-  doc.setLineWidth(1.2);
-  doc.line(marginX, y, marginX + contentWidth, y);
-  y += 16;
-
-  for (const dateKey of dates) {
-    const items = byDate.get(dateKey) || [];
-    y = ensureSpace(40, y);
-
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(marginX, y - 4, contentWidth, 22, 3, 3, "F");
-    doc.setFont("times", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(brand[0], brand[1], brand[2]);
-    doc.text(formatDate(dateKey), marginX + 8, y + 11);
-    doc.setFont("times", "normal");
-    doc.setFontSize(9.5);
-    doc.setTextColor(muted[0], muted[1], muted[2]);
-    const countLabel = `${items.length} item${items.length === 1 ? "" : "s"}`;
-    doc.text(countLabel, marginX + contentWidth - 8 - doc.getTextWidth(countLabel), y + 11);
-    y += 28;
-
-    y = ensureSpace(18, y);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(muted[0], muted[1], muted[2]);
-    doc.text("TOPIC", topicX, y);
-    doc.text("HEADLINE", headlineX, y);
-    doc.text("TAKEAWAY", takeawayX, y);
-    y += 5;
-    doc.setDrawColor(rule[0], rule[1], rule[2]);
-    doc.setLineWidth(0.6);
-    doc.line(marginX, y, marginX + contentWidth, y);
-    y += 10;
-
-    items.forEach((row, idx) => {
-      const topic = cleanText(row.topic_domain || "Other", "Other");
-      const headline = cleanText(row.headline || "Untitled Editorial", "Untitled Editorial");
-      const takeaway = cleanText(
-        row.takeaway || (row.summary_bullets || [])[0] || "—",
-        "—"
-      );
-
-      // Wrap fully inside each column — no mid-sentence ellipsis truncation.
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      const topicLines = doc.splitTextToSize(topic, topicW - 2) as string[];
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.5);
-      const headlineLines = doc.splitTextToSize(headline, headlineW - 2) as string[];
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      const takeawayLines = doc.splitTextToSize(takeaway, takeawayW - 2) as string[];
-
-      const lineCount = Math.max(topicLines.length, headlineLines.length, takeawayLines.length, 1);
-      const rowH = lineCount * 11 + 10;
-      y = ensureSpace(rowH, y);
-
-      if (idx % 2 === 0) {
-        doc.setFillColor(252, 252, 251);
-        doc.rect(marginX, y - 3, contentWidth, rowH - 2, "F");
-      }
-
-      doc.setTextColor(ink[0], ink[1], ink[2]);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      topicLines.forEach((line, i) => doc.text(line, topicX, y + 8 + i * 11));
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.5);
-      headlineLines.forEach((line, i) => doc.text(line, headlineX, y + 8 + i * 11));
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(muted[0], muted[1], muted[2]);
-      takeawayLines.forEach((line, i) => doc.text(line, takeawayX, y + 8 + i * 11));
-
-      y += rowH;
-      doc.setDrawColor(rule[0], rule[1], rule[2]);
-      doc.setLineWidth(0.4);
-      doc.line(marginX, y - 4, marginX + contentWidth, y - 4);
-    });
-
-    y += 12;
-  }
-
-  y = ensureSpace(24, y);
-  doc.setFont("times", "italic");
-  doc.setFontSize(9);
-  doc.setTextColor(muted[0], muted[1], muted[2]);
-  doc.text("Generated by Lahore CSS Academy Factbook — summary appendix", marginX, y + 9);
 }
 
 function mergeEditorialRows(editorialGroups: FactbookEditorial[][]): FactbookEditorial[] {
@@ -1123,27 +745,17 @@ export default function FactBookPage() {
       setIsPdfExporting(true);
       setPdfExportError(null);
 
-      const title = browseMode === "date"
-        ? "Fact Book - Selected Dates"
-        : topicDateMode === "all"
-          ? `Fact Book - ${selectedTopic} (All Time)`
-          : `Fact Book - ${selectedTopic}`;
-
-      const subtitle = browseMode === "date"
-        ? `Selection: ${dateSelectionDisplay}`
-        : topicDateMode === "all"
-          ? `Topic: ${selectedTopic} | Selection: All Time`
-          : `Topic: ${selectedTopic} | Selection: ${dateSelectionDisplay}`;
-
       const fileName = browseMode === "date"
-        ? `factbook-${dateSelectionMode}-${selectedDate}`
+        ? `factbook-digest-${dateSelectionMode}-${selectedDate}`
         : topicDateMode === "all"
-          ? `factbook-${sanitizePdfFileName(selectedTopic)}-all-time`
-          : `factbook-${sanitizePdfFileName(selectedTopic)}-filtered`;
+          ? `factbook-digest-${sanitizePdfFileName(selectedTopic)}-all-time`
+          : `factbook-digest-${sanitizePdfFileName(selectedTopic)}-filtered`;
 
-      generateFactbookPdf(displayedEditorials, { title, subtitle, fileName });
+      const digest = await fetchFactbookDigest(displayedEditorials);
+      const html = renderDigestHtml(digest, { accent: DIGEST_ACCENT });
+      downloadDigestHtml(html, fileName);
     } catch (downloadError: any) {
-      setPdfExportError(downloadError?.message || "Unable to generate the PDF right now.");
+      setPdfExportError(downloadError?.message || "Unable to generate the digest right now.");
     } finally {
       setIsPdfExporting(false);
     }
@@ -1163,13 +775,11 @@ export default function FactBookPage() {
       setIsPdfExporting(true);
       setPdfExportError(null);
 
-      generateFactbookPdf(editorials, {
-        title: `Fact Book - ${selectedTopic} (Complete Topic)`,
-        subtitle: `Complete topic export for ${selectedTopic}`,
-        fileName: `factbook-${sanitizePdfFileName(selectedTopic)}-complete`,
-      });
+      const digest = await fetchFactbookDigest(editorials);
+      const html = renderDigestHtml(digest, { accent: DIGEST_ACCENT });
+      downloadDigestHtml(html, `factbook-digest-${sanitizePdfFileName(selectedTopic)}-complete`);
     } catch (downloadError: any) {
-      setPdfExportError(downloadError?.message || "Unable to generate the PDF right now.");
+      setPdfExportError(downloadError?.message || "Unable to generate the digest right now.");
     } finally {
       setIsPdfExporting(false);
     }
@@ -1676,7 +1286,7 @@ export default function FactBookPage() {
                         disabled={isPdfExporting || !displayedEditorials.length}
                         className="rounded-xl border border-zinc-900 bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-200 dark:bg-rose-200 dark:text-rose-950"
                       >
-                        {isPdfExporting ? "Generating PDF..." : "Download selected PDF"}
+                        {isPdfExporting ? "Generating digest…" : "Download digest"}
                       </button>
 
                       {browseMode === "topic" && selectedTopic && (
@@ -1686,7 +1296,7 @@ export default function FactBookPage() {
                           disabled={isPdfExporting || !editorials.length}
                           className="rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-900/80 dark:bg-[#2a111c] dark:text-rose-100 dark:hover:bg-rose-900/40"
                         >
-                          Download complete topic PDF
+                          {isPdfExporting ? "Generating digest…" : "Download complete topic digest"}
                         </button>
                       )}
                     </div>

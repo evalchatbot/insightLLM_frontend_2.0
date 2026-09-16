@@ -8,6 +8,7 @@ import { fetchFactbookDigest, downloadDigestPdf } from "@/utils/factbook-digest"
 
 // rubric.ai brand accent for the exported digest.
 const DIGEST_ACCENT = "#C1272D";
+const DIGEST_WATERMARK = "/assets/Rubric logo.svg";
 import {
   FactbookEditorial,
   FactbookTopicGroup,
@@ -764,7 +765,7 @@ export default function FactBookPage() {
           : `factbook-digest-${sanitizePdfFileName(selectedTopic)}-filtered`;
 
       const digest = await fetchFactbookDigest(displayedEditorials);
-      downloadDigestPdf(digest, { accent: DIGEST_ACCENT, fileName });
+      await downloadDigestPdf(digest, { accent: DIGEST_ACCENT, watermarkUrl: DIGEST_WATERMARK, fileName });
     } catch (downloadError: any) {
       setPdfExportError(downloadError?.message || "Unable to generate the digest right now.");
     } finally {
@@ -787,7 +788,7 @@ export default function FactBookPage() {
       setPdfExportError(null);
 
       const digest = await fetchFactbookDigest(editorials);
-      downloadDigestPdf(digest, { accent: DIGEST_ACCENT, fileName: `factbook-digest-${sanitizePdfFileName(selectedTopic)}-complete` });
+      await downloadDigestPdf(digest, { accent: DIGEST_ACCENT, watermarkUrl: DIGEST_WATERMARK, fileName: `factbook-digest-${sanitizePdfFileName(selectedTopic)}-complete` });
     } catch (downloadError: any) {
       setPdfExportError(downloadError?.message || "Unable to generate the digest right now.");
     } finally {
@@ -905,23 +906,54 @@ export default function FactBookPage() {
                       className="w-full text-left rounded-xl px-4 sm:px-5 py-4 sm:py-5 hover:bg-zinc-900/[0.04] dark:hover:bg-rose-900/30 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-rose-200/80">
-                            {formatDate(editorial.publication_date)}
-                          </p>
-                          <h2 className={`${playfair.className} mt-1 text-xl sm:text-2xl text-zinc-900 dark:text-rose-50 leading-snug`}>
-                            {editorial.headline}
-                          </h2>
-                          <p className="mt-2 text-sm text-zinc-700 dark:text-rose-100/95 leading-relaxed line-clamp-2">
-                            {getEditorialTeaser(editorial)}
-                          </p>
-                          {editorial.topic_domain && (
-                            <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-rose-300">
-                              {editorial.topic_domain}
+                        <div className="flex gap-3 min-w-0">
+                          <span
+                            aria-hidden
+                            className="mt-1.5 w-[3px] shrink-0 self-stretch rounded-full"
+                            style={{ backgroundColor: DIGEST_ACCENT }}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-rose-200/80">
+                              {formatDate(editorial.publication_date)}
                             </p>
-                          )}
+                            <h2 className={`${playfair.className} mt-1 text-xl sm:text-2xl text-zinc-900 dark:text-rose-50 leading-snug`}>
+                              {editorial.headline}
+                            </h2>
+                            {(editorial.summary_bullets || []).length > 0 ? (
+                              <ul className="mt-2.5 space-y-1.5">
+                                {(editorial.summary_bullets || []).slice(0, 2).map((bullet, bulletIndex) => (
+                                  <li
+                                    key={`${editorial.cardId}-teaser-${bulletIndex}`}
+                                    className="flex gap-2 text-sm leading-relaxed text-zinc-700 dark:text-rose-100/95"
+                                  >
+                                    <span aria-hidden className="mt-[1px] font-bold leading-none" style={{ color: DIGEST_ACCENT }}>
+                                      •
+                                    </span>
+                                    <span>{bullet}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="mt-2 text-sm text-zinc-700 dark:text-rose-100/95 leading-relaxed line-clamp-2">
+                                {getEditorialTeaser(editorial)}
+                              </p>
+                            )}
+                            {editorial.takeaway && (
+                              <p className="mt-2.5 text-sm leading-relaxed text-zinc-800 dark:text-rose-50">
+                                <span className="font-semibold" style={{ color: DIGEST_ACCENT }}>
+                                  Takeaway:{" "}
+                                </span>
+                                {editorial.takeaway}
+                              </p>
+                            )}
+                            {editorial.topic_domain && (
+                              <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-800 dark:text-rose-300">
+                                {editorial.topic_domain}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <ChevronDown className={`w-5 h-5 mt-1 text-zinc-500 dark:text-rose-200 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                        <ChevronDown className={`w-5 h-5 mt-1 shrink-0 text-zinc-500 dark:text-rose-200 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
                       </div>
                     </button>
 

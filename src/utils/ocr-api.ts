@@ -407,6 +407,7 @@ export async function submitOCRJob(
   formData.append("file", file);
   formData.append("user_id", userId);
   formData.append("subject", subject);
+  formData.append("brand", "lca");
 
   const response = await fetch(`${BACKEND_URL}/api/ocr/submit`, {
     method: "POST",
@@ -667,6 +668,7 @@ export async function submitEssayJob(file: File, userId: string) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('user_id', userId);
+  formData.append('brand', 'lca');
   const res = await fetch(`${BACKEND_URL}/api/essay/submit`, { method: 'POST', body: formData });
   if (!res.ok) throw new Error("Submission failed");
   return await res.json(); // { jobId, requestId }
@@ -703,6 +705,7 @@ export async function submitOutlineJob(file: File, userId: string) {
   formData.append('file', file);
   formData.append('user_id', userId);
   formData.append('pipeline', 'outline');
+  formData.append('brand', 'lca');
   const res = await fetch(`${BACKEND_URL}/api/outline/submit`, { method: 'POST', body: formData });
   if (!res.ok) throw new Error("Outline submission failed");
   return await res.json(); // { jobId, requestId }
@@ -736,6 +739,7 @@ export async function submitPrecisJob(file: File, userId: string) {
   formData.append('file', file);
   formData.append('user_id', userId);
   formData.append('pipeline', 'precis');
+  formData.append('brand', 'lca');
   const res = await fetch(`${BACKEND_URL}/api/precis/submit`, { method: 'POST', body: formData });
   if (!res.ok) throw new Error("Precis submission failed");
   return await res.json(); // { jobId, requestId }

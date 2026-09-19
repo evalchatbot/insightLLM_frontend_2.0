@@ -74,6 +74,8 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
   type BulkItem = {
     name: string
     status: "queued" | "processing" | "completed" | "failed"
+    progress?: number
+    phase?: string
     downloadUrl?: string
     downloadName?: string
     downloaded?: boolean
@@ -810,13 +812,14 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
     mode: "essay" | "outline" | "precis" | "regular"
   ) => {
     const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
-    updateBulkItem(index, { status: "processing" })
+    updateBulkItem(index, { status: "queued", progress: 0 })
     try {
       let bulkJobId: string
-      if (mode === "essay") bulkJobId = (await submitEssayJob(file, user.id)).jobId
-      else if (mode === "outline") bulkJobId = (await submitOutlineJob(file, user.id)).jobId
-      else if (mode === "precis") bulkJobId = (await submitPrecisJob(file, user.id)).jobId
-      else bulkJobId = (await submitOCRJob(file, user.id, subject)).jobId
+      let bulkRequestId: string | undefined
+      if (mode === "essay") { const r = await submitEssayJob(file, user.id); bulkJobId = r.jobId; bulkRequestId = r.requestId }
+      else if (mode === "outline") { const r = await submitOutlineJob(file, user.id); bulkJobId = r.jobId; bulkRequestId = r.requestId }
+      else if (mode === "precis") { const r = await submitPrecisJob(file, user.id); bulkJobId = r.jobId; bulkRequestId = r.requestId }
+      else { const r = await submitOCRJob(file, user.id, subject); bulkJobId = r.jobId; bulkRequestId = r.requestId }
 
       recordEvalStat(subject) // count each bulk file at submit
 
@@ -832,6 +835,25 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
           : await getJobStatus(bulkJobId)
         if (!raw) continue
         const s = ((raw as any).status || raw) as string
+        // Reflect queued (waiting for a worker slot) vs actively processing, and
+        // pull the live per-file progress % from the backend while it runs.
+        if (s === "pending") {
+          updateBulkItem(index, { status: "queued" })
+        } else if (s === "running") {
+          let pct: number | undefined
+          let phase: string | undefined
+          if (bulkRequestId) {
+            try {
+              const pd = await getProgress(bulkRequestId)
+              if (pd) { pct = Math.round(pd.progress_percent); phase = pd.message }
+            } catch { /* progress is best-effort */ }
+          }
+          updateBulkItem(index, {
+            status: "processing",
+            ...(pct !== undefined ? { progress: pct } : {}),
+            ...(phase ? { phase } : {}),
+          })
+        }
         if (s === "completed") {
           const dlName = file.name.replace(/\.pdf$/i, "") + "-report.pdf"
           if (mode === "regular") {
@@ -1150,7 +1172,12 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                           <p className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-200">{it.name}</p>
                           <p className="text-xs flex flex-wrap items-center gap-x-2">
                             {it.status === "queued" && <span className="text-zinc-500">Queued…</span>}
-                            {it.status === "processing" && <span className="text-amber-600 dark:text-amber-400">Processing…</span>}
+                            {it.status === "processing" && (
+                              <span className="text-amber-600 dark:text-amber-400">
+                                {it.phase ? it.phase : "Processing…"}
+                                {typeof it.progress === "number" ? ` · ${it.progress}%` : ""}
+                              </span>
+                            )}
                             {it.status === "completed" && (
                               <>
                                 <span className="text-green-600 dark:text-green-400">
@@ -1167,6 +1194,14 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                               <span className="text-red-600 dark:text-red-400">Failed{it.error ? `: ${it.error}` : ""}</span>
                             )}
                           </p>
+                          {(it.status === "queued" || it.status === "processing") && (
+                            <div className="mt-1 h-1.5 w-full max-w-[240px] overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ease-out ${it.status === "queued" ? "bg-amber-300" : "bg-amber-500"}`}
+                                style={{ width: `${it.status === "queued" ? 6 : Math.max(4, it.progress ?? 0)}%` }}
+                              />
+                            </div>
+                          )}
                         </div>
                         {it.status === "completed" && it.downloadUrl && (
                           <button

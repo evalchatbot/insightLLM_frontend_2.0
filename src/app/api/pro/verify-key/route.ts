@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { lazyClient } from '@/lib/lazy-client';
 import { getAuth, clerkClient } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
@@ -12,9 +13,8 @@ export const dynamic = 'force-dynamic';
 // =====================================================
 
 // Initialize Supabase client with service role key for admin operations
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabase = lazyClient(() =>
+  createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 );
 
 export async function POST(req: Request) {

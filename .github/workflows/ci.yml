@@ -79,6 +79,24 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  build-no-env:
+    name: Build without any env (preview safety)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      # Other Vercel projects (e.g. the LCA app) build every branch of this repo as a
+      # preview with none of this app's settings. The build must not need Supabase or
+      # Clerk env; route modules may only touch them at request time.
+      - name: next build with no environment variables
+        run: npm run build
+
   build-e2e:
     name: Build & E2E (Playwright)
     runs-on: ubuntu-24.04

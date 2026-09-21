@@ -1,0 +1,13 @@
+{
+  // Type-checks the test suite (and the app code it imports) without adding
+  // test files to the Next.js build's tsconfig.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "ES2022",
+    "incremental": false,
+    "types": ["node"]
+  },
+  "include": ["../src/**/*", "./**/*.ts", "./**/*.tsx", "../vitest.config.mts", "../playwright.config.ts"],
+  "exclude": ["../node_modules", "../.next"]
+}

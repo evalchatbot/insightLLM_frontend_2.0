@@ -1123,6 +1123,31 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
                 </div>
               )}
 
+              {/* Essay: choose Full Essay vs Outline Only for the whole batch */}
+              {isEssay && (
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Evaluation Type</label>
+                  <div className="flex gap-1 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                    <button
+                      type="button"
+                      onClick={() => setIsOutlineMode(false)}
+                      disabled={bulkRunning}
+                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${!isOutlineMode ? "bg-amber-600 text-white shadow" : "text-zinc-600 dark:text-zinc-300"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      Full Essay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsOutlineMode(true)}
+                      disabled={bulkRunning}
+                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${isOutlineMode ? "bg-amber-600 text-white shadow" : "text-zinc-600 dark:text-zinc-300"} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      Outline Only
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <Button
                 onClick={handleBulkEvaluate}
                 disabled={bulkRunning || bulkFiles.length === 0 || !subject || !exam}
@@ -1130,7 +1155,7 @@ export default function OCRUpload({ onResults, onAnnotatedPDF }: OCRUploadProps)
               >
                 {bulkRunning
                   ? "Evaluating…"
-                  : `Evaluate ${bulkFiles.length || ""} PDF${bulkFiles.length === 1 ? "" : "s"}`}
+                  : `Evaluate ${bulkFiles.length || ""} ${isEssay && isOutlineMode ? "Outline" : "PDF"}${bulkFiles.length === 1 ? "" : "s"}`}
               </Button>
 
               {/* Overall bulk progress bar */}
